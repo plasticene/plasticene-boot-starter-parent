@@ -1,6 +1,6 @@
-package com.plasticene.boot.common.utils.pojo;
+package com.plasticene.boot.common.pojo;
 
-import com.plasticene.boot.common.utils.enums.ResponseStatusEnum;
+import com.plasticene.boot.common.enums.ResponseStatusEnum;
 import lombok.Data;
 
 import java.io.Serializable;

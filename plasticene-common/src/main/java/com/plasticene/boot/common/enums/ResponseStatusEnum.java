@@ -1,4 +1,4 @@
-package com.plasticene.boot.common.utils.enums;
+package com.plasticene.boot.common.enums;
 
 import cn.hutool.http.HttpStatus;
 import lombok.Getter;

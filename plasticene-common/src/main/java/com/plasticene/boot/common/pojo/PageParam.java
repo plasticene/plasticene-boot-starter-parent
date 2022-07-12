@@ -1,4 +1,4 @@
-package com.plasticene.boot.common.utils.pojo;
+package com.plasticene.boot.common.pojo;
 
 import lombok.Data;
 

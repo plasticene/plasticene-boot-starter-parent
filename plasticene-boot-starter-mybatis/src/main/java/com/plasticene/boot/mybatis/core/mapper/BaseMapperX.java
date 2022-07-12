@@ -6,8 +6,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import com.plasticene.boot.common.utils.pojo.PageParam;
-import com.plasticene.boot.common.utils.pojo.PageResult;
+import com.plasticene.boot.common.pojo.PageParam;
+import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.mybatis.core.utils.MybatisUtils;
 import org.apache.ibatis.annotations.Param;
 
