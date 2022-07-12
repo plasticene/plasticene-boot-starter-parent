@@ -12,6 +12,7 @@
         <module>plasticene-boot-starter-mybatis</module>
         <module>plasticene-boot-starter-web</module>
         <module>plasticene-common</module>
+        <module>plasticene-boot-starter-banner</module>
     </modules>
 
     <properties>
