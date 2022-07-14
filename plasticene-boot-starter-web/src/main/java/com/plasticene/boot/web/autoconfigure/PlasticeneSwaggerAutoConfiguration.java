@@ -1,6 +1,7 @@
 package com.plasticene.boot.web.autoconfigure;
 
 import com.github.xiaoymin.knife4j.spring.annotations.EnableKnife4j;
+import com.plasticene.boot.web.core.prop.SwaggerProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
