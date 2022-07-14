@@ -1,2 +1,7 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.plasticene.boot.web.autoconfigure.PlasticeneSwaggerAutoConfiguration
+  com.plasticene.boot.web.autoconfigure.PlasticeneSwaggerAutoConfiguration,\
+  com.plasticene.boot.web.autoconfigure.PlasticeneWebAutoConfiguration
+
+
+org.springframework.context.ApplicationContextInitializer=\
+  com.plasticene.boot.web.autoconfigure.TtlMDCAdapterInitializer
