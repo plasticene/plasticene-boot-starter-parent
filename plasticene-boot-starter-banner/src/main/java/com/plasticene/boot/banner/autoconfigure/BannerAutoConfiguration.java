@@ -1,6 +1,6 @@
-package com.plasticene.boot.autoconfigure;
+package com.plasticene.boot.banner.autoconfigure;
 
-import com.plasticene.boot.core.BannerApplicationRunner;
+import com.plasticene.boot.banner.core.BannerApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

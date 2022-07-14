@@ -1,4 +1,4 @@
-package com.plasticene.boot.core;
+package com.plasticene.boot.banner.core;
 
 import cn.hutool.core.thread.ThreadUtil;
 import lombok.extern.slf4j.Slf4j;
