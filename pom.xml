@@ -13,6 +13,8 @@
         <module>plasticene-boot-starter-mybatis</module>
         <module>plasticene-boot-starter-web</module>
         <module>plasticene-boot-starter-banner</module>
+        <module>plasticene-boot-starter-redis</module>
+        <module>plasticene-boot-starter-cache</module>
     </modules>
 
     <properties>
