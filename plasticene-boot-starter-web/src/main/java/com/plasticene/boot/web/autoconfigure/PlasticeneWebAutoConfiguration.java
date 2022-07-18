@@ -1,6 +1,7 @@
 package com.plasticene.boot.web.autoconfigure;
 
 import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
+import com.plasticene.boot.web.core.aop.ApiLogPrintAspect;
 import com.plasticene.boot.web.core.filter.WebTraceFilter;
 import com.plasticene.boot.web.core.prop.ThreadPoolProperties;
 import com.plasticene.boot.web.core.prop.TraceProperties;
@@ -47,6 +48,17 @@ public class PlasticeneWebAutoConfiguration {
         );
         return executor;
     }
+
+    /**
+     * 注入api 日志打印拦截器
+     * @return
+     */
+    @Bean
+    @ConditionalOnProperty(name = "ptc.apiLog.enable", havingValue = "true", matchIfMissing = true)
+    public ApiLogPrintAspect apiLogPrintAspect() {
+        return new ApiLogPrintAspect();
+    }
+
 
 
 }
