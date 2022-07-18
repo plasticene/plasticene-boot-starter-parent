@@ -24,6 +24,12 @@ public class ApiLogPrintAspect {
      * 声明切点
      *
      * @param joinPoint 切入点
+     *表达式示例：
+     * 任意公共方法的执行：execution(public * *(..))
+     * 任何一个以“set”开始的方法的执行：execution(* set*(..))
+     * AccountService 接口的任意方法的执行：execution(* com.xyz.service.AccountService.*(..))
+     * 定义在service包里的任意方法的执行： execution(* com.xyz.service.*.*(..))
+     * 定义在service包和所有子包里的任意类的任意方法的执行：execution(* com.xyz.service..*.*(..))
      * @return 返回值
      * @throws Throwable 异常
      */
