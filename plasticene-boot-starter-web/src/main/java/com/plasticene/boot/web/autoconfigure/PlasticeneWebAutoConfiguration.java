@@ -1,8 +1,10 @@
 package com.plasticene.boot.web.autoconfigure;
 
 import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
+import com.plasticene.boot.web.core.advice.ResponseResultBodyAdvice;
 import com.plasticene.boot.web.core.aop.ApiLogPrintAspect;
 import com.plasticene.boot.web.core.filter.WebTraceFilter;
+import com.plasticene.boot.web.core.global.GlobalExceptionHandler;
 import com.plasticene.boot.web.core.prop.ThreadPoolProperties;
 import com.plasticene.boot.web.core.prop.TraceProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -57,6 +59,16 @@ public class PlasticeneWebAutoConfiguration {
     @ConditionalOnProperty(name = "ptc.apiLog.enable", havingValue = "true", matchIfMissing = true)
     public ApiLogPrintAspect apiLogPrintAspect() {
         return new ApiLogPrintAspect();
+    }
+
+    @Bean
+    public GlobalExceptionHandler globalExceptionHandler() {
+        return new GlobalExceptionHandler();
+    }
+
+    @Bean
+    public ResponseResultBodyAdvice responseResultBodyAdvice() {
+        return new ResponseResultBodyAdvice();
     }
 
 
