@@ -46,7 +46,7 @@ public class ApiLogPrintAspect {
                 joinPoint.getSignature().getName()));
         requestInfo.setRequestParams(getRequestParams(joinPoint, request));
         log.info("Request Info : {}", JsonUtils.toJsonString(requestInfo));
-        Object result = joinPoint.proceed(joinPoint.getArgs());
+        Object result = joinPoint.proceed();
         log.info("Response result:  {}", JsonUtils.toJsonString(result));
         log.info("time cost:  {}", System.currentTimeMillis() - start);
         return result;
