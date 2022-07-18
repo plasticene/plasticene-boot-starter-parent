@@ -1,6 +1,7 @@
 package com.plasticene.boot.web.core.aop;
 
 import com.plasticene.boot.common.utils.JsonUtils;
+import com.plasticene.boot.web.core.model.RequestInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -35,80 +36,48 @@ public class ApiLogPrintAspect {
      */
     @Around("execution(* com.plasticene..controller..*(..))")
     public Object timeAround(ProceedingJoinPoint joinPoint) throws Throwable {
-        // 定义返回对象、得到方法需要的参数
-        Object obj = null;
+        long start = System.currentTimeMillis();
+        HttpServletRequest request = getRequest();
+        RequestInfo requestInfo = new RequestInfo();
+        requestInfo.setIp(request.getRemoteAddr());
+        requestInfo.setUrl(request.getRequestURL().toString());
+        requestInfo.setHttpMethod(request.getMethod());
+        requestInfo.setClassMethod(String.format("%s.%s", joinPoint.getSignature().getDeclaringTypeName(),
+                joinPoint.getSignature().getName()));
+        requestInfo.setRequestParams(getRequestParams(joinPoint, request));
+        log.info("Request Info : {}", JsonUtils.toJsonString(requestInfo));
+        Object result = joinPoint.proceed(joinPoint.getArgs());
+        log.info("Response result:  {}", JsonUtils.toJsonString(result));
+        log.info("time cost:  {}", System.currentTimeMillis() - start);
+        return result;
+    }
+
+    private Object getRequestParams(ProceedingJoinPoint joinPoint, HttpServletRequest request) {
         Object[] args = joinPoint.getArgs();
-        long startTime = System.currentTimeMillis();
-        this.printRequestInfo(joinPoint);
-
-        try {
-            obj = joinPoint.proceed(args);
-            return obj;
-        } finally {
-            // 获取执行的方法名
-            long endTime = System.currentTimeMillis();
-            // 打印耗时的信息
-            this.printResponseInfo(startTime, endTime, obj);
-        }
-    }
-
-    private void printRequestInfo(ProceedingJoinPoint joinPoint) {
-        try {
-            HttpServletRequest request = getRequest();
-            Object[] args = joinPoint.getArgs();
-            String params = "";
-            String queryString = request.getQueryString();
-            String method = request.getMethod();
-            if (args.length > 0) {
-                if ("POST".equals(method) || "PUT".equals(method)) {
-                    Object object = args[0];
-                    if (object instanceof MultipartFile) {
-                        MultipartFile multipartFile = (MultipartFile) object;
-                        params = MessageFormat.format("文件:{0},大小:{1}", multipartFile.getOriginalFilename(), multipartFile.getSize());
-                    } else {
-                        params = JsonUtils.toJsonString(object);
-                    }
-                } else if ("GET".equals(method)) {
-                    params = queryString;
+        Object params = null;
+        String queryString = request.getQueryString();
+        String method = request.getMethod();
+        if (args.length > 0) {
+            if ("POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method)) {
+                Object object = args[0];
+                if (object instanceof MultipartFile) {
+                    MultipartFile multipartFile = (MultipartFile) object;
+                    params = MessageFormat.format("文件名: {0}, 大小: {1}", multipartFile.getOriginalFilename(), multipartFile.getSize());
+                } else {
+                    params = object;
                 }
+            } else if ("GET".equals(method)) {
+                params = queryString;
             }
-
-            log.info("请求URI: [{}]，开始处理=========>", request.getRequestURI());
-            log.info("HTTP METHOD:[{}], IP:[{}],CLASS_METHOD:[{}]",
-                    method, this.getIpAddr(request), joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName());
-            log.info("请求参数: {}", params);
-        } catch (Exception ex) {
-            log.error("日志打印出错", ex);
         }
+        return params;
     }
 
-    private void printResponseInfo(long startTime, long endTime, Object obj) {
-        try {
-            long diffTime = endTime - startTime;
-            log.info("返回结果:{} ", JsonUtils.toJsonString(obj));
-            log.info("<=========处理完成，共消费时间:[{}]毫秒", diffTime);
-        } catch (Exception ex) {
-            log.error("日志打印出错", ex);
-        }
-    }
 
-    public static HttpServletRequest getRequest() {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
-                .getRequest();
+    private HttpServletRequest getRequest() {
+        ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        HttpServletRequest request = requestAttributes.getRequest();
         return request;
     }
 
-    private String getIpAddr(HttpServletRequest request) {
-        String ip = request.getHeader("x-forwarded-for");
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
-    }
 }
