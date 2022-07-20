@@ -6,17 +6,21 @@ import com.plasticene.boot.redis.core.utils.RedisUtils;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import javax.annotation.Resource;
@@ -26,8 +30,9 @@ import javax.annotation.Resource;
  * @version 1.0
  * @date 2022/7/18 14:13
  */
-@EnableConfigurationProperties({RedisProperties.class})
+@EnableConfigurationProperties({RedisProperties.class, CacheProperties.class})
 @Configuration
+@EnableCaching
 public class PlasticeneRedisAutoConfiguration {
 
     private static final String REDISSON_PREFIX = "redis://";
@@ -97,6 +102,30 @@ public class PlasticeneRedisAutoConfiguration {
     @ConditionalOnBean(RedisTemplate.class)
     public RedisUtils redisUtils(RedisTemplate redisTemplate) {
         return new RedisUtils(redisTemplate);
+    }
+
+    @Bean
+    public RedisCacheConfiguration redisCacheConfiguration(CacheProperties cacheProperties) {
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig();
+        // config = config.entryTtl();
+        config = config.serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()));
+        config = config.serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
+
+        CacheProperties.Redis redisProperties = cacheProperties.getRedis();
+        //将配置文件中所有的配置都生效
+        if (redisProperties.getTimeToLive() != null) {
+            config = config.entryTtl(redisProperties.getTimeToLive());
+        }
+        if (redisProperties.getKeyPrefix() != null) {
+            config = config.prefixCacheNameWith(redisProperties.getKeyPrefix());
+        }
+        if (!redisProperties.isCacheNullValues()) {
+            config = config.disableCachingNullValues();
+        }
+        if (!redisProperties.isUseKeyPrefix()) {
+            config = config.disableKeyPrefix();
+        }
+        return config;
     }
 
 }
