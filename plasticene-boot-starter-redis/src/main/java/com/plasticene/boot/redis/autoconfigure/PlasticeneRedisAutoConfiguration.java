@@ -2,6 +2,7 @@ package com.plasticene.boot.redis.autoconfigure;
 
 import com.plasticene.boot.redis.core.aop.LockAspect;
 import com.plasticene.boot.redis.core.aop.RateLimitAspect;
+import com.plasticene.boot.redis.core.utils.RedisUtils;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -91,4 +92,11 @@ public class PlasticeneRedisAutoConfiguration {
     public RateLimitAspect rateLimitAspect() {
         return new RateLimitAspect();
     }
+
+    @Bean
+    @ConditionalOnBean(RedisTemplate.class)
+    public RedisUtils redisUtils(RedisTemplate redisTemplate) {
+        return new RedisUtils(redisTemplate);
+    }
+
 }
