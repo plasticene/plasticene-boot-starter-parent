@@ -25,8 +25,8 @@ public class BannerApplicationRunner implements ApplicationRunner {
     private String name;
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
-        String apiDoc = "http:127.0.0.1:" + serverProperties.getPort() + serverProperties.getServlet().getContextPath() + "/doc.html";
+    public void run(ApplicationArguments args) {
+        String apiDoc = "http://127.0.0.1:" + serverProperties.getPort() + serverProperties.getServlet().getContextPath() + "/doc.html";
         ThreadUtil.execute(() -> {
             ThreadUtil.sleep(1, TimeUnit.SECONDS); // 延迟 1 秒，保证输出到结尾
             log.info("\n----------------------------------------------------------\n\t" +
