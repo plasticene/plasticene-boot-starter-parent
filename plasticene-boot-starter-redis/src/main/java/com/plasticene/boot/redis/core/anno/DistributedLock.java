@@ -2,6 +2,7 @@ package com.plasticene.boot.redis.core.anno;
 
 import com.plasticene.boot.redis.core.enums.LockType;
 
+import java.lang.annotation.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -9,6 +10,10 @@ import java.util.concurrent.TimeUnit;
  * @version 1.0
  * @date 2022/7/19 10:38
  */
+
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
 public @interface DistributedLock {
     /**
      * 锁的key
