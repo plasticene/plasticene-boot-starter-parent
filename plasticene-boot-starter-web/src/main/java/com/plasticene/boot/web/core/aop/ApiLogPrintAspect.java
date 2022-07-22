@@ -1,11 +1,13 @@
 package com.plasticene.boot.web.core.aop;
 
+import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.utils.JsonUtils;
 import com.plasticene.boot.web.core.model.RequestInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,6 +22,7 @@ import java.text.MessageFormat;
  */
 @Aspect
 @Slf4j
+@Order(value = OrderConstant.AOP_API_LOG)
 public class ApiLogPrintAspect {
     /**
      * 声明切点
