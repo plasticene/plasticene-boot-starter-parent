@@ -2,6 +2,7 @@ package com.plasticene.boot.redis.core.aop;
 
 import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.util.StrUtil;
+import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.redis.core.anno.RateLimit;
 import com.plasticene.boot.redis.core.enums.LimitType;
@@ -11,6 +12,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -28,6 +30,7 @@ import java.util.List;
  * @date 2022/7/18 16:58
  */
 @Aspect
+@Order(OrderConstant.AOP_RATE_LIMIT)
 public class RateLimitAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(RateLimitAspect.class);
