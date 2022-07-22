@@ -2,6 +2,7 @@ package com.plasticene.boot.redis.core.aop;
 
 import cn.hutool.core.util.StrUtil;
 import com.plasticene.boot.common.aspect.AbstractAspectSupport;
+import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.redis.core.anno.DistributedLock;
 import com.plasticene.boot.redis.core.enums.LockType;
@@ -9,12 +10,12 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
-import org.aspectj.lang.reflect.MethodSignature;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 
 import javax.annotation.Resource;
 import java.lang.reflect.Method;
@@ -26,6 +27,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/7/19 10:59
  */
 @Aspect
+@Order(OrderConstant.AOP_LOCK)
 public class LockAspect extends AbstractAspectSupport {
 
     private static final Logger logger = LoggerFactory.getLogger(LockAspect.class);
