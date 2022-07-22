@@ -54,7 +54,7 @@ public class LockAspect extends AbstractAspectSupport {
         TimeUnit unit = distributedLock.unit();
         // 锁类型
         LockType lockType = distributedLock.lockType();
-
+        logger.info("锁模式->{},  等待锁定时间->{}秒,   锁定最长时间->{}秒",lockType.name(), waitTime, leaseTime);
         RLock rLock = getLock(lockType, lockKey);
         boolean flag = true;
         try {
@@ -81,7 +81,30 @@ public class LockAspect extends AbstractAspectSupport {
         }
     }
 
+    /**
+     * 可重入锁
+     * 阻塞式等待。默认加的锁都是30s
+     * 1）、锁的自动续期，如果业务超长，运行期间自动锁上新的30s。不用担心业务时间长，锁自动过期被删掉
+     * 2）、加锁的业务只要运行完成，就不会给当前锁续期，即使不手动解锁，锁默认会在30s内自动过期，不会产生死锁问题
+     * leaseTime为锁超时时间，leaseTime为-1代表不自动解锁
+     * 1）、myLock.lock(10,TimeUnit.SECONDS);  10秒钟自动解锁,自动解锁时间一定要大于业务执行时间
+     * 2）、如果没有指定锁的超时时间，就使用 lockWatchdogTimeout = 30 * 1000 【看门狗默认时间】。只要占锁成功，就会启动一个
+     *  定时任务【重新给锁设置过期时间，新的过期时间就是看门狗的默认时间】,每隔10秒都会自动的再次续期，续成30秒
+     * internalLockLeaseTime 【看门狗时间】 / 3， 10s
+     *
+     * 读写锁
+     * 保证一定能读到最新数据，修改期间，写锁是一个排它锁（互斥锁、独享锁），读锁是一个共享锁
+     * 写锁没释放读锁必须等待
+     * 读 + 读 ：相当于无锁，并发读，只会在Redis中记录好，所有当前的读锁。他们都会同时加锁成功
+     * 写 + 读 ：必须等待写锁释放
+     * 写 + 写 ：阻塞方式
+     * 读 + 写 ：有读锁。写也需要等待
+     * 只要有读或者写的存都必须等待
+     * @return
+     */
+
     RLock getLock(LockType lockType, String lockKey) {
+        // 获取一把锁，只要锁的名字一样，就是同一把锁
         RLock rLock = null;
         switch (lockType) {
             case FAIR:
