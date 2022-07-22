@@ -1,5 +1,6 @@
 package com.plasticene.boot.web.autoconfigure;
 
+import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
 import com.plasticene.boot.web.core.advice.ResponseResultBodyAdvice;
 import com.plasticene.boot.web.core.aop.ApiLogPrintAspect;
@@ -29,7 +30,7 @@ public class PlasticeneWebAutoConfiguration {
     @ConditionalOnProperty(name = "ptc.trace.enable", havingValue = "true", matchIfMissing = true)
     public FilterRegistrationBean buildTracerFilter() {
         FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean();
-        filterRegistrationBean.setOrder(Integer.MIN_VALUE);
+        filterRegistrationBean.setOrder(OrderConstant.FILTER_TRACE);
         filterRegistrationBean.setFilter(new WebTraceFilter());
         filterRegistrationBean.addUrlPatterns("/*");
         return filterRegistrationBean;
