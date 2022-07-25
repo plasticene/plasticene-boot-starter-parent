@@ -8,6 +8,12 @@
 - 严格控制包依赖和统一版本管理，做到**最少化依赖**。
 - 注重代码规范和注释，非常适合个人学习和企业使用。
 
+项目地址：
+
+**github地址**：https://github.com/plasticene/plasticene-boot-starter-parent
+
+**gitee地址**：https://gitee.com/plasticene3/plasticene-boot-starter-parent
+
 ## 2.项目结构
 
 **模块结构**
