@@ -24,15 +24,15 @@ plasticene-boot-starter-parent -- 父项目
 
 **模块说明**
 
-|      | 模块                                                         | 功能                                                         |
-| :--: | ------------------------------------------------------------ | ------------------------------------------------------------ |
-|  🚀   | [plasticene-boot-starter-parent](https://github.com/plasticene/plasticene-boot-starter-parent) | 父项目，统一依赖版本管理                                     |
-|  🚀   | [plasticene-boot-starter-banner](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-banner) | 自定义项目启动图案，配置控制台打印相关信息等等               |
-|  🚀   | [plasticene-boot-starter-cache](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-cache) | 基于spring cache实现多级缓存                                 |
-|  🚀   | [plasticene-boot-starter-mybatis](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-mybatis) | 基于mybatis-plus进行二次封装整合                             |
-|  🚀   | [plasticene-boot-starter-redis](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-redis) | 实现常规redis操作封装，基于redis实现分布式限流，基于redisson实现分布式锁 |
-|  🚀   | [plasticene-boot-starter-web](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-web) | 实现链路追踪traceId、接口请求日志打印、统计返回结构封装、全局异常处理、swagger配置等 |
-|  🚀   | [plasticene-common](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-common) | 定义公共pojo类、业务异常类、工具类，枚举，线程池等等         |
+|      | 模块                                                         | 功能                                                         |                             文档                             |
+| :--: | ------------------------------------------------------------ | ------------------------------------------------------------ | :----------------------------------------------------------: |
+|  🚀   | [plasticene-boot-starter-parent](https://github.com/plasticene/plasticene-boot-starter-parent) | 父项目，统一依赖版本管理                                     | [plasticene-parent](https://github.com/plasticene/plasticene-boot-starter-parent/blob/main/README.md) |
+|  🚀   | [plasticene-boot-starter-banner](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-banner) | 自定义项目启动图案，配置控制台打印相关信息等等               |                                                              |
+|  🚀   | [plasticene-boot-starter-cache](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-cache) | 基于spring cache实现多级缓存                                 | [多级缓存](https://github.com/plasticene/plasticene-boot-starter-parent/blob/main/plasticene-boot-starter-cache/%E5%A4%9A%E7%BA%A7%E7%BC%93%E5%AD%98%E6%96%87%E6%A1%A3.md) |
+|  🚀   | [plasticene-boot-starter-mybatis](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-mybatis) | 基于mybatis-plus进行二次封装整合                             |                                                              |
+|  🚀   | [plasticene-boot-starter-redis](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-redis) | 实现常规redis操作封装，基于redis实现分布式限流，基于redisson实现分布式锁 |                                                              |
+|  🚀   | [plasticene-boot-starter-web](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-boot-starter-web) | 实现链路追踪traceId、接口请求日志打印、统计返回结构封装、全局异常处理、swagger配置等 |                                                              |
+|  🚀   | [plasticene-common](https://github.com/plasticene/plasticene-boot-starter-parent/tree/main/plasticene-common) | 定义公共pojo类、业务异常类、工具类，枚举，线程池等等         |                                                              |
 
 
 
