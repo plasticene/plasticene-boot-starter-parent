@@ -22,6 +22,15 @@ plasticene-boot-starter-parent -- 父项目
 │  ├─plasticene-common -- 公共、基础
 ```
 
+**代码结构：**
+
+每个starter组件，包含两部分：
+
+1. `core` 包：组件的核心封装，拓展相关的功能。
+2. `autoconfigure` 包：组件的 Spring Boot 自动配置。
+
+![](https://markdown-file-zfj.oss-cn-hangzhou.aliyuncs.com/%E4%BB%A3%E7%A0%81%E7%BB%93%E6%9E%84.png)
+
 **模块说明**
 
 |      | 模块                                                         | 功能                                                         |                             文档                             |
@@ -61,4 +70,14 @@ plasticene-boot-starter-parent -- 父项目
 | [jdk](https://github.com/openjdk/jdk)                        | Java 开发工具包       | >=1.8         |
 | [maven](https://maven.apache.org/)                           | Java 管理与构建工具   | >=3.5.0       |
 
-### 
+## 4. 交流反馈
+
+- 如果有问题或者其他交流，可以通过 [Github Issue](https://github.com/plasticene/plasticene-boot-starter-parent/issues)或者 [Gitee Issue](https://gitee.com/plasticene3/plasticene-boot-starter-parent/issues)进行反馈。提交`ISSUS`时，请务必写清楚问题的具体原因，重现步骤和环境(上下文)，以便作者后期重现排查解决。
+
+- 个人博客：http://www.shepherd126.top/
+
+- 个人邮箱：shepherd_zfj@163.com
+
+- 个人公众号：[Shepherd进阶笔记](https://camo.githubusercontent.com/1275dd8e8b4118823c0f8976f653945eafe77708877e832c59f9a4d9e9d31180/68747470733a2f2f6d61726b646f776e2d66696c652d7a666a2e6f73732d636e2d68616e677a686f752e616c6979756e63732e636f6d2f4f6666696369616c2532304163636f756e742e6a7067)
+
+  
