@@ -1,5 +1,7 @@
 package com.plasticene.boot.common.pojo;
 
+import lombok.Data;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +11,7 @@ import java.util.List;
  * @version 1.0
  * @date 2022/7/12 11:43
  */
+@Data
 public final class PageResult<T> implements Serializable {
 
 //    @ApiModelProperty(value = "数据", required = true)
