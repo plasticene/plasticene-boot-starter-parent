@@ -35,7 +35,7 @@ plasticene-boot-starter-parent -- 父项目
 1. `core` 包：组件的核心封装，拓展相关的功能。
 2. `autoconfigure` 包：组件的 Spring Boot 自动配置。
 
-<img src="https://markdown-file-zfj.oss-cn-hangzhou.aliyuncs.com/%E4%BB%A3%E7%A0%81%E7%BB%93%E6%9E%84.png" style="zoom:25%;" />
+<img src="https://markdown-file-zfj.oss-cn-hangzhou.aliyuncs.com/%E4%BB%A3%E7%A0%81%E7%BB%93%E6%9E%84.png" style="zoom:50%;" />
 
 **模块说明**
 
