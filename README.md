@@ -8,11 +8,13 @@
 - 严格控制包依赖和统一版本管理，做到**最少化依赖**。
 - 注重代码规范和注释，非常适合个人学习和企业使用。
 
+**文档**：https://github.com/plasticene/plasticene-boot-starter-parent/wiki
+
 项目地址：
 
-**github地址**：https://github.com/plasticene/plasticene-boot-starter-parent
+**Github地址**：https://github.com/plasticene/plasticene-boot-starter-parent
 
-**gitee地址**：https://gitee.com/plasticene3/plasticene-boot-starter-parent
+**Gitee地址**：https://gitee.com/plasticene3/plasticene-boot-starter-parent
 
 ## 2.项目结构
 
@@ -76,7 +78,59 @@ plasticene-boot-starter-parent -- 父项目
 | [jdk](https://github.com/openjdk/jdk)                        | Java 开发工具包       | >=1.8         |
 | [maven](https://maven.apache.org/)                           | Java 管理与构建工具   | >=3.5.0       |
 
-## 4. 交流反馈
+## 4.使用示例
+
+在业务团队项目服务的工程中按下面引入`plasticene-boot-starter-parent`相关依赖即可：
+
+```xml
+   <!-- 使用plasticene-boot-starter-parent代替spring boot官方parent，实现统一依赖版本管理 -->
+   <parent>
+        <artifactId>plasticene-boot-starter-parent</artifactId>
+        <groupId>com.plasticene.boot</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    
+    <!-- 引入相关依赖 -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-banner</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-mybatis</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-web</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-redis</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-cache</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+```
+
+
+
+## 5. 交流反馈
 
 - 如果有问题或者其他交流，可以通过 [Github Issue](https://github.com/plasticene/plasticene-boot-starter-parent/issues)或者 [Gitee Issue](https://gitee.com/plasticene3/plasticene-boot-starter-parent/issues)进行反馈。提交`ISSUS`时，请务必写清楚问题的具体原因，重现步骤和环境(上下文)，以便作者后期重现排查解决。
 
