@@ -36,11 +36,5 @@ public class FeignInterceptor implements RequestInterceptor {
                 }
             }
         }
-        // 传递日志traceId
-        String traceId = MDCTraceUtils.getTraceId();
-        if (StrUtil.isNotEmpty(traceId)) {
-            requestTemplate.header(MDCTraceUtils.TRACE_ID_HEADER, traceId);
-            requestTemplate.header(MDCTraceUtils.SPAN_ID_HEADER, MDCTraceUtils.getNextSpanId());
-        }
     }
 }
