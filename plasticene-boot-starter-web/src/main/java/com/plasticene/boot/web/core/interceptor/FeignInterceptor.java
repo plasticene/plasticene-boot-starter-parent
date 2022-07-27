@@ -1,4 +1,4 @@
-package com.plasticene.boot.web.interceptor;
+package com.plasticene.boot.web.core.interceptor;
 
 import cn.hutool.core.util.StrUtil;
 import com.plasticene.boot.web.core.utils.MDCTraceUtils;

@@ -8,7 +8,7 @@ import com.plasticene.boot.web.core.filter.WebTraceFilter;
 import com.plasticene.boot.web.core.global.GlobalExceptionHandler;
 import com.plasticene.boot.web.core.prop.ThreadPoolProperties;
 import com.plasticene.boot.web.core.prop.TraceProperties;
-import com.plasticene.boot.web.interceptor.FeignInterceptor;
+import com.plasticene.boot.web.core.interceptor.FeignInterceptor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
