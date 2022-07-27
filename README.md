@@ -80,6 +80,12 @@ plasticene-boot-starter-parent -- 父项目
 
 ## 4.使用示例
 
+当前组件依赖暂时还未上传到maven中央仓库，所以需要自行克隆代码到本地install
+
+- git clone https://github.com/plasticene/plasticene-boot-starter-parent.git
+- cd plasticene-boot-starter-parent && mvn install
+- have fun and enjoy.
+
 在业务团队项目服务的工程中按下面引入`plasticene-boot-starter-parent`相关依赖即可：
 
 ```xml
