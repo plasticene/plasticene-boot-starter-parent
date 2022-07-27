@@ -13,6 +13,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.text.MessageFormat;
 
 /**
@@ -55,7 +57,7 @@ public class ApiLogPrintAspect {
         return result;
     }
 
-    private Object getRequestParams(ProceedingJoinPoint joinPoint, HttpServletRequest request) {
+    private Object getRequestParams(ProceedingJoinPoint joinPoint, HttpServletRequest request) throws UnsupportedEncodingException {
         Object[] args = joinPoint.getArgs();
         Object params = null;
         String queryString = request.getQueryString();
@@ -70,7 +72,7 @@ public class ApiLogPrintAspect {
                     params = object;
                 }
             } else if ("GET".equals(method)) {
-                params = queryString;
+                params = URLDecoder.decode(queryString, "utf-8");
             }
         }
         return params;
