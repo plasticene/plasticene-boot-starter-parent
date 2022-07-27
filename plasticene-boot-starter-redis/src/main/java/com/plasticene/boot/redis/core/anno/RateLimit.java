@@ -41,7 +41,7 @@ public @interface RateLimit {
     int count();
 
     /**
-     * 限流的类型(用户自定义key 或者 请求ip)
+     * 限流的类型(用户自定义key 或者 请求ip，默认为自定义key)
      */
     LimitType limitType() default LimitType.CUSTOMER;
 }
