@@ -55,28 +55,30 @@ plasticene-boot-starter-parent -- 父项目
 
 ## 3.技术选型
 
-| 框架                                                         | 说明                  | 版本          |
-| ------------------------------------------------------------ | --------------------- | ------------- |
-| [Spring Boot](https://spring.io/projects/spring-boot)        | 应用开发框架          | 2.3.4.RELEASE |
-| [MySQL](https://www.mysql.com/cn/)                           | 数据库服务器          | 5.7           |
-| [Druid](https://github.com/alibaba/druid)                    | JDBC 连接池、监控组件 | 1.2.8         |
-| [MyBatis Plus](https://mp.baomidou.com/)                     | MyBatis 增强工具包    | 3.5.2         |
-| [Redis](https://redis.io/)                                   | key-value 数据库      | 5.0           |
-| [Redisson](https://github.com/redisson/redisson)             | Redis 客户端          | 3.17.4        |
-| [Spring MVC](https://github.com/spring-projects/spring-framework/tree/master/spring-webmvc) | MVC 框架              | 5.2.9.RELEASE |
-| [Hibernate Validator](https://github.com/hibernate/hibernate-validator) | 参数校验组件          | 6.1.5.Final   |
-| [Knife4j](https://gitee.com/xiaoym/knife4j)                  | Swagger 增强 UI 实现  | 3.0.2         |
-| [Jackson](https://github.com/FasterXML/jackson)              | JSON 工具库           | 2.11.2        |
-| [Lombok](https://projectlombok.org/)                         | 消除冗长的 Java 代码  | 1.16.14       |
-| [JUnit](https://junit.org/junit5/)                           | Java 单元测试框架     | 5.8.2         |
-| [Mockito](https://github.com/mockito/mockito)                | Java Mock 框架        | 4.0.0         |
-| [Hutool](https://www.hutool.cn/docs/#/)                      | 常用工具类框架        | 5.7.20        |
-| [transmittable-thread-local](https://github.com/alibaba/transmittable-thread-local) | 线程池异步上下文传递  | 2.12.2        |
-| [caffeine](https://github.com/ben-manes/caffeine)            | 高性能本地缓存之王    | 2.8.5         |
-| [slf4j](https://www.slf4j.org/)                              | 日志框架              | 1.7.36        |
-| [aspectj](https://www.eclipse.org/aspectj/)                  | 切面框架              | 1.9.6         |
-| [jdk](https://github.com/openjdk/jdk)                        | Java 开发工具包       | >=1.8         |
-| [maven](https://maven.apache.org/)                           | Java 管理与构建工具   | >=3.5.0       |
+| 框架                                                         | 说明                  | 版本        |
+| ------------------------------------------------------------ | --------------------- | ----------- |
+| [Spring Boot](https://spring.io/projects/spring-boot)        | 应用开发框架          | 2.7.0       |
+| [Spring Cloud](https://spring.io/projects/spring-cloud)      | 微服务开发框架        | 2021.0.3    |
+| [Spring Cloud Alibaba](https://spring.io/projects/spring-cloud-alibaba) | 微服务开发框架        | 2021.0.1.0  |
+| [MySQL](https://www.mysql.com/cn/)                           | 数据库服务器          | 5.7         |
+| [Druid](https://github.com/alibaba/druid)                    | JDBC 连接池、监控组件 | 1.2.8       |
+| [MyBatis Plus](https://mp.baomidou.com/)                     | MyBatis 增强工具包    | 3.5.2       |
+| [Redis](https://redis.io/)                                   | key-value 数据库      | 5.0         |
+| [Redisson](https://github.com/redisson/redisson)             | Redis 客户端          | 3.17.4      |
+| [Spring MVC](https://github.com/spring-projects/spring-framework/tree/master/spring-webmvc) | MVC 框架              | 5.3.20      |
+| [Hibernate Validator](https://github.com/hibernate/hibernate-validator) | 参数校验组件          | 6.1.5.Final |
+| [Knife4j](https://gitee.com/xiaoym/knife4j)                  | Swagger 增强 UI 实现  | 3.0.2       |
+| [Jackson](https://github.com/FasterXML/jackson)              | JSON 工具库           | 2.11.2      |
+| [Lombok](https://projectlombok.org/)                         | 消除冗长的 Java 代码  | 1.16.14     |
+| [JUnit](https://junit.org/junit5/)                           | Java 单元测试框架     | 5.8.2       |
+| [Mockito](https://github.com/mockito/mockito)                | Java Mock 框架        | 4.0.0       |
+| [Hutool](https://www.hutool.cn/docs/#/)                      | 常用工具类框架        | 5.7.20      |
+| [transmittable-thread-local](https://github.com/alibaba/transmittable-thread-local) | 线程池异步上下文传递  | 2.12.2      |
+| [caffeine](https://github.com/ben-manes/caffeine)            | 高性能本地缓存之王    | 2.8.5       |
+| [slf4j](https://www.slf4j.org/)                              | 日志框架              | 1.7.36      |
+| [aspectj](https://www.eclipse.org/aspectj/)                  | 切面框架              | 1.9.6       |
+| [jdk](https://github.com/openjdk/jdk)                        | Java 开发工具包       | >=1.8       |
+| [maven](https://maven.apache.org/)                           | Java 管理与构建工具   | >=3.5.0     |
 
 ## 4.使用示例
 
