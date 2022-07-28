@@ -19,10 +19,11 @@
 
     <properties>
         <!-- spring boot 依赖版本 -->
-        <spring-boot.version>2.3.4.release</spring-boot.version>
+        <spring.boot.version>2.7.0</spring.boot.version>
 
-        <spring.cloud.version>Hoxton.SR3</spring.cloud.version>
-        <cloud.alibaba.version>2.2.1.RELEASE</cloud.alibaba.version>
+        <spring.cloud.version>2021.0.3</spring.cloud.version>
+
+        <spring.cloud.alibaba.version>2021.0.1.0</spring.cloud.alibaba.version>
 
         <!-- mybatis-plus 依赖版本 -->
         <mybatis-plus.version>3.5.2</mybatis-plus.version>
@@ -67,11 +68,10 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
+                <version>${spring.boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
@@ -82,7 +82,7 @@
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
-                <version>${cloud.alibaba.version}</version>
+                <version>${spring.cloud.alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -122,7 +122,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-validation</artifactId>
-                <version>${spring-boot.version}</version>
+                <version>${spring.boot.version}</version>
             </dependency>
 
             <dependency>
@@ -134,7 +134,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-web</artifactId>
-                <version>${spring-boot.version}</version>
+                <version>${spring.boot.version}</version>
             </dependency>
 
             <dependency>
@@ -146,7 +146,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-data-redis</artifactId>
-                <version>${spring-boot.version}</version>
+                <version>${spring.boot.version}</version>
             </dependency>
 
             <dependency>
