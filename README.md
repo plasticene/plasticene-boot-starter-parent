@@ -60,6 +60,7 @@ plasticene-boot-starter-parent -- 父项目
 | [Spring Boot](https://spring.io/projects/spring-boot)        | 应用开发框架          | 2.7.0       |
 | [Spring Cloud](https://spring.io/projects/spring-cloud)      | 微服务开发框架        | 2021.0.3    |
 | [Spring Cloud Alibaba](https://spring.io/projects/spring-cloud-alibaba) | 微服务开发框架        | 2021.0.1.0  |
+| [Openfeign](https://spring.io/projects/spring-cloud-openfeign) | 声明式 REST 客户端    | 3.1.3       |
 | [MySQL](https://www.mysql.com/cn/)                           | 数据库服务器          | 5.7         |
 | [Druid](https://github.com/alibaba/druid)                    | JDBC 连接池、监控组件 | 1.2.8       |
 | [MyBatis Plus](https://mp.baomidou.com/)                     | MyBatis 增强工具包    | 3.5.2       |
