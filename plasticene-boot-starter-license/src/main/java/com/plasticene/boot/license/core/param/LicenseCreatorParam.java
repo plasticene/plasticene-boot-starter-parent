@@ -17,13 +17,13 @@ public class LicenseCreatorParam implements Serializable {
      * 证书生效时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private Date issuedTime = new Date();
+    private Date issuedTime=new Date();
 
     /**
      * 证书失效时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private Date expiryTime = new Date(System.currentTimeMillis() + 1000*60*24*365);
+    private Date expiryTime;
 
     /**
      * 用户类型
@@ -40,8 +40,14 @@ public class LicenseCreatorParam implements Serializable {
      */
     private String description = "生成license";
 
+
+    /**
+     * 服务器系统信息
+     */
+    private SystemInfo systemInfo;
+
     public static void main(String[] args) {
-        System.out.println(System.currentTimeMillis());
+        System.out.println(System.currentTimeMillis() + 1000*60*60*24*365*10);
     }
 
 
