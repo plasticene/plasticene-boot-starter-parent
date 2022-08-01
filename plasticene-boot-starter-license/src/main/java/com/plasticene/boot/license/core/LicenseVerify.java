@@ -1,5 +1,6 @@
 package com.plasticene.boot.license.core;
 
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.license.core.param.CustomKeyStoreParam;
 import com.plasticene.boot.license.core.prop.LicenseProperties;
 import de.schlichtherle.license.*;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.File;
 import java.text.DateFormat;
-import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.prefs.Preferences;
 
@@ -37,10 +37,11 @@ public class LicenseVerify {
             LicenseManager licenseManager = new LicenseManager(initLicenseParam());
             licenseManager.uninstall();
             result = licenseManager.install(new File(licenseProperties.getLicensePath()));
-            logger.info(MessageFormat.format("证书安装成功，证书有效期：{0} - {1}", df.format(result.getNotBefore()),
-                    df.format(result.getNotAfter())));
+            logger.info("证书安装成功，证书有效期：{} - {}", df.format(result.getNotBefore()),
+                    df.format(result.getNotAfter()));
         }catch (Exception e){
-            logger.error("证书安装失败！", e);
+            logger.error("证书安装失败:", e);
+            throw new BizException("证书安装失败");
         }
         return result;
     }
@@ -52,12 +53,12 @@ public class LicenseVerify {
         try {
             LicenseManager licenseManager = new LicenseManager(initLicenseParam());
             LicenseContent licenseContent = licenseManager.verify();
-            logger.info(MessageFormat.format("证书校验通过，证书有效期：{0} - {1}",df.format(licenseContent.getNotBefore()),
-                    df.format(licenseContent.getNotAfter())));
+            logger.info("证书校验通过，证书有效期：{} - {}",df.format(licenseContent.getNotBefore()),
+                    df.format(licenseContent.getNotAfter()));
             return true;
         }catch (Exception e){
-            logger.error("证书校验失败！",e);
-            return false;
+            logger.error("证书校验失败:",e);
+            throw new BizException("证书检验失败");
         }
     }
 

@@ -1,5 +1,6 @@
 package com.plasticene.boot.license.core;
 
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.license.core.param.CustomKeyStoreParam;
 import com.plasticene.boot.license.core.param.LicenseCreatorParam;
 import com.plasticene.boot.license.core.prop.LicenseProperties;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import javax.security.auth.x500.X500Principal;
 import java.io.File;
-import java.text.MessageFormat;
 import java.util.prefs.Preferences;
 
 /**
@@ -38,8 +38,8 @@ public class LicenseCreator {
             licenseManager.store(licenseContent, new File(licenseProperties.getLicensePath()));
             return true;
         }catch (Exception e){
-            logger.error(MessageFormat.format("证书生成失败：{0}",param),e);
-            return false;
+            logger.error("证书生成失败：", e);
+            throw new BizException("生成license证书失败");
         }
     }
 
