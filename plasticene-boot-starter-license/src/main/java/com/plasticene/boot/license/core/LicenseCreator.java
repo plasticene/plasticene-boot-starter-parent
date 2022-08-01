@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import javax.security.auth.x500.X500Principal;
 import java.io.File;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.prefs.Preferences;
 
 /**
@@ -77,14 +79,20 @@ public class LicenseCreator {
         licenseContent.setSubject(licenseContent.getSubject());
         licenseContent.setIssued(param.getIssuedTime());
         licenseContent.setNotBefore(param.getIssuedTime());
-        licenseContent.setNotAfter(param.getExpiryTime());
+        licenseContent.setNotAfter(param.getExpiryTime() == null ? addYears(new Date(), 10) : param.getExpiryTime());
         licenseContent.setConsumerType(param.getConsumerType());
         licenseContent.setConsumerAmount(param.getConsumerAmount());
         licenseContent.setInfo(param.getDescription());
-
-//        licenseContent.setExtra(param.getLicenseCheckModel());
-
+        licenseContent.setExtra(param.getSystemInfo());
         return licenseContent;
     }
+
+    public  Date addYears(Date date, int n) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.add(Calendar.YEAR, n);
+        return cal.getTime();
+    }
+
 
 }
