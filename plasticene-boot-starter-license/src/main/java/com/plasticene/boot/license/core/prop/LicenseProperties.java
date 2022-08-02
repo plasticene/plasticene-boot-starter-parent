@@ -1,5 +1,6 @@
 package com.plasticene.boot.license.core.prop;
 
+import com.plasticene.boot.license.core.enums.VerifySystemType;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -52,6 +53,16 @@ public class LicenseProperties {
      * 密钥库存储路径
      */
     private String privateKeysStorePath = "/root/license/privateKeys.keystore";
+
+    /**
+     * 是否开启license验证服务器系统信息, 不配置，默认开启
+     */
+    private Boolean verifySystemSwitch = true;
+
+    /**
+     * 验证系统信息方式 {@link VerifySystemType}
+     */
+    private VerifySystemType verifySystemType = VerifySystemType.CPU_ID;
 
 
 }
