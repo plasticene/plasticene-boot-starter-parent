@@ -15,6 +15,7 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Objects;
 import java.util.prefs.Preferences;
 
@@ -34,6 +35,8 @@ public class LicenseVerify {
 
     /**
      * 安装License证书
+     * 项目服务启动时候安装证书，检验合法性
+     * 此时根据开关验证服务器系统信息
      */
     public synchronized LicenseContent install() {
         LicenseContent result = null;
@@ -41,6 +44,7 @@ public class LicenseVerify {
             LicenseManager licenseManager = new LicenseManager(initLicenseParam());
             licenseManager.uninstall();
             result = licenseManager.install(new File(licenseProperties.getLicensePath()));
+            verifySystemInfo(result);
             logger.info("证书安装成功，证书有效期：{} - {}", df.format(result.getNotBefore()),
                     df.format(result.getNotAfter()));
         }catch (Exception e){
@@ -51,32 +55,17 @@ public class LicenseVerify {
     }
 
     /**
-     * 校验License证书
+     * 校验License证书, 在接口使用{@link com.plasticene.boot.license.core.anno.License}
+     * 时候进入license切面时候调用，此时无需再验证服务器系统信息，验证证书和有效期即可
      */
     public boolean verify() {
         try {
             LicenseManager licenseManager = new LicenseManager(initLicenseParam());
             LicenseContent licenseContent = licenseManager.verify();
-            if (licenseProperties.getVerifySystemSwitch()) {
-                SystemInfo systemInfo = (SystemInfo) licenseContent.getExtra();
-                VerifySystemType verifySystemType = licenseProperties.getVerifySystemType();
-                switch (verifySystemType) {
-                    case CPU_ID:
-                        checkCpuId(systemInfo.getCpuId());
-                        break;
-                    case SYSTEM_UUID:
-                        checkSystemUuid(systemInfo.getUuid());
-                        break;
-                    default:
-                        checkCpuId(systemInfo.getCpuId());
-                }
-
-            }
-            logger.info("证书校验通过，证书有效期：{} - {}",df.format(licenseContent.getNotBefore()),
-                    df.format(licenseContent.getNotAfter()));
+            verifyExpiry(licenseContent);
             return true;
         }catch (Exception e){
-            logger.error("证书校验失败:",e);
+            logger.error("证书校验失败:", e);
             throw new BizException("证书检验失败");
         }
     }
@@ -100,6 +89,32 @@ public class LicenseVerify {
                 ,publicStoreParam
                 ,cipherParam);
     }
+
+    // 验证证书有效期
+    private void verifyExpiry(LicenseContent licenseContent) {
+        Date expiry = licenseContent.getNotAfter();
+        Date current = new Date();
+        if (current.after(expiry)) {
+            throw new BizException("证书已过期");
+        }
+    }
+
+    private void verifySystemInfo(LicenseContent licenseContent) {
+        if (licenseProperties.getVerifySystemSwitch()) {
+            SystemInfo systemInfo = (SystemInfo) licenseContent.getExtra();
+            VerifySystemType verifySystemType = licenseProperties.getVerifySystemType();
+            switch (verifySystemType) {
+                case CPU_ID:
+                    checkCpuId(systemInfo.getCpuId());
+                    break;
+                case SYSTEM_UUID:
+                    checkSystemUuid(systemInfo.getUuid());
+                    break;
+                default:
+            }
+        }
+    }
+
 
     private void checkCpuId(String cpuId) {
         cpuId = cpuId.trim().toUpperCase();
