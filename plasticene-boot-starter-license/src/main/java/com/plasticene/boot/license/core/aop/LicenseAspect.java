@@ -26,7 +26,7 @@ public class LicenseAspect extends AbstractAspectSupport {
     @Resource
     private LicenseVerify licenseVerify;
 
-    // 指定切入点为DistributedLock注解
+    // 指定切入点为License注解
     @Pointcut("@annotation(com.plasticene.boot.license.core.anno.License)")
     public void licenseAnnotationPointcut() {
     }
@@ -40,7 +40,5 @@ public class LicenseAspect extends AbstractAspectSupport {
         }
         return null;
     }
-
-
 
 }
