@@ -15,19 +15,34 @@ public interface OrderConstant {
      * 接口访问日志打印切面
      */
     int AOP_API_LOG = HIGHEST_PRECEDENCE;
+
+    /**
+     * license验证切面
+     */
+    int AOP_LICENSE = HIGHEST_PRECEDENCE + 10;
+
     /**
      * 接口限流切面
      */
-    int AOP_RATE_LIMIT = HIGHEST_PRECEDENCE + 1;
+    int AOP_RATE_LIMIT = HIGHEST_PRECEDENCE + 20;
 
     /**
      * 分布式锁切面
      */
-    int AOP_LOCK = HIGHEST_PRECEDENCE + 2;
-
+    int AOP_LOCK = HIGHEST_PRECEDENCE + 30;
 
     /**
      * 日志trace过滤器
      */
     int FILTER_TRACE = Integer.MIN_VALUE;
+
+    /**
+     * license启动runner
+     */
+    int RUNNER_LICENSE = HIGHEST_PRECEDENCE + 10;
+
+    /**
+     * 图案信息打印runner
+     */
+    int RUNNER_BANNER = HIGHEST_PRECEDENCE + 100;
 }
