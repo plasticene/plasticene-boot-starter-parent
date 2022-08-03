@@ -31,7 +31,7 @@ public class LicenseController {
     @Resource
     private LicenseProperties licenseProperties;
 
-    @GetMapping
+    @PostMapping
     @ApiOperation("生成license")
     public void create(LicenseCreatorParam creatorParam, HttpServletResponse response) throws IOException {
         boolean flag = licenseCreator.generateLicense(creatorParam);
