@@ -1,11 +1,13 @@
 package com.plasticene.boot.banner.core;
 
 import cn.hutool.core.thread.ThreadUtil;
+import com.plasticene.boot.common.constant.OrderConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
+import org.springframework.core.annotation.Order;
 
 import javax.annotation.Resource;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +18,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/7/12 15:11
  */
 @Slf4j
+@Order(OrderConstant.RUNNER_BANNER)
 public class BannerApplicationRunner implements ApplicationRunner {
 
     @Resource
