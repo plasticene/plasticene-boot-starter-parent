@@ -64,5 +64,10 @@ public class LicenseProperties {
      */
     private VerifySystemType verifySystemType = VerifySystemType.CPU_ID;
 
+    /**
+     * 是否项目是验证license
+     */
+    private Boolean startCheck = true;
+
 
 }
