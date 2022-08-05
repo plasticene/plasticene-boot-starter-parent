@@ -8,7 +8,15 @@
 - 严格控制包依赖和统一版本管理，做到**最少化依赖**。
 - 注重代码规范和注释，非常适合个人学习和企业使用。
 
-**文档**：https://github.com/plasticene/plasticene-boot-starter-parent/wiki
+**实现功能概述：**
+
+- 整合redis+caffeine实现多级缓存
+- 基于mybatis-plus封装、实现分页、多租户插件，公共属性自动填充，复杂字段类型处理，字段数据加密，逻辑删除等。
+- 基于redis实现分布式限流注解，基于Redisson实现分布式锁注解，以及对redis常用命令和组件的封装
+- 实现license证书生成与检验，只需引入依赖，开箱即用。
+- 实现web设置接口traceId实现链路追踪，接口访问日志打印，全局异常和响应结果统一处理封装，整合接口文档knife框架等
+
+**开发文档**：https://github.com/plasticene/plasticene-boot-starter-parent/wiki
 
 项目地址：
 
@@ -27,6 +35,7 @@ plasticene-boot-starter-parent -- 父项目
 │  ├─plasticene-boot-starter-mybatis -- mybatis starter
 │  ├─plasticene-boot-starter-redis -- redis starter
 │  ├─plasticene-boot-starter-web -- web starter
+│  ├─plasticene-boot-starter-license -- license starter
 │  ├─plasticene-common -- 公共、基础
 ```
 
