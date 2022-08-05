@@ -21,8 +21,6 @@
 
 **开发文档**：https://github.com/plasticene/plasticene-boot-starter-parent/wiki
 
-项目地址：
-
 **Github地址**：https://github.com/plasticene/plasticene-boot-starter-parent
 
 **Gitee地址**：https://gitee.com/plasticene3/plasticene-boot-starter-parent
