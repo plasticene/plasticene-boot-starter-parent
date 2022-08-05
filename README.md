@@ -10,11 +10,14 @@
 
 **实现功能概述：**
 
-- 整合redis+caffeine实现多级缓存
-- 基于mybatis-plus封装、实现分页、多租户插件，公共属性自动填充，复杂字段类型处理，字段数据加密，逻辑删除等。
-- 基于redis实现分布式限流注解，基于Redisson实现分布式锁注解，以及对redis常用命令和组件的封装
-- 实现license证书生成与检验，只需引入依赖，开箱即用。
-- 实现web设置接口traceId实现链路追踪，接口访问日志打印，全局异常和响应结果统一处理封装，整合接口文档knife框架等
+- 整合redis+caffeine实现**多级缓存**
+- 基于mybatis-plus封装实现**分页、多租户插件，公共属性自动填充，复杂字段类型处理，字段数据加密**，逻辑删除等。
+- 基于redis实现**分布式限流注解**，基于Redisson实现**分布式锁注解**，以及对redis常用命令和组件的封装
+- 实现**license证书生成与检验**，只需引入依赖，**开箱即用**。
+- 实现web设置接口traceId实现**链路追踪**，**接口访问日志打印**，**全局异常和响应结果统一处理封装**，整合接口文档knife框架等
+- 自定义启动banner图案和控制台打印
+- 基于**TransmittableThreadLocal封装线程池**实现父子线程之间的数据传递
+- 封装公共pojo类、业务异常类、工具类
 
 **开发文档**：https://github.com/plasticene/plasticene-boot-starter-parent/wiki
 
@@ -88,6 +91,7 @@ plasticene-boot-starter-parent -- 父项目
 | [caffeine](https://github.com/ben-manes/caffeine)            | 高性能本地缓存之王    | 2.8.5       |
 | [slf4j](https://www.slf4j.org/)                              | 日志框架              | 1.7.36      |
 | [aspectj](https://www.eclipse.org/aspectj/)                  | 切面框架              | 1.9.6       |
+| [truelicense](https://truelicense.namespace.global/)         | license证书管理引擎   | 1.33        |
 | [jdk](https://github.com/openjdk/jdk)                        | Java 开发工具包       | >=1.8       |
 | [maven](https://maven.apache.org/)                           | Java 管理与构建工具   | >=3.5.0     |
 
@@ -147,7 +151,7 @@ plasticene-boot-starter-parent -- 父项目
 
 ```
 
-
+完整项目服务整合代码示例请看：https://github.com/plasticene/fast-api
 
 ## 5. 交流反馈
 
