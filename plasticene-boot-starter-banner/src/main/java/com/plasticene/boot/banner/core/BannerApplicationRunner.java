@@ -1,6 +1,7 @@
 package com.plasticene.boot.banner.core;
 
 import cn.hutool.core.thread.ThreadUtil;
+import cn.hutool.core.util.StrUtil;
 import com.plasticene.boot.common.constant.OrderConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,16 +28,26 @@ public class BannerApplicationRunner implements ApplicationRunner {
     @Value("${spring.application.name}")
     private String name;
 
+    private static final String URL_PREFIX = "http://127.0.0.1:";
+
     @Override
     public void run(ApplicationArguments args) {
-        String apiDoc = "http://127.0.0.1:" + serverProperties.getPort() + serverProperties.getServlet().getContextPath() + "/doc.html";
+        StringBuilder sb = new StringBuilder(URL_PREFIX + serverProperties.getPort());
+        String contextPath = serverProperties.getServlet().getContextPath();
+        if (StrUtil.isNotBlank(contextPath)) {
+            if (! contextPath.startsWith("/")) {
+                sb.append("/");
+            }
+            sb.append(contextPath);
+        }
+        sb.append("/doc.html");
         ThreadUtil.execute(() -> {
             ThreadUtil.sleep(1, TimeUnit.SECONDS); // 延迟 1 秒，保证输出到结尾
             log.info("\n----------------------------------------------------------\n\t" +
                             "(♥◠‿◠)ﾉﾞ  {}启动成功   ლ(´ڡ`ლ)ﾞ\n\t" +
                             "接口文档:  {} \n" +
                             "----------------------------------------------------------",
-                    name, apiDoc);
+                    name, sb.toString());
         });
     }
 
