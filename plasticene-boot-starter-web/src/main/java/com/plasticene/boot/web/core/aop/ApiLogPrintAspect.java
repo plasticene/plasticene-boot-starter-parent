@@ -1,5 +1,6 @@
 package com.plasticene.boot.web.core.aop;
 
+import cn.hutool.core.util.StrUtil;
 import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.utils.JsonUtils;
 import com.plasticene.boot.web.core.model.RequestInfo;
@@ -71,7 +72,8 @@ public class ApiLogPrintAspect {
                 } else {
                     params = object;
                 }
-            } else if ("GET".equals(method)) {
+                // 方法为get时，当接口参数为路径参数，那么此时queryString为null
+            } else if ("GET".equals(method) && StrUtil.isNotBlank(queryString)) {
                 params = URLDecoder.decode(queryString, "utf-8");
             }
         }
