@@ -70,21 +70,21 @@ public class MaskSerialize extends JsonSerializer<String> implements ContextualS
     @Override
     public JsonSerializer <?> createContextual(SerializerProvider serializerProvider, BeanProperty beanProperty) throws JsonMappingException {
         // 为空直接跳过
-        if (beanProperty != null) {
-            // 非 String 类直接跳过
-            if (Objects.equals(beanProperty.getType().getRawClass(), String.class)) {
-                FieldMask fieldMask = beanProperty.getAnnotation(FieldMask.class);
-                if (fieldMask == null) {
-                    fieldMask = beanProperty.getContextAnnotation(FieldMask.class);
-                }
-                if (fieldMask != null) {
-                    // 如果能得到注解，就将注解的 value 传入 SensitiveSerialize
-                    return new MaskSerialize(fieldMask.value());
-                }
-            }
-            return serializerProvider.findValueSerializer(beanProperty.getType(), beanProperty);
+        if (beanProperty == null) {
+            return serializerProvider.findNullValueSerializer(beanProperty);
         }
-        return serializerProvider.findNullValueSerializer(beanProperty);
+        // 非String类直接跳过
+        if (Objects.equals(beanProperty.getType().getRawClass(), String.class)) {
+            FieldMask fieldMask = beanProperty.getAnnotation(FieldMask.class);
+            if (fieldMask == null) {
+                fieldMask = beanProperty.getContextAnnotation(FieldMask.class);
+            }
+            if (fieldMask != null) {
+                // 如果能得到注解，就将注解的 value 传入 MaskSerialize
+                return new MaskSerialize(fieldMask.value());
+            }
+        }
+        return serializerProvider.findValueSerializer(beanProperty.getType(), beanProperty);
     }
 
     public MaskSerialize() {}
