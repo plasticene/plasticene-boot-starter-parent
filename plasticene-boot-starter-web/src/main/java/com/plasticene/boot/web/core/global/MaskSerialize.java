@@ -18,7 +18,7 @@ import java.util.Objects;
  * @version 1.0
  * @date 2022/8/26 16:23
  */
-public class MaskSerialize extends JsonSerializer< String > implements ContextualSerializer {
+public class MaskSerialize extends JsonSerializer<String> implements ContextualSerializer {
 
     /**
      * 脱敏类型
