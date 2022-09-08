@@ -14,6 +14,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.text.MessageFormat;
@@ -64,8 +65,21 @@ public class ApiLogPrintAspect {
         String queryString = request.getQueryString();
         String method = request.getMethod();
         if (args.length > 0) {
+             // 有body的接口类型，这时候要排除HttpServletRequest request, HttpServletResponse response作为接口方法参数
             if ("POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method)) {
-                Object object = args[0];
+                int length = args.length;
+                int index = 0;
+                Object object = null;
+                while (index < length) {
+                    Object o = args[index];
+                    index++;
+                    if (o instanceof HttpServletRequest || o instanceof HttpServletResponse) {
+                        continue;
+                    } else {
+                        object = o;
+                        break;
+                    }
+                }
                 if (object instanceof MultipartFile) {
                     MultipartFile multipartFile = (MultipartFile) object;
                     params = MessageFormat.format("文件名: {0}, 大小: {1}", multipartFile.getOriginalFilename(), multipartFile.getSize());
