@@ -25,7 +25,7 @@ public class MultilevelCacheProperties {
     /**
      * 消息主题
      */
-    private String topic = "multilevel-cache-topic";
+//    private String topic = "multilevel-cache-topic";
 
     /**
      * 缓存名称

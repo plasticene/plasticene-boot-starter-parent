@@ -1,11 +1,10 @@
 package com.plasticene.boot.cache.core.listener;
 
-import com.plasticene.boot.common.utils.JsonUtils;
+import com.plasticene.boot.redis.core.listener.AbstractChannelMessageListener;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.caffeine.CaffeineCache;
-import org.springframework.data.redis.connection.Message;
-import org.springframework.data.redis.connection.MessageListener;
+
 
 import java.util.Objects;
 
@@ -16,17 +15,17 @@ import java.util.Objects;
  */
 @Slf4j
 @Data
-public class RedisCacheMessageListener implements MessageListener {
+public class RedisCacheMessageListener extends AbstractChannelMessageListener<CacheMessage> {
 
     private CaffeineCache caffeineCache;
+
     @Override
-    public void onMessage(Message message, byte[] pattern) {
+    public void onMessage(CacheMessage message) {
         log.info("监听的redis message: {}" + message.toString());
-        CacheMessage cacheMessage = JsonUtils.parseObject(message.toString(), CacheMessage.class);
-        if (Objects.isNull(cacheMessage.getKey())) {
+        if (Objects.isNull(message.getKey())) {
             caffeineCache.invalidate();
         } else {
-            caffeineCache.evict(cacheMessage.getKey());
+            caffeineCache.evict(message.getKey());
         }
     }
 }

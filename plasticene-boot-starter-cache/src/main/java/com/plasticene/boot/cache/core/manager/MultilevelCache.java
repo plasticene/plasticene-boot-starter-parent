@@ -160,7 +160,7 @@ public class MultilevelCache extends AbstractValueAdaptingCache {
             cacheMessage.setCacheName(multilevelCacheProperties.getName());
             cacheMessage.setKey(key);
             cacheMessage.setValue(value);
-            redisTemplate.convertAndSend(multilevelCacheProperties.getTopic(), cacheMessage);
+            redisTemplate.convertAndSend(cacheMessage.getChannel(), cacheMessage);
         });
     }
 
