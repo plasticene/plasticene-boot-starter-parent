@@ -64,6 +64,11 @@ public class MaskSerialize extends JsonSerializer<String> implements ContextualS
                 jsonGenerator.writeString(MaskUtils.bankCard(s));
                 break;
             }
+            case API_SECRET:
+            {
+                jsonGenerator.writeString(MaskUtils.apiSecret(s));
+                break;
+            }
         }
     }
 

@@ -33,5 +33,10 @@ public enum MaskEnum {
     /**
      * 银行卡
      */
-    BANK_CARD
+    BANK_CARD,
+
+    /**
+     * 秘钥
+     */
+    API_SECRET;
 }

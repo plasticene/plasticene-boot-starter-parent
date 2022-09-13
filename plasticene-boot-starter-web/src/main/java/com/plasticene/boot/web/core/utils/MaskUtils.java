@@ -108,4 +108,17 @@ public class MaskUtils {
                 "******"));
     }
 
+    /**
+     * [api秘钥] 前3位，后3位，其他用星号隐藏每位1个星号<例子:Aj3**********8Kl>
+     */
+    public static String apiSecret(final String cardNum) {
+        if (StringUtils.isBlank(cardNum)) {
+            return "";
+        }
+        return StringUtils.left(cardNum, 3).concat(StringUtils.removeStart(
+                StringUtils.leftPad(StringUtils.right(cardNum, 3), StringUtils.length(cardNum), "*"),
+                "******"));
+    }
+
+
 }
