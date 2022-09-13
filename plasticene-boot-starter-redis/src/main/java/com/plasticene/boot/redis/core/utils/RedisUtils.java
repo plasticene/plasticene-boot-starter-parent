@@ -1,6 +1,7 @@
 package com.plasticene.boot.redis.core.utils;
 
 import cn.hutool.core.util.StrUtil;
+import com.plasticene.boot.redis.core.message.AbstractChannelMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisClusterNode;
@@ -462,6 +463,16 @@ public class RedisUtils {
     public void insert(String key, long index, Object value) {
         opsForList().set(key, index, value);
     }
+
+    /**
+     * 发布消息。
+     * @param message
+     * @param <T>
+     */
+    public <T extends AbstractChannelMessage> void convertAndSend(T message) {
+        redisTemplate.convertAndSend(message.getChannel(), message);
+    }
+
 
     private byte[] rawKey(Object key) {
         Assert.notNull(key, "non null key required");
