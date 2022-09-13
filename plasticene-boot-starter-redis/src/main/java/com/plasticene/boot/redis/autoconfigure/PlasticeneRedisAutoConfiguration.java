@@ -2,7 +2,9 @@ package com.plasticene.boot.redis.autoconfigure;
 
 import com.plasticene.boot.redis.core.aop.LockAspect;
 import com.plasticene.boot.redis.core.aop.RateLimitAspect;
+import com.plasticene.boot.redis.core.listener.AbstractChannelMessageListener;
 import com.plasticene.boot.redis.core.utils.RedisUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -19,12 +21,15 @@ import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * @author fjzheng
@@ -34,6 +39,7 @@ import javax.annotation.Resource;
 @EnableConfigurationProperties({RedisProperties.class, CacheProperties.class})
 @Configuration
 @EnableCaching
+@Slf4j
 public class PlasticeneRedisAutoConfiguration {
 
     private static final String REDISSON_PREFIX = "redis://";
@@ -127,6 +133,28 @@ public class PlasticeneRedisAutoConfiguration {
             config = config.disableKeyPrefix();
         }
         return config;
+    }
+
+
+    /**
+     * 创建 Redis Pub/Sub 广播消费的容器
+     * 统一在这里注入监听器容器，解决多处注入导致冲突问题
+     * 我们只需要在业务侧注入监听器bean即可，这里要求监听器bean extends {@link AbstractChannelMessageListener}
+     */
+    @Bean
+    public RedisMessageListenerContainer redisMessageListenerContainer(RedisConnectionFactory redisConnectionFactory,
+                                                                       List<AbstractChannelMessageListener<?>> listeners) {
+        // 创建 RedisMessageListenerContainer 对象
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        // 设置 RedisConnection 工厂。
+        container.setConnectionFactory(redisConnectionFactory);
+        // 添加监听器
+        listeners.forEach(listener -> {
+            container.addMessageListener(listener, new ChannelTopic(listener.getChannel()));
+            log.info("[redisMessageListenerContainer][注册 Channel({}) 对应的监听器({})]",
+                    listener.getChannel(), listener.getClass().getName());
+        });
+        return container;
     }
 
 }
