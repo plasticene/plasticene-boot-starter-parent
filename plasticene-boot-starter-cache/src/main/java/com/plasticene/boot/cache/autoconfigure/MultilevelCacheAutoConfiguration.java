@@ -8,7 +8,6 @@ import com.plasticene.boot.cache.core.manager.MultilevelCache;
 import com.plasticene.boot.cache.core.prop.MultilevelCacheProperties;
 import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -125,13 +124,15 @@ public class MultilevelCacheAutoConfiguration {
 
 
 
-    @Bean
-    public RedisMessageListenerContainer redisMessageListenerContainer(@Autowired RedisConnectionFactory redisConnectionFactory,
-                                                                       @Autowired RedisCacheMessageListener redisCacheMessageListener) {
-        RedisMessageListenerContainer redisMessageListenerContainer = new RedisMessageListenerContainer();
-        redisMessageListenerContainer.setConnectionFactory(redisConnectionFactory);
-        redisMessageListenerContainer.addMessageListener(redisCacheMessageListener, new ChannelTopic(multilevelCacheProperties.getTopic()));
-        return redisMessageListenerContainer;
-    }
+//    @Bean
+//    @ConditionalOnMissingBean({RedisMessageListenerContainer.class})
+//    public RedisMessageListenerContainer redisMessageListenerContainer(@Autowired RedisConnectionFactory redisConnectionFactory,
+//                                                                       @Autowired RedisCacheMessageListener redisCacheMessageListener) {
+//        RedisMessageListenerContainer redisMessageListenerContainer = new RedisMessageListenerContainer();
+//        redisMessageListenerContainer.setConnectionFactory(redisConnectionFactory);
+//        redisMessageListenerContainer.addMessageListener(redisCacheMessageListener, new ChannelTopic("multilevel-cache-topic"));
+//        return redisMessageListenerContainer;
+//    }
+
 
 }
