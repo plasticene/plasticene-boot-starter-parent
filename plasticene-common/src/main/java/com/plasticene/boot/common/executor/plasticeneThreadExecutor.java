@@ -24,7 +24,7 @@ public class plasticeneThreadExecutor extends ThreadPoolExecutor {
                 0L,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue(queueCapacity),
-                new ThreadFactoryBuilder().setNamePrefix(name + "-%d").build(),
+                new ThreadFactoryBuilder().setNamePrefix(name).build(),
                 new AbortPolicy()
         );
     }
