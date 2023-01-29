@@ -42,6 +42,6 @@ public class BaseDO implements Serializable {
     /**
      * 是否删除
      */
-    @TableLogic
-    private Integer deleted;
+//    @TableLogic
+//    private Integer deleted;
 }
