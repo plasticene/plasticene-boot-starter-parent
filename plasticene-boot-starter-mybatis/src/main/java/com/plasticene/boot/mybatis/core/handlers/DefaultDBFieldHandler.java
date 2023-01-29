@@ -1,6 +1,8 @@
 package com.plasticene.boot.mybatis.core.handlers;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.RequestUserHolder;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import org.apache.ibatis.reflection.MetaObject;
 
@@ -33,16 +35,14 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
                 baseDO.setUpdateTime(current);
             }
 
-            //todo 完善获取登录用户信息
-//            LoginUser currentUser = RequestUserHolder.getCurrentUser();
-            Long userId = 1l;
+            LoginUser currentUser = RequestUserHolder.getCurrentUser();
             // 当前登录用户不为空，创建人为空，则当前登录用户为创建人
-            if (Objects.nonNull(userId) && Objects.isNull(baseDO.getCreator())) {
-                baseDO.setCreator(userId);
+            if (Objects.nonNull(currentUser) && Objects.isNull(baseDO.getCreator())) {
+                baseDO.setCreator(currentUser.getId());
             }
             // 当前登录用户不为空，更新人为空，则当前登录用户为更新人
-            if (Objects.nonNull(userId) && Objects.isNull(baseDO.getUpdater())) {
-                baseDO.setUpdater(userId);
+            if (Objects.nonNull(currentUser) && Objects.isNull(baseDO.getUpdater())) {
+                baseDO.setUpdater(currentUser.getId());
             }
         }
     }
@@ -55,12 +55,12 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
             setFieldValByName("updateTime", new Date(), metaObject);
         }
 
-//        LoginUser currentUser = RequestUserHolder.getCurrentUser();
-        Long userId = 1l;
+        LoginUser currentUser = RequestUserHolder.getCurrentUser();
+//        Long userId = 1l;
         // 当前登录用户不为空，更新人为空，则当前登录用户为更新人
         Object modifier = getFieldValByName("updater", metaObject);
-        if (Objects.nonNull(userId) && Objects.isNull(modifier)) {
-            setFieldValByName("updater", userId, metaObject);
+        if (Objects.nonNull(currentUser) && Objects.isNull(modifier)) {
+            setFieldValByName("updater", currentUser.getId(), metaObject);
         }
     }
 }
