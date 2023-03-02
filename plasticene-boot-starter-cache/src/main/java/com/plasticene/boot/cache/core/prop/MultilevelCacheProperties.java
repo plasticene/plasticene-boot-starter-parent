@@ -13,14 +13,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class MultilevelCacheProperties {
 
     /**
-     * 一级本地缓存最大比例
+     * 一级本地缓存最大容量
      */
-    private Double maxCapacityRate = 0.2;
+    private Integer maxCapacity = 512;
 
     /**
-     * 一级本地缓存与最大缓存初始化大小比例
+     * 一级本地缓存初始化容量
      */
-    private Double initRate = 0.5;
+    private Integer initCapacity = 64;
 
     /**
      * 消息主题

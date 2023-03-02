@@ -87,13 +87,11 @@ public class MultilevelCacheAutoConfiguration {
     @ConditionalOnClass(CaffeineCache.class)
     @ConditionalOnProperty(name = "multilevel.cache.caffeineSwitch", havingValue = "true", matchIfMissing = true)
     public CaffeineCache caffeineCache() {
-        int maxCapacity = (int) (Runtime.getRuntime().totalMemory() * multilevelCacheProperties.getMaxCapacityRate());
-        int initCapacity = (int) (maxCapacity * multilevelCacheProperties.getInitRate());
         CaffeineCache caffeineCache = new CaffeineCache(multilevelCacheProperties.getCaffeineName(), Caffeine.newBuilder()
                 // 设置初始缓存大小
-                .initialCapacity(initCapacity)
+                .initialCapacity(multilevelCacheProperties.getInitCapacity())
                 // 设置最大缓存
-                .maximumSize(maxCapacity)
+                .maximumSize(multilevelCacheProperties.getMaxCapacity())
                 // 设置缓存线程池
                 .executor(cacheExecutor)
                 // 设置定时任务执行过期清除操作
