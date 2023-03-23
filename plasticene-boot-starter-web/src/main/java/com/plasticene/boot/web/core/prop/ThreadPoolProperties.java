@@ -25,7 +25,7 @@ public class ThreadPoolProperties {
     /**
      *  队列最大长度
      */
-    @Value("${async-task.queueCapacity:10}")
+    @Value("${async-task.queueCapacity:1000}")
     private int queueCapacity;
     /**
      *  线程池前缀
