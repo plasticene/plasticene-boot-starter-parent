@@ -16,6 +16,7 @@
         <module>plasticene-boot-starter-redis</module>
         <module>plasticene-boot-starter-cache</module>
         <module>plasticene-boot-starter-license</module>
+        <module>plasticene-boot-starter-oss</module>
     </modules>
 
     <properties>
