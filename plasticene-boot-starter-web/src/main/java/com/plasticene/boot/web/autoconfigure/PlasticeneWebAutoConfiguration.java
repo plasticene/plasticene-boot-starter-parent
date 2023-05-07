@@ -3,9 +3,12 @@ package com.plasticene.boot.web.autoconfigure;
 import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
 import com.plasticene.boot.web.core.advice.ResponseResultBodyAdvice;
+import com.plasticene.boot.web.core.aop.ApiSecurityAspect;
 import com.plasticene.boot.web.core.aop.ApiLogPrintAspect;
+import com.plasticene.boot.web.core.filter.BodyTransferFilter;
 import com.plasticene.boot.web.core.filter.WebTraceFilter;
 import com.plasticene.boot.web.core.global.GlobalExceptionHandler;
+import com.plasticene.boot.web.core.prop.ApiSecurityProperties;
 import com.plasticene.boot.web.core.prop.ThreadPoolProperties;
 import com.plasticene.boot.web.core.prop.TraceProperties;
 import com.plasticene.boot.web.core.interceptor.FeignInterceptor;
@@ -24,7 +27,7 @@ import java.util.concurrent.ExecutorService;
  * @date 2022/7/14 12:06
  */
 @Configuration
-@EnableConfigurationProperties({TraceProperties.class, ThreadPoolProperties.class})
+@EnableConfigurationProperties({TraceProperties.class, ThreadPoolProperties.class, ApiSecurityProperties.class})
 @PropertySource("classpath:/web-default.properties")
 public class PlasticeneWebAutoConfiguration {
 
@@ -78,6 +81,22 @@ public class PlasticeneWebAutoConfiguration {
     @Bean
     public FeignInterceptor feignInterceptor() {
         return new FeignInterceptor();
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true", matchIfMissing = false)
+    public FilterRegistrationBean bodyTransferFilter() {
+        FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean();
+        filterRegistrationBean.setOrder(OrderConstant.FILTER_TRACE - 10);
+        filterRegistrationBean.setFilter(new BodyTransferFilter());
+        filterRegistrationBean.addUrlPatterns("/*");
+        return filterRegistrationBean;
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true", matchIfMissing = false)
+    public ApiSecurityAspect apiEncryptAspect() {
+        return new ApiSecurityAspect();
     }
 
 

@@ -49,6 +49,8 @@
         <!-- License -->
         <truelicense.version>1.33</truelicense.version>
 
+        <fastjson.version>1.2.78</fastjson.version>
+
 
 
 
@@ -171,6 +173,12 @@
                 <groupId>de.schlichtherle.truelicense</groupId>
                 <artifactId>truelicense-core</artifactId>
                 <version>${truelicense.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
             </dependency>
 
 
