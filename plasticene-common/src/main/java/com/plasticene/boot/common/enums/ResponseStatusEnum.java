@@ -16,7 +16,8 @@ public enum ResponseStatusEnum {
     UNAUTHORIZED(HttpStatus.HTTP_UNAUTHORIZED, "Unauthorized"),
     SUCCESS(HttpStatus.HTTP_OK, "OK"),
     BAD_REQUEST(HttpStatus.HTTP_BAD_REQUEST, "Bad Request"),
-    SYSTEM_ERROR(HttpStatus.HTTP_INTERNAL_ERROR, "系统异常错误");
+    SYSTEM_ERROR(HttpStatus.HTTP_INTERNAL_ERROR, "系统异常错误"),
+    NOT_EXIST(HttpStatus.HTTP_NOT_FOUND, "请求路径不存在");
 
 
     /**
