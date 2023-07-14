@@ -30,11 +30,10 @@ public class WebTraceFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws IOException, ServletException {
         try {
             String traceId = request.getHeader(MDCTraceUtils.TRACE_ID_HEADER);
-            String spanId = request.getHeader(MDCTraceUtils.SPAN_ID_HEADER);
             if (StrUtil.isEmpty(traceId)) {
                 MDCTraceUtils.addTrace();
             } else {
-                MDCTraceUtils.putTrace(traceId, spanId);
+                MDCTraceUtils.putTrace(traceId);
             }
             filterChain.doFilter(request, response);
         } finally {
