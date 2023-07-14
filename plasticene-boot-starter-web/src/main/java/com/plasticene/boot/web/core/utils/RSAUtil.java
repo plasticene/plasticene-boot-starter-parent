@@ -3,10 +3,9 @@ package com.plasticene.boot.web.core.utils;
 import com.alibaba.fastjson.JSONObject;
 import com.plasticene.boot.web.core.model.RequestInfo;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tomcat.util.codec.binary.Base64;
+import org.apache.commons.codec.binary.Base64;
 
 import javax.crypto.Cipher;
-import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -91,7 +90,7 @@ public class RSAUtil {
             byte[] signed = signature.sign();
             return new String(Base64.encodeBase64URLSafe(signed), ENCODING);
         } catch (Exception e) {
-            log.warn("sign error, content: {}, privateKey: {}", new Object[]{content, privateKey});
+            log.warn("sign error, content: {}, priKey: {}", new Object[]{content, privateKey});
             log.error("sign error", e);
         }
         return null;
@@ -110,8 +109,9 @@ public class RSAUtil {
             Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
             signature.initVerify(pubKey);
             signature.update(content.getBytes(ENCODING));
-            return signature.verify(Base64.decodeBase64URLSafe(new String(sign.getBytes(), ENCODING)));
+            return signature.verify(Base64.decodeBase64(sign.getBytes(ENCODING)));
         } catch (Exception e) {
+
             log.warn("sign error, content: {}, sign: {}, pubKey: {}", new Object[]{content, sign, publicKey});
             log.error("sign error", e);
         }
@@ -159,22 +159,22 @@ public class RSAUtil {
     }
 
     public static void main(String[] args) {
-        KeyPair keyPair = getKeyPair(4096);
-        byte[] privateKey = getPrivateKey(keyPair);
-        byte[] publicKey = getPublicKey(keyPair);
-        String publicKeyString = Base64.encodeBase64String(publicKey);
-        System.out.println("public:" + publicKeyString);
-        // 得到私钥字符串
-        String privateKeyString = Base64.encodeBase64String(privateKey);
-        System.out.println("private:" + privateKeyString);
-//        String publicKeyString= "MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAu/SJl2VWDF8RLyvIspjFQMiaoKrgJ9dQ+gm1Cqf/itg25BpP0Y5otLLS9tFdp8T+ttJmHz5KWpfD+IoVF8X+lAtqXoHEgQ5hMlDiE566FqsEJAFFAqpABp1ZZDxW+2HmbLNIuQQrJYacTRQz4IhJAff6XSFDxnMRqhnO334mbFZlqLG7lJKgQgQ9fuIcWvhWpmLpW6RpHtMMjTSW8OIWwqm8LY0bzrjBj0Hb+qu5dPbCwPzvcBeI7tpMTkZtyNANloFODigrkYbCAtqP7EXwMhtX9Fex6DOOn+Xab/59EF+06fJT/l+MHlUOxrxgdXNyO2imDXT7IEZ/jgqg9S3WsgizNNAWsVJWLAlqkFdCLXyXKDw27Qpgz7QzKmYtnMcUg36pBy1uvPusVM9yZtrkkj+A195tsBnrm9No0af0gKMv1NFDVrSu/VGtp1dwEaEWBs6bLiqy5CZ+I2sAPqhm4x713QGXSnpVTir/TCkuyANEsVv8P8JGTX215ef6VMpVWCSXIRq1SB0usbXcAumh69++rCD1xNu2THYOaxF3DjXbLT7yreyrwclpVhnm14RSn/rAbvY3uRrgtFk8p+BsDQNKXymCl//W9+oc8LB+7fJF61GK7YcXry11rSaihX/f56gcmowOOjY89EYIMe7OVo05BxMwj3qiuVUbeP3A6mMCAwEAAQ==";
-//        String privateKeyString = "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";
+//        KeyPair keyPair = getKeyPair(4096);
+//        byte[] privateKey = getPrivateKey(keyPair);
+//        byte[] publicKey = getPublicKey(keyPair);
+//        String publicKeyString = Base64.encodeBase64String(publicKey);
+//        System.out.println("public:" + publicKeyString);
+//        // 得到私钥字符串
+//        String privateKeyString = Base64.encodeBase64String(privateKey);
+//        System.out.println("private:" + privateKeyString);
+        String publicKeyString = "MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAxTqXxkqUfzrWO91G6Cja3CBoZ9Do3Sm/wKHmfe0UfIWebgWlW2juj4pJ98GPSoDf498CI7kOXiu0c8bDtAS34j5iuTsJKGbOE9FIbQn1yQW4myfXmsu/KKRn5vH30XDqN/kLowxfvS1WokE9qXGFySV0ZrJWxDUFNTtAEniKRn70W0oZ7aM2/weT0P8diU3Zm/+yi6pymTfTLLJm58wx3VBGnBCwUMppwNhkjZmcCfWEA89aNS/bwykjWGxDvczlT3mo8CaxUHjAy3Ei8zGqDMD4NzHkX6LL2yVB4orLvB8XDE3gjYr97q5R603/rODDtO1U/O4vFhX9XbZPjx3J2AWmI7yV4wlQ3zlrLY2jepGI8qFOrXoH9dLf0TbvsXFpG0ZHx5YGzkMH1/rFwnju7QlkLxMyxvXk0DDEn+bFrvjJc6B2GVOJ3shZdVBMC+Lq8H/RfYK89BfSnWTl1l8PWReNK/ESyR7LoCiDcnjcA8v/NZDTEpw1S7zNKBRo7KRfzWgRT//qN+nbDHjLX7VrpzvInOaried4DQ3umciysPhK0WhlQvqIbBYMXt9EnVlRvEfbdxyIdW3OWAF50izgwjRIaZ2nfL2M2Goc46F28an0+SrIqdwzMXuUPjvHvx2tuS3cVzEoaj2mubwR3p0UZksWZTnoHmqzsbel138ttpMCAwEAAQ==";
+        String privateKeyString = "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";
         RequestInfo requestInfo = new RequestInfo();
-        requestInfo.setIp("127.0.0.1");
-        requestInfo.setUrl("/test/1");
-        requestInfo.setHttpMethod("post");
+//        requestInfo.setIp("127.0.0.1");
+//        requestInfo.setUrl("/test/1");
+        requestInfo.setHttpMethod("12");
         String s = JSONObject.toJSONString(requestInfo);
-        String sign = signByPrivateKey(s+"234325", privateKeyString);
+        String sign = signByPrivateKey(s, privateKeyString);
         boolean b = verifySignByPublicKey(s, sign, publicKeyString);
         System.out.println(b);
 
