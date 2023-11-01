@@ -8,6 +8,7 @@ import com.plasticene.boot.web.core.aop.ApiLogPrintAspect;
 import com.plasticene.boot.web.core.filter.BodyTransferFilter;
 import com.plasticene.boot.web.core.filter.WebTraceFilter;
 import com.plasticene.boot.web.core.global.GlobalExceptionHandler;
+import com.plasticene.boot.web.core.prop.ApiLogProperties;
 import com.plasticene.boot.web.core.prop.ApiSecurityProperties;
 import com.plasticene.boot.web.core.prop.ThreadPoolProperties;
 import com.plasticene.boot.web.core.prop.TraceProperties;
@@ -27,7 +28,7 @@ import java.util.concurrent.ExecutorService;
  * @date 2022/7/14 12:06
  */
 @Configuration
-@EnableConfigurationProperties({TraceProperties.class, ThreadPoolProperties.class, ApiSecurityProperties.class})
+@EnableConfigurationProperties({TraceProperties.class, ThreadPoolProperties.class, ApiSecurityProperties.class, ApiLogProperties.class})
 @PropertySource("classpath:/web-default.properties")
 public class PlasticeneWebAutoConfiguration {
 
@@ -63,7 +64,7 @@ public class PlasticeneWebAutoConfiguration {
      * @return
      */
     @Bean
-    @ConditionalOnProperty(name = "ptc.apiLog.enable", havingValue = "true", matchIfMissing = true)
+//    @ConditionalOnProperty(name = "ptc.api.log.enable", havingValue = "true")
     public ApiLogPrintAspect apiLogPrintAspect() {
         return new ApiLogPrintAspect();
     }
