@@ -74,15 +74,14 @@ public class RateLimitAspect {
         }
         List<String> keys = ListUtil.of(StrUtil.join(limitAnnotation.prefix(), key));
         String luaScript = buildLuaScript();
-        RedisScript<Number> redisScript = new DefaultRedisScript<>(luaScript, Number.class);
-        Number count = stringRedisTemplate.execute(redisScript, keys, String.valueOf(limitCount), String.valueOf(limitPeriod));
+        RedisScript<Long> redisScript = new DefaultRedisScript<>(luaScript, Long.class);
+        Long count = stringRedisTemplate.execute(redisScript, keys, String.valueOf(limitCount), String.valueOf(limitPeriod));
         logger.info("Access try count is {} for name={} and key = {}", count, name, key);
-        if (count != null && count.intValue() <= limitCount) {
+        if (count != null && count <= limitCount) {
             return pjp.proceed();
         } else {
             throw new BizException("Too Many Requests");
         }
-
     }
 
     /**
