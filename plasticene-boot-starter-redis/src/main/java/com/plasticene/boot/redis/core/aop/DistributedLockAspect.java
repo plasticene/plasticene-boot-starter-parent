@@ -15,6 +15,7 @@ import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 
 import javax.annotation.Resource;
@@ -28,12 +29,14 @@ import java.util.concurrent.TimeUnit;
  */
 @Aspect
 @Order(OrderConstant.AOP_LOCK)
-public class LockAspect extends AbstractAspectSupport {
+public class DistributedLockAspect extends AbstractAspectSupport {
 
-    private static final Logger logger = LoggerFactory.getLogger(LockAspect.class);
+    private static final Logger logger = LoggerFactory.getLogger(DistributedLockAspect.class);
 
     @Resource
     private RedissonClient redissonClient;
+    @Resource
+    private ApplicationContext applicationContext;
 
     // 指定切入点为DistributedLock注解
     @Pointcut("@annotation(com.plasticene.boot.redis.core.anno.DistributedLock)")
@@ -45,7 +48,15 @@ public class LockAspect extends AbstractAspectSupport {
     public Object aroundLock(ProceedingJoinPoint pjp) {
         Method method = resolveMethod(pjp);
         DistributedLock distributedLock = method.getAnnotation(DistributedLock.class);
-        String lockKey = distributedLock.key();
+        String name = distributedLock.name();
+        if (StrUtil.isBlank(name)) {
+            // 获取spring.application.name服务名称
+            name = applicationContext.getId();
+        }
+        if (StrUtil.isBlank(name)) {
+            throw new BizException("分区name不能为空");
+        }
+        String lockKey = name + ":" + distributedLock.key();
         if (StrUtil.isBlank(lockKey)) {
             throw new BizException("lock Key 不能为空");
         }

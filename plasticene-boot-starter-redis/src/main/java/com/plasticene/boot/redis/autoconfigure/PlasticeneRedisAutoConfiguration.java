@@ -1,6 +1,6 @@
 package com.plasticene.boot.redis.autoconfigure;
 
-import com.plasticene.boot.redis.core.aop.LockAspect;
+import com.plasticene.boot.redis.core.aop.DistributedLockAspect;
 import com.plasticene.boot.redis.core.aop.RateLimitAspect;
 import com.plasticene.boot.redis.core.listener.AbstractChannelMessageListener;
 import com.plasticene.boot.redis.core.utils.RedisUtils;
@@ -94,8 +94,8 @@ public class PlasticeneRedisAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(RedissonClient.class)
-    public LockAspect lockAspect() {
-        return new LockAspect();
+    public DistributedLockAspect lockAspect() {
+        return new DistributedLockAspect();
     }
 
 

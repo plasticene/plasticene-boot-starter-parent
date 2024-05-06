@@ -15,6 +15,12 @@ import java.util.concurrent.TimeUnit;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface DistributedLock {
+
+    /**
+     * 分区名字，按照业务类型区分，比如用户服务→user，商品服务→product
+     * 防止key重复导致不同业务功能获取同一把分布式锁
+     */
+    String name() default "";
     /**
      * 锁的key
      */
