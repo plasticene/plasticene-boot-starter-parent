@@ -17,6 +17,8 @@
         <module>plasticene-boot-starter-cache</module>
         <module>plasticene-boot-starter-license</module>
         <module>plasticene-boot-starter-oss</module>
+        <module>plasticene-boot-starter-data-scope</module>
+        <module>plasticene-boot-starter-excel</module>
     </modules>
 
     <properties>
@@ -52,6 +54,7 @@
         <fastjson.version>1.2.78</fastjson.version>
 
         <codec.version>1.13</codec.version>
+        <commons.lang.version>3.12.0</commons.lang.version>
 
 
 
@@ -188,6 +191,13 @@
                 <artifactId>commons-codec</artifactId>
                 <version>${codec.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons.lang.version}</version>
+            </dependency>
+
 
 
 
