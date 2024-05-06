@@ -3,6 +3,7 @@ package com.plasticene.boot.redis.core.anno;
 import com.plasticene.boot.redis.core.enums.LimitType;
 
 import java.lang.annotation.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author fjzheng
@@ -16,7 +17,7 @@ import java.lang.annotation.*;
 public @interface RateLimit {
 
     /**
-     * 名字
+     * 分区名字，按照业务类型区分，比如用户服务→user，商品服务→product
      */
     String name() default "";
 
@@ -26,14 +27,19 @@ public @interface RateLimit {
     String key() default "";
 
     /**
+     * 给定的时间范围 默认单位(秒)
+     */
+    int period();
+
+    /**
      * Key的前缀
      */
     String prefix() default "";
 
     /**
-     * 给定的时间范围 单位(秒)
+     * 时间单位
      */
-    int period();
+    TimeUnit unit() default TimeUnit.SECONDS;
 
     /**
      * 一定时间内最多访问次数

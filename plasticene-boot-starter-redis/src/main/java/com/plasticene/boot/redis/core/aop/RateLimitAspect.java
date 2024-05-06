@@ -12,6 +12,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -39,6 +40,8 @@ public class RateLimitAspect {
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private ApplicationContext applicationContext;
 
 
     /**
@@ -49,22 +52,25 @@ public class RateLimitAspect {
     public Object interceptor(ProceedingJoinPoint pjp) throws Throwable {
         MethodSignature signature = (MethodSignature) pjp.getSignature();
         Method method = signature.getMethod();
-        RateLimit limitAnnotation = method.getAnnotation(RateLimit.class);
-        LimitType limitType = limitAnnotation.limitType();
-        String name = limitAnnotation.name();
-        String key;
-        int limitPeriod = limitAnnotation.period();
-        int limitCount = limitAnnotation.count();
+        RateLimit rateLimit = method.getAnnotation(RateLimit.class);
+        LimitType limitType = rateLimit.limitType();
+        String name = rateLimit.name();
+        if (StrUtil.isBlank(name)) {
+            // 获取spring.application.name服务名称
+            name = applicationContext.getId();
+        }
+        if (StrUtil.isBlank(name)) {
+            throw new BizException("分区name不能为空");
+        }
 
-        /**
-         * 根据限流类型获取不同的key ,如果不传我们会以方法名作为key
-         */
+        // 根据限流类型获取不同的key ,如果不传我们会以方法名作为key
+        String key;
         switch (limitType) {
             case IP:
                 key = getIpAddress();
                 break;
             case CUSTOMER:
-                key = limitAnnotation.key();
+                key = rateLimit.key();
                 if (StrUtil.isBlank(key)) {
                     key = signature.getDeclaringTypeName() + "." + signature.getName();
                 }
@@ -72,7 +78,13 @@ public class RateLimitAspect {
             default:
                 key = signature.getDeclaringTypeName() + "." + signature.getName();
         }
-        List<String> keys = ListUtil.of(StrUtil.join(limitAnnotation.prefix(), key));
+        if (StrUtil.isNotBlank(rateLimit.prefix())) {
+            key = rateLimit.prefix() + ":" + key;
+        }
+        key = name + ":" + key;
+        List<String> keys = ListUtil.of(key);
+        int limitPeriod = rateLimit.period();
+        int limitCount = rateLimit.count();
         String luaScript = buildLuaScript();
         RedisScript<Long> redisScript = new DefaultRedisScript<>(luaScript, Long.class);
         Long count = stringRedisTemplate.execute(redisScript, keys, String.valueOf(limitCount), String.valueOf(limitPeriod));
