@@ -1,5 +1,7 @@
 package com.plasticene.boot.excel.core.anno;
 
+import com.alibaba.excel.support.ExcelTypeEnum;
+
 import java.lang.annotation.*;
 
 /**
@@ -14,7 +16,9 @@ public @interface ExcelExport {
 
     String name() default "";
 
-    String sheetName() default "sheet1";
+    String sheet() default "sheet1";
+
+    ExcelTypeEnum suffix() default ExcelTypeEnum.XLSX;
 
 
 }
