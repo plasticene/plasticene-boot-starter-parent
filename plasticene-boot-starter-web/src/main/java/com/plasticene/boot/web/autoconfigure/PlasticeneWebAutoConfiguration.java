@@ -2,6 +2,7 @@ package com.plasticene.boot.web.autoconfigure;
 
 import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
+import com.plasticene.boot.web.core.advice.RequestBodyHandlerAdvice;
 import com.plasticene.boot.web.core.advice.ResponseResultBodyAdvice;
 import com.plasticene.boot.web.core.aop.ApiSecurityAspect;
 import com.plasticene.boot.web.core.aop.ApiLogPrintAspect;
@@ -75,8 +76,14 @@ public class PlasticeneWebAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true")
     public ResponseResultBodyAdvice responseResultBodyAdvice() {
         return new ResponseResultBodyAdvice();
+    }
+
+    @Bean
+    public RequestBodyHandlerAdvice requestBodyHandlerAdvice() {
+        return new RequestBodyHandlerAdvice();
     }
 
     @Bean
@@ -94,11 +101,11 @@ public class PlasticeneWebAutoConfiguration {
         return filterRegistrationBean;
     }
 
-    @Bean
-    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true", matchIfMissing = false)
-    public ApiSecurityAspect apiEncryptAspect() {
-        return new ApiSecurityAspect();
-    }
+//    @Bean
+//    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true", matchIfMissing = false)
+//    public ApiSecurityAspect apiEncryptAspect() {
+//        return new ApiSecurityAspect();
+//    }
 
 
 

@@ -30,6 +30,13 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 当前处理接口入参解密和验签的切面，暂时未注入到Spring Bean 容器中
+ * 改为由{@link org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdvice}实现
+ * 专门处理{@link org.springframework.web.bind.annotation.RequestBody}参数
+ * RequestBodyAdvice 是Spring MVC一个钩子函数，即扩展点。我们实现该接口就行了
+ * 虽然同样是切面思想，但是这里使用@Aspect实现不太优雅，详见
+ * @see com.plasticene.boot.web.core.advice.RequestBodyHandlerAdvice
+ *
  * @author fjzheng
  * @version 1.0
  * @date 2023/5/4 10:19
@@ -37,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 @Aspect
 @Slf4j
 @Order(value = OrderConstant.AOP_API_DECRYPT)
+@Deprecated
 public class ApiSecurityAspect {
     @Resource
     private ApiSecurityProperties apiSecurityProperties;
