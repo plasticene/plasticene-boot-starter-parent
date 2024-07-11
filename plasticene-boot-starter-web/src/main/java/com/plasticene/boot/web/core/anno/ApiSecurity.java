@@ -9,7 +9,7 @@ import java.lang.annotation.*;
  * @version 1.0
  * @date 2023/5/2 11:50
  *
- * 该注解标识需要同时经过加密和加签来加固接口安全性
+ * 该注解用于标识 需要经过加密或者加签来加固接口安全性的接口
  */
 
 @Retention(RetentionPolicy.RUNTIME)

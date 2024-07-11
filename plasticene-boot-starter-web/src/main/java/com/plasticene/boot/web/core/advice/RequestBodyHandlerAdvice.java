@@ -10,7 +10,6 @@ import com.plasticene.boot.web.core.prop.ApiSecurityProperties;
 import com.plasticene.boot.web.core.utils.AESUtil;
 import com.plasticene.boot.web.core.utils.RSAUtil;
 import com.plasticene.boot.web.core.utils.SignUtil;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -47,6 +46,13 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
     private static final String TIMESTAMP_KEY = "X-Timestamp";
 
 
+    /**
+     *
+     * @param methodParameter 包含控制器方法的参数信息
+     * @param targetType  目标类型，即请求体将要转换成的 Java 类型
+     * @param converterType 将要使用的消息转换器的类型
+     * @return
+     */
     @Override
     public boolean supports(MethodParameter methodParameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
         return methodParameter.hasMethodAnnotation(ApiSecurity.class)
@@ -55,11 +61,11 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
 
     /**
      * 接口入参解密
-     * @param inputMessage
-     * @param parameter
-     * @param targetType
-     * @param converterType
-     * @return
+     * @param inputMessage 包含 HTTP 请求的头和体
+     * @param parameter  包含控制器方法的参数信息
+     * @param targetType  目标类型，即请求体将要转换成的 Java 类型
+     * @param converterType  将要使用的消息转换器的类型
+     * @return   返回新的流
      * @throws IOException
      */
     @Override
@@ -104,12 +110,8 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
 
     /**
      * 验签
-     * @param body
-     * @param inputMessage
-     * @param parameter
-     * @param targetType
-     * @param converterType
-     * @return
+     * @param body  已转换的 Java 对象，表示请求体的数据
+     * 其余参数和上面的{@link #beforeBodyRead(HttpInputMessage, MethodParameter, Type, Class)} 一样
      */
     @Override
     public Object afterBodyRead(Object body, HttpInputMessage inputMessage, MethodParameter parameter, Type targetType,
@@ -124,6 +126,10 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
         return body;
     }
 
+    /**
+     * 和 {@link #afterBodyRead(Object, HttpInputMessage, MethodParameter, Type, Class)}一样
+     * 只是这里处理body为空的这种情况，比如当body位空时，返回一个默认对象啥的
+     */
     @Override
     public Object handleEmptyBody(Object body, HttpInputMessage inputMessage, MethodParameter parameter,
                                   Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
@@ -137,7 +143,7 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
 
     void verifySign(HttpHeaders headers, Object body) {
         // 如果请求参数是加密传输的，先从ApiSecurityParam获取签名和时间戳放到headers里面这里读取。
-        // 如果请求参数是非加密即明文传输的，那个签名参数只能在调用时放到
+        // 如果请求参数是非加密即明文传输的，那签名参数只能放到header中
         String sign = headers.getFirst(SIGN_KEY);
         if (StringUtils.isBlank(sign)) {
             throw new BizException("签名不能为空");
