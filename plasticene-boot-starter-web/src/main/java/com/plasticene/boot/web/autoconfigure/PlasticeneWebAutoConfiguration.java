@@ -1,5 +1,7 @@
 package com.plasticene.boot.web.autoconfigure;
 
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
 import com.plasticene.boot.web.core.advice.RequestBodyHandlerAdvice;
@@ -14,13 +16,18 @@ import com.plasticene.boot.web.core.prop.ApiSecurityProperties;
 import com.plasticene.boot.web.core.prop.ThreadPoolProperties;
 import com.plasticene.boot.web.core.prop.TraceProperties;
 import com.plasticene.boot.web.core.interceptor.FeignInterceptor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.boot.autoconfigure.jackson.JacksonProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -106,6 +113,36 @@ public class PlasticeneWebAutoConfiguration {
 //    public ApiSecurityAspect apiEncryptAspect() {
 //        return new ApiSecurityAspect();
 //    }
+
+    @Bean
+    public LocalDateTimeSerializer localDateTimeSerializer(JacksonProperties properties) {
+        String dateFormat = properties.getDateFormat();
+        if (StringUtils.isBlank(dateFormat)) {
+            dateFormat = "yyyy-MM-dd HH:mm:ss";
+        }
+        return new LocalDateTimeSerializer(DateTimeFormatter.ofPattern(dateFormat));
+    }
+
+    @Bean
+    public LocalDateTimeDeserializer localDateTimeDeserializer(JacksonProperties properties) {
+        String dateFormat = properties.getDateFormat();
+        if (StringUtils.isBlank(dateFormat)) {
+            dateFormat = "yyyy-MM-dd HH:mm:ss";
+        }
+        return new LocalDateTimeDeserializer(DateTimeFormatter.ofPattern(dateFormat));
+
+    }
+
+    @Bean
+    public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer(
+            LocalDateTimeSerializer localDateTimeSerializer, LocalDateTimeDeserializer localDateTimeDeserializer) {
+        return builder -> {
+            // 序列化
+            builder.serializerByType(LocalDateTime.class, localDateTimeSerializer);
+            // 反序列化
+            builder.deserializerByType(LocalDateTime.class, localDateTimeDeserializer);
+        };
+    }
 
 
 
