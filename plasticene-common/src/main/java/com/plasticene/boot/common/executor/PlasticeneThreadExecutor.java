@@ -15,9 +15,9 @@ import java.util.concurrent.*;
  * @version 1.0
  * @date 2022/7/14 14:49
  */
-public class plasticeneThreadExecutor extends ThreadPoolExecutor {
+public class PlasticeneThreadExecutor extends ThreadPoolExecutor {
 
-    public plasticeneThreadExecutor(int core, int max, int queueCapacity, String name) {
+    public PlasticeneThreadExecutor(int core, int max, int queueCapacity, String name) {
         this(
                 core,
                 max,
@@ -29,7 +29,7 @@ public class plasticeneThreadExecutor extends ThreadPoolExecutor {
         );
     }
 
-    public plasticeneThreadExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler handler) {
+    public PlasticeneThreadExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler handler) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
     }
 

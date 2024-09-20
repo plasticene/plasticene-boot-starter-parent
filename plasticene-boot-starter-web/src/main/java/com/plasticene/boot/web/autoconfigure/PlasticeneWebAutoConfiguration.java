@@ -3,10 +3,9 @@ package com.plasticene.boot.web.autoconfigure;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.plasticene.boot.common.constant.OrderConstant;
-import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
+import com.plasticene.boot.common.executor.PlasticeneThreadExecutor;
 import com.plasticene.boot.web.core.advice.RequestBodyHandlerAdvice;
 import com.plasticene.boot.web.core.advice.ResponseResultBodyAdvice;
-import com.plasticene.boot.web.core.aop.ApiSecurityAspect;
 import com.plasticene.boot.web.core.aop.ApiLogPrintAspect;
 import com.plasticene.boot.web.core.filter.BodyTransferFilter;
 import com.plasticene.boot.web.core.filter.WebTraceFilter;
@@ -58,7 +57,7 @@ public class PlasticeneWebAutoConfiguration {
      */
     @Bean
     public ExecutorService executorService(ThreadPoolProperties properties) {
-        ExecutorService executor = new plasticeneThreadExecutor(
+        ExecutorService executor = new PlasticeneThreadExecutor(
                 properties.getCorePoolSize(),
                 properties.getMaxPoolSize(),
                 properties.getQueueCapacity(),

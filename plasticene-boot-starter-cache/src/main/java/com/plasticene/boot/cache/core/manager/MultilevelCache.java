@@ -2,7 +2,7 @@ package com.plasticene.boot.cache.core.manager;
 
 import com.plasticene.boot.cache.core.listener.CacheMessage;
 import com.plasticene.boot.cache.core.prop.MultilevelCacheProperties;
-import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
+import com.plasticene.boot.common.executor.PlasticeneThreadExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.cache.support.AbstractValueAdaptingCache;
@@ -29,7 +29,7 @@ public class MultilevelCache extends AbstractValueAdaptingCache {
     private RedisTemplate redisTemplate;
 
 
-    ExecutorService cacheExecutor = new plasticeneThreadExecutor(
+    ExecutorService cacheExecutor = new PlasticeneThreadExecutor(
             Runtime.getRuntime().availableProcessors() * 2,
             Runtime.getRuntime().availableProcessors() * 20,
             Runtime.getRuntime().availableProcessors() * 200,

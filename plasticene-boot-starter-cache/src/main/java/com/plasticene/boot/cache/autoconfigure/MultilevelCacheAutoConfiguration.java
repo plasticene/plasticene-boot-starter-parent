@@ -6,7 +6,7 @@ import com.plasticene.boot.cache.core.listener.RedisCacheMessageListener;
 import com.plasticene.boot.cache.core.manager.CustomRedisCache;
 import com.plasticene.boot.cache.core.manager.MultilevelCache;
 import com.plasticene.boot.cache.core.prop.MultilevelCacheProperties;
-import com.plasticene.boot.common.executor.plasticeneThreadExecutor;
+import com.plasticene.boot.common.executor.PlasticeneThreadExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -21,8 +21,6 @@ import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheWriter;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.listener.ChannelTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
@@ -47,7 +45,7 @@ public class MultilevelCacheAutoConfiguration {
     @Resource
     private MultilevelCacheProperties multilevelCacheProperties;
 
-    ExecutorService cacheExecutor = new plasticeneThreadExecutor(
+    ExecutorService cacheExecutor = new PlasticeneThreadExecutor(
             Runtime.getRuntime().availableProcessors() * 2,
             Runtime.getRuntime().availableProcessors() * 20,
             Runtime.getRuntime().availableProcessors() * 200,
