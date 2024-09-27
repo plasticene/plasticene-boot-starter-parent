@@ -34,7 +34,8 @@
         <!-- druid 依赖版本 -->
         <druid.version>1.2.8</druid.version>
 
-        <jackson.version>2.11.2</jackson.version>
+        <!-- web自带的jackson对应版本是2.13.3，要保持一致 -->
+        <jackson.version>2.13.3</jackson.version>
 
         <hutool.version>5.7.20</hutool.version>
 
