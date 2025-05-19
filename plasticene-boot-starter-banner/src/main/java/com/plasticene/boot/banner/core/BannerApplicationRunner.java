@@ -3,6 +3,7 @@ package com.plasticene.boot.banner.core;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.StrUtil;
 import com.plasticene.boot.common.constant.OrderConstant;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -10,7 +11,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.core.annotation.Order;
 
-import javax.annotation.Resource;
 import java.util.concurrent.TimeUnit;
 
 /**
