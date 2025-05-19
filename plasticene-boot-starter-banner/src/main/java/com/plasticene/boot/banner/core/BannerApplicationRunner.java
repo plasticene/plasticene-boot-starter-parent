@@ -32,22 +32,22 @@ public class BannerApplicationRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        StringBuilder sb = new StringBuilder(URL_PREFIX + serverProperties.getPort());
+        StringBuilder builder = new StringBuilder(URL_PREFIX + serverProperties.getPort());
         String contextPath = serverProperties.getServlet().getContextPath();
         if (StrUtil.isNotBlank(contextPath)) {
             if (! contextPath.startsWith("/")) {
-                sb.append("/");
+                builder.append("/");
             }
-            sb.append(contextPath);
+            builder.append(contextPath);
         }
-        sb.append("/doc.html");
+        builder.append("/doc.html");
         ThreadUtil.execute(() -> {
             ThreadUtil.sleep(1, TimeUnit.SECONDS); // 延迟 1 秒，保证输出到结尾
             log.info("\n----------------------------------------------------------\n\t" +
                             "(♥◠‿◠)ﾉﾞ  {}启动成功   ლ(´ڡ`ლ)ﾞ\n\t" +
                             "接口文档:  {} \n" +
                             "----------------------------------------------------------",
-                    name, sb.toString());
+                    name, builder);
         });
     }
 
