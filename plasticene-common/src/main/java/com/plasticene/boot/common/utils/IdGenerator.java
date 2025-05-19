@@ -9,7 +9,7 @@ public class IdGenerator {
     /**
      * 起始的时间戳
      */
-    private final static long START_STAMP = 1660011431000l;
+    private final static long START_STAMP = 1660011431000L;
 
     /**
      * 每一部分占用的位数

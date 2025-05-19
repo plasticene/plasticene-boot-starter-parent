@@ -3,13 +3,12 @@ package com.plasticene.boot.common.executor;
 import cn.hutool.core.thread.ThreadFactoryBuilder;
 import com.alibaba.ttl.TtlCallable;
 import com.alibaba.ttl.TtlRunnable;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.*;
 
 /**
  *
- * 这是{@link ThreadPoolTaskExecutor}的一个简单替换，可搭配TransmittableThreadLocal实现父子线程之间的数据传递
+ * 这是Spring ThreadPoolTaskExecutor的一个简单替换，可搭配TransmittableThreadLocal实现父子线程之间的数据传递
  *
  * @author fjzheng
  * @version 1.0

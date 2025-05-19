@@ -22,7 +22,7 @@ import java.util.List;
  */
 public class JsonUtils {
 
-    private static Logger log = LoggerFactory.getLogger(JsonUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(JsonUtils.class);
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 

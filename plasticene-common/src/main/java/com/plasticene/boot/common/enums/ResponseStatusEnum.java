@@ -27,11 +27,11 @@ public enum ResponseStatusEnum {
     /**
      * 业务异常码
      */
-    private Integer code;
+    private final Integer code;
     /**
      * 业务异常信息描述
      */
-    private String msg;
+    private final String msg;
 
     ResponseStatusEnum(Integer code, String msg) {
         this.code = code;

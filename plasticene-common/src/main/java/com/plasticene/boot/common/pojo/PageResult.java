@@ -14,12 +14,19 @@ import java.util.List;
 @Data
 public final class PageResult<T> implements Serializable {
 
-//    @ApiModelProperty(value = "数据", required = true)
+    /**
+     * 数据内容
+     */
     private List<T> list;
 
-//    @ApiModelProperty(value = "总量", required = true)
+    /**
+     * 总数
+     */
     private Long total;
 
+    /**
+     * 页数
+     */
     private Long pages;
 
 
