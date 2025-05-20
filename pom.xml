@@ -23,6 +23,11 @@
     </modules>
 
     <properties>
+
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
         <!-- spring boot 依赖版本 -->
         <spring.boot.version>3.4.5</spring.boot.version>
         <!-- Spring Cloud -->
@@ -37,7 +42,8 @@
         <!-- druid 依赖版本 -->
         <druid.version>1.2.8</druid.version>
 
-        <knife4j.version>3.0.2</knife4j.version>
+        <!-- knife4j 依赖版本 -->
+        <knife4j.version>4.5.0</knife4j.version>
 
         <transmittable-thread-local.version>2.12.2</transmittable-thread-local.version>
 
@@ -77,6 +83,7 @@
     <!-- 统一依赖版本管理 -->
     <dependencyManagement>
         <dependencies>
+            <!-- spring boot -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -84,6 +91,8 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+            <!-- spring cloud -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
@@ -91,6 +100,8 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+            <!-- spring cloud alibaba -->
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
@@ -110,22 +121,11 @@
                 <version>${mybatis-plus.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-validation</artifactId>
-                <version>${spring.boot.version}</version>
-            </dependency>
-
+            <!-- knife4j api文档 -->
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
-                <artifactId>knife4j-spring-boot-starter</artifactId>
+                <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-web</artifactId>
-                <version>${spring.boot.version}</version>
             </dependency>
 
             <dependency>
