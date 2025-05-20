@@ -50,8 +50,6 @@ public class IdGenerator {
 
     /**
      * 产生下一个ID
-     *
-     * @return
      */
     public synchronized long nextId() {
         long currStamp = getNewStamp();
