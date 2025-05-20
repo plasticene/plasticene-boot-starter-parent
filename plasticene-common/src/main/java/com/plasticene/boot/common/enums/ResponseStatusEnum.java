@@ -19,11 +19,6 @@ public enum ResponseStatusEnum {
     SYSTEM_ERROR(HttpStatus.HTTP_INTERNAL_ERROR, "系统异常错误"),
     NOT_EXIST(HttpStatus.HTTP_NOT_FOUND, "请求路径不存在");
 
-
-    /**
-     * 返回的HTTP状态码,  符合http请求
-     */
-    private HttpStatus httpStatus;
     /**
      * 业务异常码
      */

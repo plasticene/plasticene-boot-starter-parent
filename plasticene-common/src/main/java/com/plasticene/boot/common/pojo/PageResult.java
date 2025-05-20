@@ -46,10 +46,5 @@ public final class PageResult<T> implements Serializable {
         this.pages = pages;
     }
 
-    public static <T> PageResult<T> empty() {
-        return new PageResult<>(0L, 0L);
-    }
-
-
 }
 
