@@ -3,7 +3,9 @@ package com.plasticene.boot.common.executor;
 import cn.hutool.core.thread.ThreadFactoryBuilder;
 import com.alibaba.ttl.TtlCallable;
 import com.alibaba.ttl.TtlRunnable;
+import lombok.NonNull;
 
+import java.util.Objects;
 import java.util.concurrent.*;
 
 /**
@@ -22,7 +24,7 @@ public class PlasticeneThreadExecutor extends ThreadPoolExecutor {
                 max,
                 0L,
                 TimeUnit.SECONDS,
-                new LinkedBlockingQueue(queueCapacity),
+                new LinkedBlockingQueue<>(queueCapacity),
                 new ThreadFactoryBuilder().setNamePrefix(name).build(),
                 new AbortPolicy()
         );
@@ -34,26 +36,33 @@ public class PlasticeneThreadExecutor extends ThreadPoolExecutor {
 
 
     @Override
-    public void execute(Runnable runnable) {
+    public void execute(@NonNull Runnable runnable) {
         Runnable ttlRunnable = TtlRunnable.get(runnable);
+        Objects.requireNonNull(ttlRunnable, "ttlRunnable is null");
         super.execute(ttlRunnable);
     }
 
     @Override
-    public <T> Future<T> submit(Callable<T> task) {
-        Callable ttlCallable = TtlCallable.get(task);
+    @NonNull
+    public <T> Future<T> submit(@NonNull Callable<T> task) {
+        Callable<T> ttlCallable = TtlCallable.get(task);
+        Objects.requireNonNull(ttlCallable, "ttlRunnable is null");
         return super.submit(ttlCallable);
     }
 
     @Override
-    public Future<?> submit(Runnable task) {
+    @NonNull
+    public Future<?> submit(@NonNull Runnable task) {
         Runnable ttlRunnable = TtlRunnable.get(task);
+        Objects.requireNonNull(ttlRunnable, "ttlRunnable is null");
         return super.submit(ttlRunnable);
     }
 
     @Override
-    public <T> Future<T> submit(Runnable task, T result) {
+    @NonNull
+    public <T> Future<T> submit(@NonNull Runnable task, T result) {
         Runnable ttlRunnable = TtlRunnable.get(task);
+        Objects.requireNonNull(ttlRunnable, "ttlRunnable is null");
         return super.submit(ttlRunnable, result);
     }
 
