@@ -10,6 +10,7 @@ import com.plasticene.boot.web.core.utils.AESUtil;
 import com.plasticene.boot.web.core.utils.RSAUtil;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.MediaType;
@@ -19,8 +20,6 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-import javax.annotation.Resource;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Objects;
 
@@ -32,9 +31,9 @@ import java.util.Objects;
 @RestControllerAdvice
 @Slf4j
 public class ResponseResultBodyAdvice implements ResponseBodyAdvice<Object> {
-    @Resource
+    @Autowired
     private ObjectMapper objectMapper;
-    @Resource
+    @Autowired
     private ApiSecurityProperties apiSecurityProperties;
 
 
@@ -67,15 +66,13 @@ public class ResponseResultBodyAdvice implements ResponseBodyAdvice<Object> {
         }
         if (enable && Objects.nonNull(apiSecurity) && apiSecurity.encryptResponse() && Objects.nonNull(body)) {
             // 只需要加密返回data数据内容
-            if (body instanceof ResponseVO) {
-                body = ((ResponseVO) body).getData();
+            if (body instanceof ResponseVO<?> responseVO) {
+                body = responseVO.getData();
             }
-            JSONObject jsonObject = encryptResponse(body);
-            body = jsonObject;
+            body = encryptResponse(body);
         } else {
             if (body instanceof String || Objects.equals(returnClass, String.class)) {
-                String value = objectMapper.writeValueAsString(ResponseVO.success(body));
-                return value;
+                return objectMapper.writeValueAsString(ResponseVO.success(body));
             }
             // 防止重复包裹的问题出现
             if (body instanceof ResponseVO) {

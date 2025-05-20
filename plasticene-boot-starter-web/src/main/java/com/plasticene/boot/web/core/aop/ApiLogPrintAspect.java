@@ -4,9 +4,11 @@ import cn.hutool.core.util.StrUtil;
 import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.utils.JsonUtils;
 import com.plasticene.boot.web.core.anno.ApiLog;
-import com.plasticene.boot.web.core.anno.ApiSecurity;
 import com.plasticene.boot.web.core.model.RequestInfo;
 import com.plasticene.boot.web.core.prop.ApiLogProperties;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -18,12 +20,11 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Objects;
 
@@ -103,15 +104,14 @@ public class ApiLogPrintAspect {
                         break;
                     }
                 }
-                if (object instanceof MultipartFile) {
-                    MultipartFile multipartFile = (MultipartFile) object;
+                if (object instanceof MultipartFile multipartFile) {
                     params = MessageFormat.format("文件名: {0}, 大小: {1}", multipartFile.getOriginalFilename(), multipartFile.getSize());
                 } else {
                     params = object;
                 }
                 // 方法为get时，当接口参数为路径参数，那么此时queryString为null
             } else if ("GET".equals(method) && StrUtil.isNotBlank(queryString)) {
-                params = URLDecoder.decode(queryString, "utf-8");
+                params = URLDecoder.decode(queryString, StandardCharsets.UTF_8);
             }
         }
         return params;

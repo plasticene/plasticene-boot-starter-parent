@@ -11,6 +11,7 @@ import com.plasticene.boot.web.core.utils.AESUtil;
 import com.plasticene.boot.web.core.utils.RSAUtil;
 import com.plasticene.boot.web.core.utils.SignUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -20,7 +21,6 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdvice;
 
-import javax.annotation.Resource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
@@ -35,9 +35,9 @@ import java.util.concurrent.TimeUnit;
  */
 @RestControllerAdvice
 public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
-    @Resource
+    @Autowired
     private ApiSecurityProperties apiSecurityProperties;
-    @Resource
+    @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
 
@@ -137,8 +137,7 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
     }
 
     ApiSecurity getApiSecurity(MethodParameter methodParameter) {
-        ApiSecurity apiSecurity = methodParameter.getMethodAnnotation(ApiSecurity.class);
-        return apiSecurity;
+        return methodParameter.getMethodAnnotation(ApiSecurity.class);
     }
 
     void verifySign(HttpHeaders headers, Object body) {

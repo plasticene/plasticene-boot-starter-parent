@@ -42,8 +42,8 @@ public class PlasticeneWebAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(name = "ptc.trace.enable", havingValue = "true", matchIfMissing = true)
-    public FilterRegistrationBean buildTracerFilter() {
-        FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean();
+    public FilterRegistrationBean<WebTraceFilter> buildTracerFilter() {
+        FilterRegistrationBean<WebTraceFilter> filterRegistrationBean = new FilterRegistrationBean<>();
         filterRegistrationBean.setOrder(OrderConstant.FILTER_TRACE);
         filterRegistrationBean.setFilter(new WebTraceFilter());
         filterRegistrationBean.addUrlPatterns("/*");
@@ -57,13 +57,12 @@ public class PlasticeneWebAutoConfiguration {
      */
     @Bean
     public ExecutorService executorService(ThreadPoolProperties properties) {
-        ExecutorService executor = new PlasticeneThreadExecutor(
+        return new PlasticeneThreadExecutor(
                 properties.getCorePoolSize(),
                 properties.getMaxPoolSize(),
                 properties.getQueueCapacity(),
                 properties.getThreadNamePrefix()
         );
-        return executor;
     }
 
     /**
@@ -99,8 +98,8 @@ public class PlasticeneWebAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true", matchIfMissing = false)
-    public FilterRegistrationBean bodyTransferFilter() {
-        FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean();
+    public FilterRegistrationBean<BodyTransferFilter> bodyTransferFilter() {
+        FilterRegistrationBean<BodyTransferFilter> filterRegistrationBean = new FilterRegistrationBean<>();
         filterRegistrationBean.setOrder(OrderConstant.FILTER_TRACE - 10);
         filterRegistrationBean.setFilter(new BodyTransferFilter());
         filterRegistrationBean.addUrlPatterns("/*");
