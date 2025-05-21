@@ -5,9 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>plasticene-boot-starter-parent</artifactId>
         <groupId>com.plasticene.boot</groupId>
-        <version>1.0-SNAPSHOT</version>
+        <artifactId>plasticene-boot-starter-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>plasticene-boot-starter-banner</artifactId>
@@ -18,7 +19,6 @@
         <dependency>
             <groupId>com.plasticene.boot</groupId>
             <artifactId>plasticene-common</artifactId>
-            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -27,10 +27,6 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-        </dependency>
     </dependencies>
 
 </project>
