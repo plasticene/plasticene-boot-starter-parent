@@ -5,7 +5,8 @@
     <parent>
         <groupId>com.plasticene.boot</groupId>
         <artifactId>plasticene-boot-example</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>plasticene-boot-banner-example</artifactId>
     <version>0.0.1-SNAPSHOT</version>
@@ -31,7 +32,6 @@
         <dependency>
             <groupId>com.plasticene.boot</groupId>
             <artifactId>plasticene-boot-starter-banner</artifactId>
-            <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
