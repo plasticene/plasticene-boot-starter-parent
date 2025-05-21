@@ -29,6 +29,7 @@ public class BannerApplicationRunner implements ApplicationRunner {
     private String name;
 
     private static final String URL_PREFIX = "http://127.0.0.1:";
+    private static final String SWAGGER_SUFFIX = "/doc.html";
 
     @Override
     public void run(ApplicationArguments args) {
@@ -40,14 +41,16 @@ public class BannerApplicationRunner implements ApplicationRunner {
             }
             builder.append(contextPath);
         }
-        builder.append("/doc.html");
+        builder.append(SWAGGER_SUFFIX);
         ThreadUtil.execute(() -> {
-            ThreadUtil.sleep(1, TimeUnit.SECONDS); // 延迟 1 秒，保证输出到结尾
-            log.info("\n----------------------------------------------------------\n\t" +
-                            "(♥◠‿◠)ﾉﾞ  {}启动成功   ლ(´ڡ`ლ)ﾞ\n\t" +
-                            "接口文档:  {} \n" +
-                            "----------------------------------------------------------",
-                    name, builder);
+            // 延迟 1 秒，尽量保证输出到结尾
+            ThreadUtil.sleep(1, TimeUnit.SECONDS);
+            String template = """
+                    ----------------------------------------------------------
+                    (♥◠‿◠)ﾉﾞ  {}启动成功啦   ლ(´ڡ`ლ)
+                    接口文档:  {}
+                    """;
+            log.info(template, name, builder);
         });
     }
 
