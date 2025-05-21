@@ -46,7 +46,7 @@ public class BannerApplicationRunner implements ApplicationRunner {
             // 延迟 1 秒，尽量保证输出到结尾
             ThreadUtil.sleep(1, TimeUnit.SECONDS);
             String template = """
-                    ----------------------------------------------------------
+                    \n----------------------------------------------------------
                     (♥◠‿◠)ﾉﾞ  {}启动成功啦   ლ(´ڡ`ლ)
                     接口文档:  {}
                     """;
