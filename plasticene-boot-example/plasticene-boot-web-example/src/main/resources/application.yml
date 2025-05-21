@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: web-example
+
+server:
+  port: 8882
+
+swagger-info:
+  title: web-example
+  description: web示例
+  version: 2025.3.0
+  base-package: com.plasticene.boot.example.web.controller
+  url: https://www.shepherd126.top/
+  author: shepherd
+  email: shepherd_zfj@163.com
+
