@@ -1,0 +1,2 @@
+com.plasticene.boot.web.autoconfigure.PlasticeneSwaggerAutoConfiguration
+com.plasticene.boot.web.autoconfigure.PlasticeneWebAutoConfiguration
