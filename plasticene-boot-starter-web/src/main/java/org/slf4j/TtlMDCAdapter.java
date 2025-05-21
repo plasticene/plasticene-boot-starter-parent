@@ -4,10 +4,7 @@ import ch.qos.logback.classic.util.LogbackMDCAdapter;
 import com.alibaba.ttl.TransmittableThreadLocal;
 import org.slf4j.spi.MDCAdapter;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  *重构{@link LogbackMDCAdapter}类，搭配TransmittableThreadLocal实现父子线程之间的数据传递
@@ -22,7 +19,7 @@ public class TtlMDCAdapter implements MDCAdapter {
     private static final int WRITE_OPERATION = 1;
     private static final int MAP_COPY_OPERATION = 2;
 
-    private static TtlMDCAdapter mtcMDCAdapter;
+    private static final TtlMDCAdapter mtcMDCAdapter;
 
     /**
      * keeps track of the last operation performed
@@ -31,7 +28,7 @@ public class TtlMDCAdapter implements MDCAdapter {
 
     static {
         mtcMDCAdapter = new TtlMDCAdapter();
-        MDC.mdcAdapter = mtcMDCAdapter;
+        MDC.MDC_ADAPTER = mtcMDCAdapter;
     }
 
     public static MDCAdapter getInstance() {
@@ -185,5 +182,25 @@ public class TtlMDCAdapter implements MDCAdapter {
 
         // the newMap replaces the old one for serialisation's sake
         copyOnInheritThreadLocal.set(newMap);
+    }
+
+    @Override
+    public void pushByKey(String s, String s1) {
+
+    }
+
+    @Override
+    public String popByKey(String s) {
+        return "";
+    }
+
+    @Override
+    public Deque<String> getCopyOfDequeByKey(String s) {
+        return null;
+    }
+
+    @Override
+    public void clearDequeByKey(String s) {
+
     }
 }

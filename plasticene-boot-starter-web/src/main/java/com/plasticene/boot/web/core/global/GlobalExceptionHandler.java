@@ -36,17 +36,15 @@ public class GlobalExceptionHandler {
     @ResponseBody
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(Exception.class)
-    public ResponseVO exceptionHandler(Exception e){
+    public ResponseVO<?> exceptionHandler(Exception e){
         // 处理业务异常
-        if (e instanceof BizException) {
-            BizException bizException = (BizException) e;
+        if (e instanceof BizException bizException) {
             if (bizException.getCode() == null) {
                 bizException.setCode(ResponseStatusEnum.BAD_REQUEST.getCode());
             }
             return ResponseVO.failure(bizException.getCode(), bizException.getMessage());
-        } else if (e instanceof MethodArgumentNotValidException) {
+        } else if (e instanceof MethodArgumentNotValidException methodArgumentNotValidException) {
             // 参数检验异常
-            MethodArgumentNotValidException methodArgumentNotValidException = (MethodArgumentNotValidException) e;
             Map<String, String> map = new HashMap<>();
             BindingResult result = methodArgumentNotValidException.getBindingResult();
             result.getFieldErrors().forEach((item)->{
@@ -59,16 +57,13 @@ public class GlobalExceptionHandler {
         } else if (e instanceof HttpRequestMethodNotSupportedException) {
             log.error("请求方法错误：", e);
             return ResponseVO.failure(ResponseStatusEnum.BAD_REQUEST.getCode(), "请求方法不正确");
-        } else if (e instanceof MissingServletRequestParameterException) {
+        } else if (e instanceof MissingServletRequestParameterException ex) {
             log.error("请求参数缺失：", e);
-            MissingServletRequestParameterException ex = (MissingServletRequestParameterException) e;
             return ResponseVO.failure(ResponseStatusEnum.BAD_REQUEST.getCode(), "请求参数缺少: " + ex.getParameterName());
-        } else if (e instanceof MethodArgumentTypeMismatchException) {
+        } else if (e instanceof MethodArgumentTypeMismatchException ex) {
             log.error("请求参数类型错误：", e);
-            MethodArgumentTypeMismatchException ex = (MethodArgumentTypeMismatchException) e;
             return ResponseVO.failure(ResponseStatusEnum.BAD_REQUEST.getCode(), "请求参数类型不正确：" + ex.getName());
-        } else if (e instanceof NoHandlerFoundException) {
-            NoHandlerFoundException ex = (NoHandlerFoundException) e;
+        } else if (e instanceof NoHandlerFoundException ex) {
             log.error("请求地址不存在：", e);
             return ResponseVO.failure(ResponseStatusEnum.NOT_EXIST, ex.getRequestURL());
         } else {

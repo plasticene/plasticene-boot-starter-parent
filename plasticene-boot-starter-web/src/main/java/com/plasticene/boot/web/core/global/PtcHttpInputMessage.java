@@ -13,8 +13,8 @@ import java.io.InputStream;
  * @date 2024/7/10 15:32
  */
 public class PtcHttpInputMessage implements HttpInputMessage {
-    private HttpHeaders headers;
-    private String body;
+    private final HttpHeaders headers;
+    private final String body;
 
 
 
