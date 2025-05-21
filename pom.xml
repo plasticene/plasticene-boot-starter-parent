@@ -27,11 +27,15 @@
         <!-- project revision -->
         <revision>2025.3.0</revision>
 
-        <!-- spring boot 依赖版本 -->
+        <!--  依赖尽量采用最新稳定原则     -->
+        <!-- spring boot 依赖版本(当前最新稳定版本) -->
         <spring.boot.version>3.4.5</spring.boot.version>
-        <!-- Spring Cloud -->
-        <spring.cloud.version>2023.0.3</spring.cloud.version>
-        <!-- Spring Cloud Alibaba -->
+        <!-- Spring Cloud版本 从官网可知boot3.4.x对应cloud为2024版本  -->
+        <spring.cloud.version>2024.0.0</spring.cloud.version>
+        <!-- Spring Cloud Alibaba(当前最新版本) 源码对应的Spring cloud是2023.0.3，但这里引入的cloud版本2024.0，
+             因为boot版本3.4.x要求cloud是2024，否则项目启动报错版本问题。这里不需要担心alibaba版本和cloud版本
+             不对应会有问题，因为spring cloud从2023.0.3到2024.0.0没啥重大调整，就是些依赖包版本升级、细节调整而已
+         -->
         <spring.cloud.alibaba.version>2023.0.3.2</spring.cloud.alibaba.version>
         <!-- java -->
         <java.version>17</java.version>
@@ -121,6 +125,11 @@
             <dependency>
                 <groupId>com.plasticene.boot</groupId>
                 <artifactId>plasticene-boot-starter-banner</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-web</artifactId>
                 <version>${revision}</version>
             </dependency>
 
