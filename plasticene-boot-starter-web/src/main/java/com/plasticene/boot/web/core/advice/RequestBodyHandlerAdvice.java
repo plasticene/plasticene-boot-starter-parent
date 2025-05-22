@@ -52,7 +52,7 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
      * @param methodParameter 包含控制器方法的参数信息
      * @param targetType  目标类型，即请求体将要转换成的 Java 类型
      * @param converterType 将要使用的消息转换器的类型
-     * @return
+     * @return true or false
      */
     @Override
     public boolean supports(MethodParameter methodParameter,
@@ -69,7 +69,6 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
      * @param targetType  目标类型，即请求体将要转换成的 Java 类型
      * @param converterType  将要使用的消息转换器的类型
      * @return   返回新的流
-     * @throws IOException
      */
     @Override
     @NonNull
@@ -189,7 +188,7 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
         }
 
         // 验签
-        SortedMap sortedMap = SignUtil.beanToMap(body);
+        SortedMap<?, ?> sortedMap = SignUtil.beanToMap(body);
         String content = SignUtil.getContent(sortedMap, nonce, timestamp);
         boolean flag = RSAUtil.verifySignByPublicKey(content, sign, apiSecurityProperties.getRsaPublicKey());
         if (!flag) {

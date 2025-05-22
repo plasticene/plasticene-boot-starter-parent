@@ -52,8 +52,6 @@ public class PlasticeneWebAutoConfiguration {
 
     /**
      * 注入一个线程池bean，方便业务侧使用，该线程池使用transmittableThreadLocal实现父子线程之间的数据传递
-     * @param properties
-     * @return
      */
     @Bean
     public ExecutorService executorService(ThreadPoolProperties properties) {
@@ -67,7 +65,6 @@ public class PlasticeneWebAutoConfiguration {
 
     /**
      * 注入api 日志打印拦截器
-     * @return
      */
     @Bean
     public ApiLogPrintAspect apiLogPrintAspect() {
@@ -95,7 +92,7 @@ public class PlasticeneWebAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true", matchIfMissing = false)
+    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true")
     public FilterRegistrationBean<BodyTransferFilter> bodyTransferFilter() {
         FilterRegistrationBean<BodyTransferFilter> filterRegistrationBean = new FilterRegistrationBean<>();
         filterRegistrationBean.setOrder(OrderConstant.FILTER_TRACE - 10);
