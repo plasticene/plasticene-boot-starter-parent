@@ -197,13 +197,16 @@
     <!-- 4.1 开发环境:打印控制台-->
     <springProfile name="dev">
         <logger name="com.plasticene.boot.example.web" level="info"/>
+        <logger name="ptc.api.log" level="info" additivity="false">
+            <Appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INTERFACE_FILE"/>
+        </logger>
         <root level="info">
             <appender-ref ref="CONSOLE" />
             <appender-ref ref="DEBUG_FILE" />
             <appender-ref ref="INFO_FILE" />
             <appender-ref ref="WARN_FILE" />
             <appender-ref ref="ERROR_FILE" />
-            <appender-ref ref="INTERFACE_FILE" />
         </root>
     </springProfile>
 
@@ -226,6 +229,10 @@
     <!-- 4.2 生产环境:输出到文档-->
     <springProfile name="pro">
         <logger name="com.plasticene.boot.example.web" level="warn"/>
+        <logger name="ptc.api.log" level="info" additivity="false">
+            <Appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INTERFACE_FILE"/>
+        </logger>
         <root level="info">
             <appender-ref ref="ERROR_FILE" />
             <appender-ref ref="WARN_FILE" />

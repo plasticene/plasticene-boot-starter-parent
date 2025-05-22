@@ -3,6 +3,7 @@ package com.plasticene.boot.example.web.controller;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.example.web.param.UserParam;
 import com.plasticene.boot.example.web.vo.UserVO;
+import com.plasticene.boot.web.core.anno.ApiLog;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/test")
 @Slf4j
+@ApiLog
 public class TestController {
 
     @Operation(summary = "获取消息")
