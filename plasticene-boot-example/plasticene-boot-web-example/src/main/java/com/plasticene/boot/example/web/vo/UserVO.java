@@ -1,14 +1,18 @@
 package com.plasticene.boot.example.web.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author fjzheng
  * @version 1.0
  * @date 2025/5/21
  */
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
 @Data
 @Schema(description = "用户VO")
