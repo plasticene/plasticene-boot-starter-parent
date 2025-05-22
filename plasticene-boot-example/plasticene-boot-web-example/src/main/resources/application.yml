@@ -1,6 +1,8 @@
 spring:
   application:
     name: web-example
+  profiles:
+    active: dev
 
 server:
   port: 8882
@@ -13,4 +15,10 @@ swagger-info:
   url: https://www.shepherd126.top/
   author: shepherd
   email: shepherd_zfj@163.com
+ptc:
+  api:
+    log:
+      enable: true
+
+
 
