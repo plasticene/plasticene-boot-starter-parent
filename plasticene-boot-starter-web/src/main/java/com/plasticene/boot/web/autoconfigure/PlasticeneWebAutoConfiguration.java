@@ -70,7 +70,6 @@ public class PlasticeneWebAutoConfiguration {
      * @return
      */
     @Bean
-//    @ConditionalOnProperty(name = "ptc.api.log.enable", havingValue = "true")
     public ApiLogPrintAspect apiLogPrintAspect() {
         return new ApiLogPrintAspect();
     }
@@ -81,7 +80,6 @@ public class PlasticeneWebAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true")
     public ResponseResultBodyAdvice responseResultBodyAdvice() {
         return new ResponseResultBodyAdvice();
     }

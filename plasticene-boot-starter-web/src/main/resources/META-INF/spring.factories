@@ -1,7 +1,14 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.plasticene.boot.web.autoconfigure.PlasticeneSwaggerAutoConfiguration,\
-  com.plasticene.boot.web.autoconfigure.PlasticeneWebAutoConfiguration
+#org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+#  com.plasticene.boot.web.autoconfigure.PlasticeneSwaggerAutoConfiguration,\
+#  com.plasticene.boot.web.autoconfigure.PlasticeneWebAutoConfiguration
 
+# 自动配置类EnableAutoConfiguration已经移到META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+# 但应用上下文初始化器、应用监听器...等仍然在该文件spring.factories中，如下示例
+#org.springframework.context.ApplicationContextInitializer=\
+#  com.plasticene.boot.web.autoconfigure.TtlMDCAdapterInitializer
 
-org.springframework.context.ApplicationContextInitializer=\
-  com.plasticene.boot.web.autoconfigure.TtlMDCAdapterInitializer
+#org.springframework.context.ApplicationContextInitializer=\
+#com.example.MyInitializer
+#
+#org.springframework.context.ApplicationListener=\
+#com.example.MyListener

@@ -18,6 +18,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdvice;
 
@@ -54,7 +55,9 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
      * @return
      */
     @Override
-    public boolean supports(MethodParameter methodParameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
+    public boolean supports(MethodParameter methodParameter,
+                            @NonNull Type targetType,
+                            @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
         return methodParameter.hasMethodAnnotation(ApiSecurity.class)
                 || AnnotatedElementUtils.hasAnnotation(methodParameter.getDeclaringClass(), ApiSecurity.class);
     }
@@ -69,8 +72,11 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
      * @throws IOException
      */
     @Override
-    public HttpInputMessage beforeBodyRead(HttpInputMessage inputMessage, MethodParameter parameter, Type targetType,
-                                           Class<? extends HttpMessageConverter<?>> converterType) throws IOException {
+    @NonNull
+    public HttpInputMessage beforeBodyRead(@NonNull HttpInputMessage inputMessage,
+                                           @NonNull MethodParameter parameter,
+                                           @NonNull Type targetType,
+                                           @NonNull Class<? extends HttpMessageConverter<?>> converterType) throws IOException {
         ApiSecurity apiSecurity = getApiSecurity(parameter);
         // 判断接口参数是否需要解密
         boolean decryptRequest = apiSecurity.decryptRequest();
@@ -114,8 +120,12 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
      * 其余参数和上面的{@link #beforeBodyRead(HttpInputMessage, MethodParameter, Type, Class)} 一样
      */
     @Override
-    public Object afterBodyRead(Object body, HttpInputMessage inputMessage, MethodParameter parameter, Type targetType,
-                                Class<? extends HttpMessageConverter<?>> converterType) {
+    @NonNull
+    public Object afterBodyRead(@NonNull Object body,
+                                @NonNull HttpInputMessage inputMessage,
+                                @NonNull MethodParameter parameter,
+                                @NonNull Type targetType,
+                                @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
         ApiSecurity apiSecurity = getApiSecurity(parameter);
         boolean isSign = apiSecurity.isSign();
         if (!isSign) {
@@ -131,8 +141,11 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
      * 只是这里处理body为空的这种情况，比如当body位空时，返回一个默认对象啥的
      */
     @Override
-    public Object handleEmptyBody(Object body, HttpInputMessage inputMessage, MethodParameter parameter,
-                                  Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
+    public Object handleEmptyBody(Object body,
+                                  @NonNull HttpInputMessage inputMessage,
+                                  @NonNull MethodParameter parameter,
+                                  @NonNull Type targetType,
+                                  @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
         return null;
     }
 
@@ -158,7 +171,7 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
             throw new BizException("时间戳不能为空");
         }
         try {
-            long time = Long.valueOf(timestamp);
+            long time = Long.parseLong(timestamp);
             // 判断timestamp时间戳与当前时间是否超过签名有效时长（过期时间根据业务情况进行配置）,如果超过了就提示签名过期
             long now = System.currentTimeMillis() / 1000;
             if (now - time > apiSecurityProperties.getValidTime()) {

@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 /**
  * @author fjzheng
  * @version 1.0
@@ -23,4 +25,6 @@ public class UserVO {
     private String userName;
     @Schema(description = "年龄")
     private Integer age;
+    @Schema(description = "出生日期")
+    private Date birthday;
 }

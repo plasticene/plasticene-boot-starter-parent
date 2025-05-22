@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
@@ -38,10 +39,11 @@ public class ResponseResultBodyAdvice implements ResponseBodyAdvice<Object> {
 
 
     /**
-     * 判断类或者方法是否使用了 @ResponseResultBody
+     * 判断类或者方法是否使用了 @ResponseResultBody统一结果结构或者 @ApiSecurity接口参数加解密
      */
     @Override
-    public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
+    public boolean supports(MethodParameter returnType,
+                            @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
         return AnnotatedElementUtils.hasAnnotation(returnType.getContainingClass(), ResponseResultBody.class)
                 || returnType.hasMethodAnnotation(ResponseResultBody.class)
                 || AnnotatedElementUtils.hasAnnotation(returnType.getContainingClass(), ApiSecurity.class)
@@ -49,15 +51,19 @@ public class ResponseResultBodyAdvice implements ResponseBodyAdvice<Object> {
     }
 
     /**
-     * 当类或者方法使用了 @ResponseResultBody 就会调用这个方法
-     * 如果返回类型是string，那么springmvc是直接返回的，此时需要手动转化为json
-     * 因为当body都为null时，下面的非加密下的if判断参数类型的条件都不满足，如果接口返回类似为String，
-     * 会报错com.shepherd.fast.global.ResponseVO cannot be cast to java.lang.String
+     * 如果接口返回类型为String,统一结构会报错ResponseVO cannot be cast to java.lang.String
+     * 因为返回类型是string，那么springmvc是直接返回的，此时需要手动转化为json
      */
     @SneakyThrows
     @Override
-    public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType, Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
+    public Object beforeBodyWrite(Object body,
+                                  MethodParameter returnType,
+                                  @NonNull MediaType selectedContentType,
+                                  @NonNull Class<? extends HttpMessageConverter<?>> selectedConverterType,
+                                  @NonNull ServerHttpRequest request,
+                                  @NonNull ServerHttpResponse response) {
         Method method = returnType.getMethod();
+        Objects.requireNonNull(method, "method is null");
         Class<?> returnClass = method.getReturnType();
         Boolean enable = apiSecurityProperties.getEnable();
         ApiSecurity apiSecurity = method.getAnnotation(ApiSecurity.class);
@@ -71,6 +77,7 @@ public class ResponseResultBodyAdvice implements ResponseBodyAdvice<Object> {
             }
             body = encryptResponse(body);
         } else {
+            // 接口返回string类型，单独处理
             if (body instanceof String || Objects.equals(returnClass, String.class)) {
                 return objectMapper.writeValueAsString(ResponseVO.success(body));
             }
