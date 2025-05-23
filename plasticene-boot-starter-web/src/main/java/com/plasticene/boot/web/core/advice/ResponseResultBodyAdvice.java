@@ -3,8 +3,10 @@ package com.plasticene.boot.web.core.advice;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.plasticene.boot.common.pojo.ResponseVO;
+import com.plasticene.boot.web.constant.ApiSecurityConstant;
 import com.plasticene.boot.web.core.anno.ApiSecurity;
 import com.plasticene.boot.web.core.anno.ResponseResultBody;
+import com.plasticene.boot.web.core.model.ApiSecurityKey;
 import com.plasticene.boot.web.core.prop.ApiSecurityProperties;
 import com.plasticene.boot.web.core.utils.AESUtil;
 import com.plasticene.boot.web.core.utils.RSAUtil;
@@ -19,6 +21,8 @@ import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 import java.lang.reflect.Method;
@@ -93,11 +97,20 @@ public class ResponseResultBodyAdvice implements ResponseBodyAdvice<Object> {
         String aseKey = AESUtil.generateAESKey();
         String content = JSONObject.toJSONString(result);
         String data = AESUtil.encrypt(content, aseKey);
-        String key = RSAUtil.encryptByPublicKey(aseKey, apiSecurityProperties.getRsaPublicKey());
+        String thirdRsaPublicKey = getThirdRsaPublicKey();
+        String key = RSAUtil.encryptByPublicKey(aseKey, thirdRsaPublicKey);
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("key", key);
         jsonObject.put("data", data);
         return jsonObject;
+    }
+
+
+    String getThirdRsaPublicKey() {
+        RequestAttributes requestAttributes = Objects.requireNonNull(RequestContextHolder.getRequestAttributes());
+        ApiSecurityKey apiSecurityKey = (ApiSecurityKey) requestAttributes.getAttribute(ApiSecurityConstant.API_SECURITY,
+                RequestAttributes.SCOPE_REQUEST);
+        return Objects.requireNonNull(apiSecurityKey).getThirdRsaPublicKey();
     }
 
 }

@@ -3,8 +3,10 @@ package com.plasticene.boot.web.core.advice;
 import cn.hutool.core.io.IoUtil;
 import com.alibaba.fastjson.JSON;
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.web.constant.ApiSecurityConstant;
 import com.plasticene.boot.web.core.anno.ApiSecurity;
 import com.plasticene.boot.web.core.global.PtcHttpInputMessage;
+import com.plasticene.boot.web.core.model.ApiSecurityKey;
 import com.plasticene.boot.web.core.model.ApiSecurityParam;
 import com.plasticene.boot.web.core.prop.ApiSecurityProperties;
 import com.plasticene.boot.web.core.utils.AESUtil;
@@ -20,12 +22,15 @@ import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdvice;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +45,8 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
     private ApiSecurityProperties apiSecurityProperties;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private ApiSecurityKeyProvider apiSecurityKeyProvider;
 
 
     private static final String SIGN_KEY = "X-Sign";
@@ -89,8 +96,9 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
         }
         // 加密传参格式固定为ApiSecurityParam
         ApiSecurityParam apiSecurityParam = JSON.parseObject(body, ApiSecurityParam.class);
+        ApiSecurityKey apiSecurityKey = getApiSecurityKey(apiSecurityParam.getAppId());
         // 通过RSA私钥解密获取到aes秘钥
-        String aesKey = RSAUtil.decryptByPrivateKey(apiSecurityParam.getKey(), apiSecurityProperties.getRsaPrivateKey());
+        String aesKey = RSAUtil.decryptByPrivateKey(apiSecurityParam.getKey(), apiSecurityKey.getRsaPrivateKey());
         // 通过aes秘钥解密data参数数据，即真正实际的接口参数
         String data = AESUtil.decrypt(apiSecurityParam.getData(), aesKey);
 
@@ -190,7 +198,8 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
         // 验签
         SortedMap<?, ?> sortedMap = SignUtil.beanToMap(body);
         String content = SignUtil.getContent(sortedMap, nonce, timestamp);
-        boolean flag = RSAUtil.verifySignByPublicKey(content, sign, apiSecurityProperties.getRsaPublicKey());
+        ApiSecurityKey apiSecurityKey = getApiSecurityKey(null);
+        boolean flag = RSAUtil.verifySignByPublicKey(content, sign, apiSecurityKey.getThirdRsaPublicKey());
         if (!flag) {
             throw new BizException("签名验证不通过");
         }
@@ -198,4 +207,21 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
         stringRedisTemplate.opsForValue().set(NONCE_KEY+ nonce, "1", apiSecurityProperties.getValidTime(),
                 TimeUnit.SECONDS);
     }
+
+    ApiSecurityKey getApiSecurityKey(String appId) {
+        RequestAttributes requestAttributes = Objects.requireNonNull(RequestContextHolder.getRequestAttributes());
+        ApiSecurityKey apiSecurityKey = (ApiSecurityKey) requestAttributes.getAttribute(ApiSecurityConstant.API_SECURITY,
+                RequestAttributes.SCOPE_REQUEST);
+        if (apiSecurityKey != null) {
+            return apiSecurityKey;
+        }
+        apiSecurityKey = apiSecurityKeyProvider.getApiSecurityKey(appId);
+        if (apiSecurityKey == null) {
+            throw new BizException("key信息不能为空");
+        }
+        // 这里上下文传递一下，如果apiSecurityKeyProvider是查数据库，查一次即可
+        requestAttributes.setAttribute(ApiSecurityConstant.API_SECURITY, apiSecurityKey, RequestAttributes.SCOPE_REQUEST);
+        return apiSecurityKey;
+    }
+
 }

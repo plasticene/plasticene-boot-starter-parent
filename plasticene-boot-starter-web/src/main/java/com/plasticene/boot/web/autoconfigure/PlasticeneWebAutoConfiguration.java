@@ -4,6 +4,8 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.executor.PlasticeneThreadExecutor;
+import com.plasticene.boot.web.core.advice.ApiSecurityKeyProvider;
+import com.plasticene.boot.web.core.advice.DefaultApiSecurityKeyProvider;
 import com.plasticene.boot.web.core.advice.RequestBodyHandlerAdvice;
 import com.plasticene.boot.web.core.advice.ResponseResultBodyAdvice;
 import com.plasticene.boot.web.core.aop.ApiLogPrintAspect;
@@ -16,6 +18,7 @@ import com.plasticene.boot.web.core.prop.ThreadPoolProperties;
 import com.plasticene.boot.web.core.prop.TraceProperties;
 import com.plasticene.boot.web.core.interceptor.FeignInterceptor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.autoconfigure.jackson.JacksonProperties;
@@ -84,6 +87,13 @@ public class PlasticeneWebAutoConfiguration {
     @Bean
     public RequestBodyHandlerAdvice requestBodyHandlerAdvice() {
         return new RequestBodyHandlerAdvice();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true")
+    public ApiSecurityKeyProvider apiSecurityKeyProvider(ApiSecurityProperties properties) {
+        return new DefaultApiSecurityKeyProvider(properties);
     }
 
     @Bean
