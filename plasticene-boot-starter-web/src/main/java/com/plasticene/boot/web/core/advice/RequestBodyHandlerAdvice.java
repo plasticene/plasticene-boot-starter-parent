@@ -3,7 +3,7 @@ package com.plasticene.boot.web.core.advice;
 import cn.hutool.core.io.IoUtil;
 import com.alibaba.fastjson.JSON;
 import com.plasticene.boot.common.exception.BizException;
-import com.plasticene.boot.web.constant.ApiSecurityConstant;
+import com.plasticene.boot.web.core.constant.ApiSecurityConstant;
 import com.plasticene.boot.web.core.anno.ApiSecurity;
 import com.plasticene.boot.web.core.global.PtcHttpInputMessage;
 import com.plasticene.boot.web.core.model.ApiSecurityKey;

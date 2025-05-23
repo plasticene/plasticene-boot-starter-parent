@@ -3,7 +3,7 @@ package com.plasticene.boot.web.core.advice;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.plasticene.boot.common.pojo.ResponseVO;
-import com.plasticene.boot.web.constant.ApiSecurityConstant;
+import com.plasticene.boot.web.core.constant.ApiSecurityConstant;
 import com.plasticene.boot.web.core.anno.ApiSecurity;
 import com.plasticene.boot.web.core.anno.ResponseResultBody;
 import com.plasticene.boot.web.core.model.ApiSecurityKey;

@@ -1,4 +1,4 @@
-package com.plasticene.boot.web.constant;
+package com.plasticene.boot.web.core.constant;
 
 /**
  * @author fjzheng
