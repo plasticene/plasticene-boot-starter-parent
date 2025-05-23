@@ -91,15 +91,15 @@ public class PlasticeneWebAutoConfiguration {
         return new FeignInterceptor();
     }
 
-    @Bean
-    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true")
-    public FilterRegistrationBean<BodyTransferFilter> bodyTransferFilter() {
-        FilterRegistrationBean<BodyTransferFilter> filterRegistrationBean = new FilterRegistrationBean<>();
-        filterRegistrationBean.setOrder(OrderConstant.FILTER_TRACE - 10);
-        filterRegistrationBean.setFilter(new BodyTransferFilter());
-        filterRegistrationBean.addUrlPatterns("/*");
-        return filterRegistrationBean;
-    }
+//    @Bean
+//    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true")
+//    public FilterRegistrationBean<BodyTransferFilter> bodyTransferFilter() {
+//        FilterRegistrationBean<BodyTransferFilter> filterRegistrationBean = new FilterRegistrationBean<>();
+//        filterRegistrationBean.setOrder(OrderConstant.FILTER_TRACE - 10);
+//        filterRegistrationBean.setFilter(new BodyTransferFilter());
+//        filterRegistrationBean.addUrlPatterns("/*");
+//        return filterRegistrationBean;
+//    }
 
 //    @Bean
 //    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true", matchIfMissing = false)
