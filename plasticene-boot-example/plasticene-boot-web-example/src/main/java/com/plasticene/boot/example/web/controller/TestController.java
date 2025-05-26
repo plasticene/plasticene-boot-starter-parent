@@ -16,7 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.aspectj.weaver.ast.Var;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -113,8 +113,12 @@ public class TestController {
         String resData = AESUtil.decrypt((String) res.get("data"), decryptKey);
         log.info("resData===={}", resData);
         return ResponseVO.success(JSON.parseArray(resData, UserVO.class));
+    }
 
-
+    @Operation(summary = "测试参数校验")
+    @PostMapping("/param/valid")
+    public void testValidator(@RequestBody @Validated UserParam param) {
+        System.out.println(param);
     }
 
 }
