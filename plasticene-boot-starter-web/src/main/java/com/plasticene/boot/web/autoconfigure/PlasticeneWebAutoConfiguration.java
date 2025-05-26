@@ -6,7 +6,6 @@ import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.executor.PlasticeneThreadExecutor;
 import com.plasticene.boot.web.core.advice.*;
 import com.plasticene.boot.web.core.aop.ApiLogPrintAspect;
-import com.plasticene.boot.web.core.filter.BodyTransferFilter;
 import com.plasticene.boot.web.core.filter.WebTraceFilter;
 import com.plasticene.boot.web.core.global.GlobalExceptionHandler;
 import com.plasticene.boot.web.core.prop.ApiLogProperties;

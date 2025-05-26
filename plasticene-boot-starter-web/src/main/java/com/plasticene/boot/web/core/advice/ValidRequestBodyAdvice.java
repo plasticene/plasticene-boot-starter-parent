@@ -1,6 +1,5 @@
 package com.plasticene.boot.web.core.advice;
 
-import com.plasticene.boot.web.core.anno.ApiSecurity;
 import com.plasticene.boot.web.core.constant.ValidatorConstant;
 import jakarta.validation.Valid;
 import org.springframework.core.MethodParameter;
@@ -44,7 +43,7 @@ public class ValidRequestBodyAdvice implements RequestBodyAdvice {
             @NonNull HttpInputMessage inputMessage,
             @NonNull MethodParameter parameter,
             @NonNull Type targetType,
-            @NonNull Class<? extends HttpMessageConverter<?>> converterType) throws IOException {
+            @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
         return inputMessage;
     }
 
