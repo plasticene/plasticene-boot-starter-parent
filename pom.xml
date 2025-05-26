@@ -64,6 +64,7 @@
         <hutool.version>5.8.24</hutool.version>
         <!-- 编码解码器 如base64 -->
         <codec.version>1.13</codec.version>
+        <jetbrains.anno.version>24.0.1</jetbrains.anno.version>
 
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -205,6 +206,12 @@
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>
                 <version>${hutool.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jetbrains</groupId>
+                <artifactId>annotations</artifactId>
+                <version>${jetbrains.anno.version}</version>
             </dependency>
 
 
