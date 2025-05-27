@@ -29,46 +29,14 @@ public class MaskSerialize extends JsonSerializer<String> implements ContextualS
     @Override
     public void serialize(String s, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
         switch (this.type) {
-            case CHINESE_NAME:
-            {
-                jsonGenerator.writeString(MaskUtils.chineseName(s));
-                break;
-            }
-            case ID_CARD:
-            {
-                jsonGenerator.writeString(MaskUtils.idCardNum(s));
-                break;
-            }
-            case FIXED_PHONE:
-            {
-                jsonGenerator.writeString(MaskUtils.fixedPhone(s));
-                break;
-            }
-            case MOBILE_PHONE:
-            {
-                jsonGenerator.writeString(MaskUtils.mobilePhone(s));
-                break;
-            }
-            case ADDRESS:
-            {
-                jsonGenerator.writeString(MaskUtils.address(s, 4));
-                break;
-            }
-            case EMAIL:
-            {
-                jsonGenerator.writeString(MaskUtils.email(s));
-                break;
-            }
-            case BANK_CARD:
-            {
-                jsonGenerator.writeString(MaskUtils.bankCard(s));
-                break;
-            }
-            case API_SECRET:
-            {
-                jsonGenerator.writeString(MaskUtils.apiSecret(s));
-                break;
-            }
+            case CHINESE_NAME -> jsonGenerator.writeString(MaskUtils.chineseName(s));
+            case ID_CARD -> jsonGenerator.writeString(MaskUtils.idCardNum(s));
+            case FIXED_PHONE -> jsonGenerator.writeString(MaskUtils.fixedPhone(s));
+            case MOBILE_PHONE -> jsonGenerator.writeString(MaskUtils.mobilePhone(s));
+            case ADDRESS -> jsonGenerator.writeString(MaskUtils.address(s, 4));
+            case EMAIL -> jsonGenerator.writeString(MaskUtils.email(s));
+            case BANK_CARD -> jsonGenerator.writeString(MaskUtils.bankCard(s));
+            case API_SECRET -> jsonGenerator.writeString(MaskUtils.apiSecret(s));
         }
     }
 
