@@ -2,6 +2,7 @@ package com.plasticene.boot.example.web.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.ttl.threadpool.TtlExecutors;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.example.web.param.UserParam;
 import com.plasticene.boot.example.web.vo.UserVO;
@@ -10,6 +11,7 @@ import com.plasticene.boot.web.core.anno.ApiSecurity;
 import com.plasticene.boot.web.core.anno.ResponseResultBody;
 import com.plasticene.boot.web.core.prop.ApiSecurityProperties;
 import com.plasticene.boot.web.core.utils.AESUtil;
+import com.plasticene.boot.web.core.utils.MDCTraceUtils;
 import com.plasticene.boot.web.core.utils.RSAUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +28,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author fjzheng
@@ -119,6 +124,24 @@ public class TestController {
     @PostMapping("/param/valid")
     public void testValidator(@RequestBody @Validated UserParam param) {
         System.out.println(param);
+    }
+
+    @Operation(summary = "测试traceId多线程上下文传递")
+    @GetMapping("/log/traceId")
+    public void testLogTraceId() {
+        // webTraceFilter会写入traceId
+        log.info("主线程traceId: {}", MDCTraceUtils.getTraceId());
+        ExecutorService executorService = TtlExecutors.getTtlExecutorService(Executors.newFixedThreadPool(1));
+        executorService.submit(() -> {
+            log.info("子线程traceId: {}", MDCTraceUtils.getTraceId());
+            try {
+                // 睡眠2秒，等webTraceFilter清除traceId
+                TimeUnit.SECONDS.sleep(2);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            log.info("睡眠结束子线程traceId: {}", MDCTraceUtils.getTraceId());
+        });
     }
 
 }
