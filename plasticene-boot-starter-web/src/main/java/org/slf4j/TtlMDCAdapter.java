@@ -13,6 +13,8 @@ import java.util.*;
  * @version 1.0
  * @date 2022/7/14 13:50
  */
+
+@Deprecated(since = "3.0")
 public class TtlMDCAdapter implements MDCAdapter {
     private final ThreadLocal<Map<String, String>> copyOnInheritThreadLocal = new TransmittableThreadLocal<>();
 
