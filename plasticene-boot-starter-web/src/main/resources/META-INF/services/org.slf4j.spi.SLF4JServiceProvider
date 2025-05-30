@@ -1,1 +1,1 @@
-com.plasticene.boot.web.core.log.logback.TtlLogbackServiceProvider
+#com.plasticene.boot.web.core.log.logback.TtlLogbackServiceProvider
