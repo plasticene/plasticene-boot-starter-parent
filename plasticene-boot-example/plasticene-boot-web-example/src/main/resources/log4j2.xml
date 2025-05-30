@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，
+当设置成trace时，可以看到log4j2内部各种详细输出
+-->
+<!--monitorInterval：Log4j能够自动检测修改配置 文件和重新配置本身，设置间隔秒数-->
+<configuration monitorInterval="5">
+    <!--日志级别以及优先级排序:
+    OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL
+    -->
+
+    <!--变量配置-->
+    <Properties>
+        <!--
+            格式化输出：
+            %d表示日期，
+            %thread表示线程名，
+            %-5level：级别从左显示5个字符宽度
+            %msg：日志消息，%n是换行符
+        -->
+        <!--
+        %logger{36} 表示 Logger 名字最长36个字符
+        -->
+        <!--注意项目名称 -->
+        <!-- name的值是变量的名称，value的值时变量定义的值。通过定义的值会被插入到logger上下文中。定义后，可以使“${}”来使用变量。 -->
+        <property name="PROJECT_NAME" value="web-example"/>
+
+        <!-- 定义日志存储的路径，不要配置相对路径 -->
+        <property name="FILE_PATH" value="./logs/${PROJECT_NAME}" />
+        <property name="LOG_PATTERN"
+                  value="[%X{traceId}]-[%-5p]-[%d{yyyy-MM-dd HH:mm:ss.SSS}]-[%thread]-[%c]-[%M]\:%m%n"/>
+    </Properties>
+
+    <appenders>
+        <console name="Console" target="SYSTEM_OUT">
+            <!--输出日志的格式-->
+            <PatternLayout pattern="${LOG_PATTERN}" disableAnsi="false" noConsoleNoAnsi="false"/>
+            <!--控制台只输出level级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <LevelRangeFilter minLevel="fatal" maxLevel="debug" onMatch="ACCEPT" onMismatch="DENY"/>
+        </console>
+
+        <!--        &lt;!&ndash;文件会打印出所有信息，这个log每次运行程序会自动清空，由append属性决定，适合临时测试用&ndash;&gt;-->
+        <!--        <File name="FileLog" fileName="${FILE_PATH}/qos.log" append="true">-->
+        <!--            <PatternLayout pattern="${LOG_PATTERN}"/>-->
+        <!--        </File>-->
+
+        <!--
+        这个会打印出所有的info级别的信息，每次大小超过size，
+        则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，
+        作为存档
+        -->
+        <RollingFile name="RollingFileDebug"
+                     fileName="${FILE_PATH}/${PROJECT_NAME}-info.log"
+                     filePattern="${FILE_PATH}/${PROJECT_NAME}-INFO-%d{yyyy-MM-dd}.log.gz">
+            <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <!--            <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY"/>-->
+
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+            </Policies>
+            <Filters>
+                <!-- 只记录debug,info和warn级别信息 -->
+                <ThresholdFilter level="error" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+        </RollingFile>
+
+        <!-- 这个会打印出所有的error及以下级别的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档-->
+        <RollingFile name="RollingFileError"
+                     fileName="${FILE_PATH}/${PROJECT_NAME}-error.log"
+                     filePattern="${FILE_PATH}/${PROJECT_NAME}-ERROR-%d{yyyy-MM-dd}.log.gz">
+            <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+            </Policies>
+        </RollingFile>
+        <!-- 这个会打印出所有的error及以下级别的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档-->
+        <RollingFile name="RollingFileInterface"
+                     fileName="${FILE_PATH}/interface.log"
+                     filePattern="${FILE_PATH}/${PROJECT_NAME}-INTERFACE-%d{yyyy-MM-dd}.log.gz">
+            <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+            </Policies>
+        </RollingFile>
+    </appenders>
+
+    <!--Logger节点用来单独指定日志的形式，比如要为指定包下的class指定不同的日志级别等。-->
+    <!--然后定义loggers，只有定义了logger并引入的appender，appender才会生效-->
+    <loggers>
+        <logger name="ptc.api.log" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFileInterface"/>
+        </logger>
+        <logger name="com.plasticene.boot.example.web" level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFileDebug"/>
+            <AppenderRef ref="RollingFileError"/>
+        </logger>
+        <!--若是additivity设为false，则 子Logger 只会在自己的appender里输出，而不会在 父Logger 的appender里输出。-->
+        <Logger name="org.springframework" level="info"/>
+
+        <root level="info">
+            <appender-ref ref="Console"/>
+            <appender-ref ref="RollingFileDebug"/>
+            <appender-ref ref="RollingFileError"/>
+        </root>
+    </loggers>
+
+</configuration>
