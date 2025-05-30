@@ -17,13 +17,13 @@ public class TtlThreadContextMap implements ThreadContextMap {
     private final ThreadLocal<Map<String, String>> localMap;
 
     public TtlThreadContextMap() {
-        this.localMap = new TransmittableThreadLocal<Map<String, String>>();
+        this.localMap = new TransmittableThreadLocal<>();
     }
 
     @Override
     public void put(final String key, final String value) {
         Map<String, String> map = localMap.get();
-        map = map == null ? new HashMap<String, String>() : new HashMap<String, String>(map);
+        map = map == null ? new HashMap<>() : new HashMap<>(map);
         map.put(key, value);
         localMap.set(Collections.unmodifiableMap(map));
     }
@@ -38,7 +38,7 @@ public class TtlThreadContextMap implements ThreadContextMap {
     public void remove(final String key) {
         final Map<String, String> map = localMap.get();
         if (map != null) {
-            final Map<String, String> copy = new HashMap<String, String>(map);
+            final Map<String, String> copy = new HashMap<>(map);
             copy.remove(key);
             localMap.set(Collections.unmodifiableMap(copy));
         }
@@ -69,7 +69,7 @@ public class TtlThreadContextMap implements ThreadContextMap {
     @Override
     public boolean isEmpty() {
         final Map<String, String> map = localMap.get();
-        return map == null || map.size() == 0;
+        return map == null || map.isEmpty();
     }
 
     @Override
@@ -95,19 +95,15 @@ public class TtlThreadContextMap implements ThreadContextMap {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof TtlThreadContextMap)) {
+        if (!(obj instanceof TtlThreadContextMap other)) {
             return false;
         }
-        final TtlThreadContextMap other = (TtlThreadContextMap) obj;
         final Map<String, String> map = this.localMap.get();
         final Map<String, String> otherMap = other.getImmutableMapOrNull();
         if (map == null) {
-            if (otherMap != null) {
-                return false;
-            }
-        } else if (!map.equals(otherMap)) {
-            return false;
+            return otherMap == null;
+        } else {
+            return map.equals(otherMap);
         }
-        return true;
     }
 }

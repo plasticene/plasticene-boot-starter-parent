@@ -56,7 +56,7 @@ public class TtlLogbackMDCAdapter implements MDCAdapter {
         }
         Map<String, String> current = readWriteThreadLocalMap.get();
         if (current == null) {
-            current = new HashMap<String, String>();
+            current = new HashMap<>();
             readWriteThreadLocalMap.set(current);
         }
 
@@ -117,13 +117,12 @@ public class TtlLogbackMDCAdapter implements MDCAdapter {
      *
      * The returned map is unmodifiable (since version 1.3.2/1.4.2).
      */
-    @SuppressWarnings("unchecked")
     public Map<String, String> getPropertyMap() {
         Map<String, String> readOnlyMap = readOnlyThreadLocalMap.get();
         if (readOnlyMap == null) {
             Map<String, String> current = readWriteThreadLocalMap.get();
             if (current != null) {
-                final Map<String, String> tempMap = new HashMap<String, String>(current);
+                final Map<String, String> tempMap = new HashMap<>(current);
                 readOnlyMap = Collections.unmodifiableMap(tempMap);
                 readOnlyThreadLocalMap.set(readOnlyMap);
             }
