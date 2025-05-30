@@ -10,6 +10,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 
 import java.io.IOException;
+import java.util.List;
 
 
 /**
@@ -20,10 +21,24 @@ import java.io.IOException;
 //
 public class WebTraceFilter extends OncePerRequestFilter {
 
+    private static final List<String> EXCLUDE_PATHS = List.of(
+            "doc.html",
+            "swagger-ui.html",
+            "/v3/api-docs",
+            "/favicon.ico",
+            "/webjars"
+    );
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws IOException, ServletException {
+        String path = request.getRequestURI();
+        // 如果路径在排除列表中，直接跳过
+        if (EXCLUDE_PATHS.stream().anyMatch(path::startsWith)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         try {
             String traceId = request.getHeader(MDCTraceUtils.TRACE_ID_HEADER);
             if (StrUtil.isEmpty(traceId)) {
