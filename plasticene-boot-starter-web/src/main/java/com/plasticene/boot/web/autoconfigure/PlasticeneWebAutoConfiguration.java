@@ -87,7 +87,6 @@ public class PlasticeneWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(name = "ptc.api.security.enable", havingValue = "true")
     public ApiSecurityKeyProvider apiSecurityKeyProvider(ApiSecurityProperties properties) {
         return new DefaultApiSecurityKeyProvider(properties);
     }
