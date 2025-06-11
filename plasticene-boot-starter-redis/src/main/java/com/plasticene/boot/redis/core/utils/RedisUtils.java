@@ -28,7 +28,7 @@ public class RedisUtils {
     /**
      * Spring Redis Template
      */
-    private RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public RedisUtils(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;

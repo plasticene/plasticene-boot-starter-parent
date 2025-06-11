@@ -29,7 +29,7 @@ public abstract class AbstractChannelMessageListener<T extends AbstractChannelMe
     @SneakyThrows
     protected AbstractChannelMessageListener() {
         this.messageType = getMessageClass();
-        this.channel = messageType.newInstance().getChannel();
+        this.channel = messageType.getDeclaredConstructor().newInstance().getChannel();
     }
 
     /**

@@ -6,6 +6,7 @@ import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.redis.core.anno.DistributedLock;
 import com.plasticene.boot.redis.core.enums.LockType;
+import jakarta.annotation.Resource;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -18,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 
-import javax.annotation.Resource;
 import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 
@@ -118,26 +118,18 @@ public class DistributedLockAspect extends AbstractAspectSupport {
 
     RLock getLock(LockType lockType, String lockKey) {
         // 获取一把锁，只要锁的名字一样，就是同一把锁
-        RLock rLock = null;
-        switch (lockType) {
-            case FAIR:
-                rLock = redissonClient.getFairLock(lockKey);
-                break;
-            case REENTRANT:
-                rLock = redissonClient.getLock(lockKey);
-                break;
-            case READ:
+        return switch (lockType) {
+            case FAIR -> redissonClient.getFairLock(lockKey);
+            case REENTRANT -> redissonClient.getLock(lockKey);
+            case READ -> {
                 RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(lockKey);
-                rLock = readWriteLock.readLock();
-                break;
-            case WRITE:
+                yield readWriteLock.readLock();
+            }
+            case WRITE -> {
                 RReadWriteLock rwLock = redissonClient.getReadWriteLock(lockKey);
-                rLock = rwLock.writeLock();
-                break;
-            default:
-                rLock = redissonClient.getLock(lockKey);
-        }
-        return rLock;
+                yield rwLock.writeLock();
+            }
+        };
 
     }
 

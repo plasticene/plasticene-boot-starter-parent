@@ -6,6 +6,8 @@ import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.redis.core.anno.RateLimit;
 import com.plasticene.boot.redis.core.enums.LimitType;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -20,10 +22,9 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author fjzheng
@@ -89,7 +90,7 @@ public class RateLimitAspect {
         RedisScript<Long> redisScript = new DefaultRedisScript<>(luaScript, Long.class);
         Long count = stringRedisTemplate.execute(redisScript, keys, String.valueOf(limitCount), String.valueOf(limitPeriod));
         logger.info("Access try count is {} for name={} and key = {}", count, name, key);
-        if (count != null && count <= limitCount) {
+        if (count <= limitCount) {
             return pjp.proceed();
         } else {
             throw new BizException("Too Many Requests");
@@ -100,34 +101,33 @@ public class RateLimitAspect {
      * @description 编写 redis Lua 限流脚本
      */
     public String buildLuaScript() {
-        StringBuilder lua = new StringBuilder();
-        lua.append("local c");
-        lua.append("\nc = redis.call('get',KEYS[1])");
-        // 当前调用累计超过最大值，则直接返回，拒绝请求
-        lua.append("\nif c and tonumber(c) > tonumber(ARGV[1]) then");
-        lua.append("\nreturn c;");
-        lua.append("\nend");
-        // 执行计算器自加
-        lua.append("\nc = redis.call('incr',KEYS[1])");
-        lua.append("\nif tonumber(c) == 1 then");
-        // 从第一次调用开始限流，设置对应键值的过期
-        lua.append("\nredis.call('expire',KEYS[1],ARGV[2])");
-        lua.append("\nend");
-        lua.append("\nreturn c;");
-        return lua.toString();
+        return """
+                local c
+                c = redis.call('get',KEYS[1])
+                if c and tonumber(c) > tonumber(ARGV[1]) then
+                return c;
+                end
+                c = redis.call('incr',KEYS[1])
+                if tonumber(c) == 1 then
+                redis.call('expire',KEYS[1],ARGV[2])
+                end
+                return c;
+                """;
     }
 
 
     public String getIpAddress() {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        ServletRequestAttributes requestAttributes = (ServletRequestAttributes)RequestContextHolder.getRequestAttributes();
+        Objects.requireNonNull(requestAttributes, "requestAttributes is null");
+        HttpServletRequest request = requestAttributes.getRequest();
         String ip = request.getHeader("x-forwarded-for");
-        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("Proxy-Client-IP");
         }
-        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("WL-Proxy-Client-IP");
         }
-        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
         return ip;

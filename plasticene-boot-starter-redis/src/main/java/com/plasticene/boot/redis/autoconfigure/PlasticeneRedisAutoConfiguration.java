@@ -4,10 +4,12 @@ import com.plasticene.boot.redis.core.aop.DistributedLockAspect;
 import com.plasticene.boot.redis.core.aop.RateLimitAspect;
 import com.plasticene.boot.redis.core.listener.AbstractChannelMessageListener;
 import com.plasticene.boot.redis.core.utils.RedisUtils;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -28,7 +30,6 @@ import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import javax.annotation.Resource;
 import java.util.List;
 
 /**
@@ -49,9 +50,10 @@ public class PlasticeneRedisAutoConfiguration {
 
 
     /**
-     *  注入一个redisTemplate bean，使用json序列化value
-     * @param factory
-     * @return
+     *  注入一个redisTemplate bean，默认JdkSerializationRedisSerializer序列化，存储二进制格式(在客户端不可直观查看)
+     *  所以这里改用用json序列化value，string字符串序列化key，这样在客户端控制台ui可直观查看
+     *  如果需要和其他语言(如python)共享redis数据，尽量使用{@link StringRedisTemplate}操作
+     *  防止两种语言因为序列化不同导致问题，字符串序列化是语言共通的
      */
     @Bean
     @ConditionalOnMissingBean({RedisTemplate.class})
@@ -65,6 +67,9 @@ public class PlasticeneRedisAutoConfiguration {
         return template;
     }
 
+    /**
+     * 注意一个StringRedisTemplate bean，平时常用
+     */
     @Bean
     @ConditionalOnMissingBean({StringRedisTemplate.class})
     public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
@@ -75,20 +80,19 @@ public class PlasticeneRedisAutoConfiguration {
 
     /**
      * 这里默认情况下条件装配注入一个单机模式的redisson client
-     * 如需要其他模式，可在业务侧按要求自行注入redissonClient覆盖即可
-     * @return
+     * 如需要其他模式，可在业务侧按要求自行注入redissonClient即可
      */
     @Bean
     @ConditionalOnMissingBean(RedissonClient.class)
     public RedissonClient redissonClient() {
-        // 1、创建配置
+        // 创建配置
         Config config = new Config();
         String host = redisProperties.getHost();
         int port = redisProperties.getPort();
         config.useSingleServer().setAddress(REDISSON_PREFIX + host + ":" + port)
                 .setDatabase(redisProperties.getDatabase())
                 .setPassword(redisProperties.getPassword());
-        // 2、根据 Config 创建出 RedissonClient 实例
+        // 根据Config创建出 RedissonClient 实例
         return Redisson.create(config);
     }
 
@@ -105,12 +109,20 @@ public class PlasticeneRedisAutoConfiguration {
         return new RateLimitAspect();
     }
 
+    /**
+     * 在spring boot 3.x 版本中，StringRedisTemplate被更明确地识别为 RedisTemplate<String, String>
+     * 导致容器中存在两个 RedisTemplate 类型的 bean
+     * 所以需要使用@Qualifier
+     */
     @Bean
     @ConditionalOnBean(RedisTemplate.class)
-    public RedisUtils redisUtils(RedisTemplate redisTemplate) {
+    public RedisUtils redisUtils(@Qualifier("redisTemplate") RedisTemplate redisTemplate) {
         return new RedisUtils(redisTemplate);
     }
 
+    /**
+     * spring redis cache 配置
+     */
     @Bean
     public RedisCacheConfiguration redisCacheConfiguration(CacheProperties cacheProperties) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig();
