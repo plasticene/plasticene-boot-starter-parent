@@ -47,6 +47,10 @@ public class TestController {
     @Resource
     private ApiSecurityProperties apiSecurityProperties;
 
+    private final ExecutorService executorService = TtlExecutors.getTtlExecutorService(Executors.newFixedThreadPool(1));
+//    private final ExecutorService executorService = Executors.newFixedThreadPool(1);
+
+
     @Operation(summary = "获取消息")
     @GetMapping("/msg")
     public ResponseVO<String> getMessage() {
@@ -131,7 +135,6 @@ public class TestController {
     public void testLogTraceId() {
         // webTraceFilter会写入traceId
         log.info("主线程traceId: {}", MDCTraceUtils.getTraceId());
-        ExecutorService executorService = TtlExecutors.getTtlExecutorService(Executors.newFixedThreadPool(1));
         executorService.submit(() -> {
             log.info("子线程traceId: {}", MDCTraceUtils.getTraceId());
             try {
@@ -142,6 +145,7 @@ public class TestController {
             }
             log.info("睡眠结束子线程traceId: {}", MDCTraceUtils.getTraceId());
         });
+        MDCTraceUtils.removeTrace();
     }
 
 }
