@@ -47,8 +47,8 @@
 
         <!-- knife4j 依赖版本 -->
         <knife4j.version>4.5.0</knife4j.version>
-
-        <transmittable-thread-local.version>2.12.2</transmittable-thread-local.version>
+        <!-- ttl 解决线程池 多线程之间父子线程上下文传递  -->
+        <transmittable-thread-local.version>2.14.5</transmittable-thread-local.version>
 
         <redisson.version>3.17.4</redisson.version>
 
