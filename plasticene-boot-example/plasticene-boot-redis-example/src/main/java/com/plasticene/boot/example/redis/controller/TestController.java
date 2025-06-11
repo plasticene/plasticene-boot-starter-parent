@@ -2,12 +2,15 @@ package com.plasticene.boot.example.redis.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.plasticene.boot.common.pojo.ResponseVO;
+import com.plasticene.boot.redis.core.anno.DistributedLock;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -20,6 +23,8 @@ import java.util.concurrent.TimeUnit;
  */
 @RestController
 @Tag(name = "redis测试案例")
+@RequestMapping("/test")
+@Slf4j
 public class TestController {
     @Resource
     private RedisTemplate<Object, Object> redisTemplate;
@@ -41,5 +46,18 @@ public class TestController {
         ResponseVO<List<String>> vo = ResponseVO.success(List.of("呵呵", "😄hi"));
         stringRedisTemplate.opsForValue().set("she-002", JSON.toJSONString(vo), 3, TimeUnit.MINUTES);
         return vo;
+    }
+
+    @Operation(summary = "测试分布式锁")
+    @GetMapping("/lock")
+    @DistributedLock(name = "user", key = "001")
+    public ResponseVO<String> testDistributedLock() {
+        log.info("加锁成功，执行业务...{}", Thread.currentThread().getName());
+        try {
+            TimeUnit.SECONDS.sleep(10);
+        } catch (InterruptedException e) {
+            log.error("error", e);
+        }
+        return ResponseVO.success("成功");
     }
 }
