@@ -58,7 +58,7 @@ public class PlasticeneRedisAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean({RedisTemplate.class})
     public  RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory factory) {
-        RedisTemplate<Object, Object> template = new RedisTemplate<Object, Object>();
+        RedisTemplate<Object, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());

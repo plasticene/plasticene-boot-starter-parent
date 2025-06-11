@@ -104,7 +104,6 @@ public class DistributedLockAspect extends AbstractAspectSupport {
      * 2）、如果没有指定锁的超时时间，就使用 lockWatchdogTimeout = 30 * 1000 【看门狗默认时间】。只要占锁成功，就会启动一个
      *  定时任务【重新给锁设置过期时间，新的过期时间就是看门狗的默认时间】,每隔10秒都会自动的再次续期，续成30秒
      * internalLockLeaseTime 【看门狗时间】 / 3， 10s
-     *
      * 读写锁
      * 保证一定能读到最新数据，修改期间，写锁是一个排它锁（互斥锁、独享锁），读锁是一个共享锁
      * 写锁没释放读锁必须等待
@@ -113,7 +112,6 @@ public class DistributedLockAspect extends AbstractAspectSupport {
      * 写 + 写 ：阻塞方式
      * 读 + 写 ：有读锁。写也需要等待
      * 只要有读或者写的存都必须等待
-     * @return
      */
 
     RLock getLock(LockType lockType, String lockKey) {

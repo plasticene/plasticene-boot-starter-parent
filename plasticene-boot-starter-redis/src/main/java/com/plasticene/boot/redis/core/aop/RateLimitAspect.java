@@ -46,8 +46,7 @@ public class RateLimitAspect {
 
 
     /**
-     * @param pjp
-     * @description 切面
+     * 切面逻辑
      */
     @Around("execution(public * *(..)) && @annotation(com.plasticene.boot.redis.core.anno.RateLimit)")
     public Object interceptor(ProceedingJoinPoint pjp) throws Throwable {
@@ -98,7 +97,7 @@ public class RateLimitAspect {
     }
 
     /**
-     * @description 编写 redis Lua 限流脚本
+     * 编写 redis Lua 限流脚本
      */
     public String buildLuaScript() {
         return """
