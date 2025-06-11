@@ -16,6 +16,7 @@
     <modules>
         <module>plasticene-boot-banner-example</module>
         <module>plasticene-boot-web-example</module>
+        <module>plasticene-boot-redis-example</module>
     </modules>
 
     <properties>
