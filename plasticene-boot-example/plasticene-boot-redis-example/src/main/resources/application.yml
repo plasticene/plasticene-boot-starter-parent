@@ -1,0 +1,12 @@
+server:
+  port: 8883
+
+
+spring:
+  data:
+    redis:
+      host: 10.10.0.10
+      port: 6379
+      database: 0
+  application:
+    name: plasticene-boot-redis-example
