@@ -28,6 +28,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -135,6 +136,7 @@ public class TestController {
     public void testLogTraceId() {
         // webTraceFilter会写入traceId
         log.info("主线程traceId: {}", MDCTraceUtils.getTraceId());
+        Objects.requireNonNull(executorService, "executorService is null");
         executorService.submit(() -> {
             log.info("子线程traceId: {}", MDCTraceUtils.getTraceId());
             try {
