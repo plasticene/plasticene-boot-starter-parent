@@ -69,7 +69,7 @@ public class RateLimitAspect {
             case IP:
                 key = getIpAddress();
                 break;
-            case CUSTOMER:
+            case CUSTOM:
                 key = rateLimit.key();
                 if (StrUtil.isBlank(key)) {
                     key = signature.getDeclaringTypeName() + "." + signature.getName();

@@ -10,7 +10,7 @@ public enum LimitType {
     /**
      * 自定义key
      */
-    CUSTOMER,
+    CUSTOM,
 
     /**
      * 请求者IP
