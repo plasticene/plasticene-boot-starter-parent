@@ -3,6 +3,8 @@ package com.plasticene.boot.example.redis.controller;
 import com.alibaba.fastjson.JSON;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.redis.core.anno.DistributedLock;
+import com.plasticene.boot.redis.core.anno.RateLimit;
+import com.plasticene.boot.redis.core.enums.LimitType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -59,5 +61,29 @@ public class TestController {
             log.error("error", e);
         }
         return ResponseVO.success("成功");
+    }
+
+
+    @Operation(summary = "测试默认限流")
+    @GetMapping("/limit")
+    @RateLimit(period = 30, count = 3)
+    public int testLimiter() {
+        return 1;
+    }
+
+
+    @Operation(summary = "测试自定义限流")
+    @GetMapping("/limit/custom")
+    @RateLimit(key = "custom_limit_test", period = 30, count = 3, limitType = LimitType.CUSTOM)
+    public int testCustomLimiter() {
+        return 1;
+    }
+
+
+    @Operation(summary = "测试ip限流")
+    @GetMapping("/limit/ip")
+    @RateLimit(key = "ip_limit_test", period = 30, count = 3, limitType = LimitType.IP, prefix = "hello")
+    public int testIpLimiter() {
+        return 1;
     }
 }
