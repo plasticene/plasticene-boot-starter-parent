@@ -32,9 +32,9 @@
         <spring.boot.version>3.4.5</spring.boot.version>
         <!-- Spring Cloud版本 从官网可知boot3.4.x对应cloud为2024版本  -->
         <spring.cloud.version>2024.0.0</spring.cloud.version>
-        <!-- Spring Cloud Alibaba(当前最新版本) 源码对应的Spring cloud是2023.0.3，但这里引入的cloud版本2024.0，
+        <!-- Spring Cloud Alibaba 2023.0.3.2(当前最新版本) 对应的是Spring cloud是2023.0.3，但这里引入的cloud版本2024.0，
              因为boot版本3.4.x要求cloud是2024，否则项目启动报错版本问题。这里不需要担心alibaba版本和cloud版本
-             不对应会有问题，因为spring cloud从2023.0.3到2024.0.0没啥重大调整，就是些依赖包版本升级、细节调整而已
+             不对应会有问题，因为从官网spring cloud从2023.0.3到2024.0.0没啥重大调整，就是些依赖包版本升级、细节调整而已
          -->
         <spring.cloud.alibaba.version>2023.0.3.2</spring.cloud.alibaba.version>
         <!-- java -->
@@ -51,8 +51,8 @@
         <transmittable-thread-local.version>2.14.5</transmittable-thread-local.version>
         <!-- redisson 基于 Netty 框架的高性能异步且无锁的 Redis 和 Valkey Java 客户端。   -->
         <redisson.version>3.49.0</redisson.version>
-
-        <caffeine.version>2.8.5</caffeine.version>
+        <!-- 高性能的本地缓存  -->
+        <caffeine.version>3.2.1</caffeine.version>
 
         <!-- License -->
         <truelicense.version>1.33</truelicense.version>
@@ -136,6 +136,11 @@
             <dependency>
                 <groupId>com.plasticene.boot</groupId>
                 <artifactId>plasticene-boot-starter-redis</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-cache</artifactId>
                 <version>${revision}</version>
             </dependency>
 
