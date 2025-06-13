@@ -2,6 +2,7 @@ package com.plasticene.boot.cache.core.listener;
 
 import com.plasticene.boot.redis.core.message.AbstractChannelMessage;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 
@@ -10,6 +11,7 @@ import java.io.Serializable;
  * @version 1.0
  * @date 2022/7/20 17:04
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
 public class CacheMessage extends AbstractChannelMessage implements Serializable {
     private String cacheName;
