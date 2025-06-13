@@ -1,6 +1,7 @@
 package com.plasticene.boot.example.redis.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.plasticene.boot.cache.core.manager.MultilevelCache;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.redis.core.anno.DistributedLock;
 import com.plasticene.boot.redis.core.anno.RateLimit;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,6 +35,10 @@ public class TestController {
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private MultilevelCache multilevelCache;
+
 
     @Operation(summary = "测试redisTemplate序列化")
     @GetMapping("/redisTemplate")
@@ -85,5 +91,12 @@ public class TestController {
     @RateLimit(key = "ip_limit_test", period = 30, count = 3, limitType = LimitType.IP, prefix = "hello")
     public int testIpLimiter() {
         return 1;
+    }
+
+    @Operation(summary = "测试多级缓存")
+    @GetMapping("/multilevel")
+    public ResponseVO<String> testMultilevelCache() {
+        String value = multilevelCache.get("multi-key001", () -> UUID.randomUUID().toString());
+        return ResponseVO.success(value);
     }
 }
