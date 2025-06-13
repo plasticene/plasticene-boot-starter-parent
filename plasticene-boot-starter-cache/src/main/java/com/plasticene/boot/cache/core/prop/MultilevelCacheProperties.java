@@ -23,11 +23,6 @@ public class MultilevelCacheProperties {
     private Integer initCapacity = 64;
 
     /**
-     * 消息主题
-     */
-//    private String topic = "multilevel-cache-topic";
-
-    /**
      * 缓存名称
      */
     private String name = "multilevel-cache";
