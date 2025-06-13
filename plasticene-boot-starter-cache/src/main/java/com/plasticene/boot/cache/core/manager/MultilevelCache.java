@@ -2,8 +2,12 @@ package com.plasticene.boot.cache.core.manager;
 
 import com.plasticene.boot.cache.core.listener.CacheMessage;
 import com.plasticene.boot.cache.core.prop.MultilevelCacheProperties;
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.executor.PlasticeneThreadExecutor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.cache.support.AbstractValueAdaptingCache;
 import org.springframework.data.redis.cache.RedisCache;
@@ -11,7 +15,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.util.Assert;
 
-import javax.annotation.Resource;
 import java.util.Objects;
 import java.util.concurrent.*;
 
@@ -27,19 +30,21 @@ public class MultilevelCache extends AbstractValueAdaptingCache {
     private MultilevelCacheProperties multilevelCacheProperties;
     @Resource
     private RedisTemplate redisTemplate;
+    @Resource
+    private RedissonClient redissonClient;
 
 
     ExecutorService cacheExecutor = new PlasticeneThreadExecutor(
             Runtime.getRuntime().availableProcessors() * 2,
             Runtime.getRuntime().availableProcessors() * 20,
             Runtime.getRuntime().availableProcessors() * 200,
-           "cache-pool"
+           "multilevel-cache-pool"
     );
 
-    private RedisCache redisCache;
-    private CaffeineCache caffeineCache;
+    private final RedisCache redisCache;
+    private final CaffeineCache caffeineCache;
 
-    public MultilevelCache(boolean allowNullValues,RedisCache redisCache, CaffeineCache caffeineCache) {
+    public MultilevelCache(boolean allowNullValues, RedisCache redisCache, CaffeineCache caffeineCache) {
         super(allowNullValues);
         this.redisCache = redisCache;
         this.caffeineCache = caffeineCache;
@@ -47,84 +52,55 @@ public class MultilevelCache extends AbstractValueAdaptingCache {
 
 
     @Override
+    @NonNull
     public String getName() {
         return multilevelCacheProperties.getName();
-
     }
 
     @Override
+    @NonNull
     public Object getNativeCache() {
-        return null;
+        return this;
     }
 
     @Override
-    public <T> T get(Object key, Callable<T> valueLoader) {
+    @SuppressWarnings("unchecked")
+    public <T> T get(@NonNull Object key, @NonNull Callable<T> valueLoader) {
         Object value = lookup(key);
-        return (T) value;
-    }
-
-    /**
-     *  注意：redis缓存的对象object必须序列化 implements Serializable, 不然缓存对象不成功。
-     *  注意：这里asyncPublish()方法是异步发布消息，然后让分布式其他节点清除本地缓存,防止当前节点因更新覆盖数据而其他节点本地缓存保存是脏数据
-     *  这样本地缓存数据才能成功存入
-     * @param key
-     * @param value
-     */
-    @Override
-    public void put(@NonNull Object key, Object value) {
-        redisCache.put(key, value);
-        // 异步清除本地缓存
-        if (multilevelCacheProperties.getCaffeineSwitch()) {
-            asyncPublish(key, value);
+        // 存在就返回
+        if (value != null) {
+            return (T)(value);
+        }
+        // 不存在，通过回调写入缓存并返回，注意要求并发情况下回调只能执行一次，保证缓存数据一致性
+        // 使用分布式锁
+        RLock lock = redissonClient.getLock(key.toString());
+        try {
+            lock.lock();
+            // 双重检测：并发，锁等待，得到锁之后，前面已经数据写入缓存了，这里lookup一定获取值，由此保证回调仅执行一次
+            value = lookup(key);
+            if (value != null) {
+                return (T)(value);
+            }
+            // 回调生成value
+            value = valueLoader.call();
+            // 写入缓存
+            put(key, value);
+            return (T)(value);
+        } catch (Exception e) {
+            log.error("error:", e);
+            throw new BizException("get cache error");
+        } finally {
+            lock.unlock();
         }
     }
 
     /**
-     * key不存在时，再保存，存在返回当前值不覆盖
-     * @param key
-     * @param value
-     * @return
+     * 多级缓存核心逻辑
+     * @param key 键
+     * @return 值
      */
     @Override
-    public ValueWrapper putIfAbsent(@NonNull Object key, Object value) {
-        ValueWrapper valueWrapper = redisCache.putIfAbsent(key, value);
-        // 异步清除本地缓存
-        if (multilevelCacheProperties.getCaffeineSwitch()) {
-            asyncPublish(key, value);
-        }
-        return valueWrapper;
-    }
-
-
-    @Override
-    public void evict(Object key) {
-        // 先清除redis中缓存数据，然后通过消息推送清除所有节点caffeine中的缓存，
-        // 避免短时间内如果先清除caffeine缓存后其他请求会再从redis里加载到caffeine中
-        redisCache.evict(key);
-        // 异步清除本地缓存
-        if (multilevelCacheProperties.getCaffeineSwitch()) {
-            asyncPublish(key, null);
-        }
-    }
-
-    @Override
-    public boolean evictIfPresent(Object key) {
-        return false;
-    }
-
-    @Override
-    public void clear() {
-        redisCache.clear();
-        // 异步清除本地缓存
-        if (multilevelCacheProperties.getCaffeineSwitch()) {
-            asyncPublish(null, null);
-        }
-    }
-
-
-
-    @Override
-    protected Object lookup(Object key) {
+    protected Object lookup(@NonNull Object key) {
         Assert.notNull(key, "key不可为空");
         ValueWrapper value;
         if (multilevelCacheProperties.getCaffeineSwitch()) {
@@ -148,6 +124,62 @@ public class MultilevelCache extends AbstractValueAdaptingCache {
             return value.get();
         }
         return null;
+    }
+
+    /**
+     *  注意：redis缓存的对象object必须序列化 implements Serializable, 不然缓存对象不成功。
+     *  注意：这里asyncPublish()方法是异步发布消息，然后让分布式其他节点清除本地缓存,防止当前节点因更新覆盖数据而其他节点本地缓存保存是脏数据
+     *  这样本地缓存数据才能成功存入
+     * @param key 键
+     * @param value  值
+     */
+    @Override
+    public void put(@NonNull Object key, Object value) {
+        redisCache.put(key, value);
+        // 异步清除本地缓存
+        if (multilevelCacheProperties.getCaffeineSwitch()) {
+            asyncPublish(key, value);
+        }
+    }
+
+    /**
+     * key不存在时再保存，存在返回当前值不覆盖
+     */
+    @Override
+    public ValueWrapper putIfAbsent(@NonNull Object key, Object value) {
+        ValueWrapper valueWrapper = redisCache.putIfAbsent(key, value);
+        // 异步清除本地缓存
+        if (multilevelCacheProperties.getCaffeineSwitch()) {
+            asyncPublish(key, value);
+        }
+        return valueWrapper;
+    }
+
+
+    /**
+     * 先清除redis中缓存数据，然后通过消息推送清除所有节点caffeine中的缓存
+     * 避免短时间内如果先清除caffeine缓存后其他请求会再从redis里加载到caffeine中
+     * @param key 键
+     */
+    @Override
+    public void evict(@NonNull Object key) {
+        redisCache.evict(key);
+        // 异步清除本地缓存
+        if (multilevelCacheProperties.getCaffeineSwitch()) {
+            asyncPublish(key, null);
+        }
+    }
+
+    /**
+     * 清除所有键
+     */
+    @Override
+    public void clear() {
+        redisCache.clear();
+        // 异步清除本地缓存
+        if (multilevelCacheProperties.getCaffeineSwitch()) {
+            asyncPublish(null, null);
+        }
     }
 
     /**
