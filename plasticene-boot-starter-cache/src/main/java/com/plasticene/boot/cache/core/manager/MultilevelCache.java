@@ -117,9 +117,7 @@ public class MultilevelCache extends AbstractValueAdaptingCache {
             // 异步将二级缓存redis写到一级缓存caffeine
             if (multilevelCacheProperties.getCaffeineSwitch()) {
                 ValueWrapper finalValue = value;
-                cacheExecutor.execute(()->{
-                    caffeineCache.put(key, finalValue.get());
-                });
+                cacheExecutor.execute(()-> caffeineCache.put(key, finalValue.get()));
             }
             return value.get();
         }
