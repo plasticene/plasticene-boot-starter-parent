@@ -21,7 +21,8 @@ public class RedisCacheMessageListener extends AbstractChannelMessageListener<Ca
 
     @Override
     public void onMessage(CacheMessage message) {
-        log.info("监听的redis message: {}" + message.toString());
+        log.info("监听的redis message: {}", message.toString());
+        // key为空，代表clear()清除所有key
         if (Objects.isNull(message.getKey())) {
             caffeineCache.invalidate();
         } else {
