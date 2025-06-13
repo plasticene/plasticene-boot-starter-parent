@@ -29,7 +29,7 @@ public class MultilevelCache extends AbstractValueAdaptingCache {
     @Resource
     private MultilevelCacheProperties multilevelCacheProperties;
     @Resource
-    private RedisTemplate redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
     @Resource
     private RedissonClient redissonClient;
 

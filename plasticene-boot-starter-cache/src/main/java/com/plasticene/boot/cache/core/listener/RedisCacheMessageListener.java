@@ -2,6 +2,7 @@ package com.plasticene.boot.cache.core.listener;
 
 import com.plasticene.boot.redis.core.listener.AbstractChannelMessageListener;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.caffeine.CaffeineCache;
 
@@ -13,6 +14,7 @@ import java.util.Objects;
  * @version 1.0
  * @date 2022/7/20 17:13
  */
+@EqualsAndHashCode(callSuper = true)
 @Slf4j
 @Data
 public class RedisCacheMessageListener extends AbstractChannelMessageListener<CacheMessage> {
