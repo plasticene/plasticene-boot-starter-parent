@@ -1,4 +1,6 @@
-# plasticene-boot-starter-parent(2025.3.0)
+# plasticene-boot-starter-parent
+
+当前最新版本`2025.3.0`，也就是在今年2025的3月份，将本项目从`Spring Boot 2.7.0`升级到当时最新版本`Spring Boot 3.4.5`，Java从8升级到了17，并承诺以后会持续封装、集成组件带来新亮点、新功能。欢迎大家提出好的idea
 
 ## 1.项目介绍
 
@@ -23,8 +25,15 @@
   - 使用多种方案实现对接口数据进行加解密、签名验证等，提高接口数据安全性
   - 数据脱敏展示，实现："**想在哪脱就在哪脱，想脱谁就脱谁! ! !**"
   - 扩展`ConstraintValidator`，实现复杂场景自定义参数校验组件，如枚举字段值是否合法，联合字段校验等
+  - 整合`Knife4j`输出接口文档，遵循OpenAPI3规范
 
-- 整合redis+caffeine实现**多级缓存**
+- 封装自定义`redis starter`实现如下功能：
+  - 自定义注入`RedisTemplate`和`StringRedisTemplate`等bean，指定key、value序列化方式
+  - 基于注解通过`redis+lua`实现分布式限流
+  - 基于注解通过`Redisson`实现分布式锁
+  - 基于Redis pub/sub 消息机制，抽象封装消息监听器，统一注入、管理。
+
+- 基于`Spring Cache`框架，整合`caffeine+redis`实现多级缓存
 - 基于mybatis-plus封装实现**分页、多租户插件，公共属性自动填充，复杂字段类型处理，字段数据加密**，逻辑删除等。
 - 基于redis实现**分布式限流注解**，基于Redisson实现**分布式锁注解**，以及对redis常用命令和组件的封装
 - 实现**license证书生成与检验**，只需引入依赖，**开箱即用**。
