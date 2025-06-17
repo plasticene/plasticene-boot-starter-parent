@@ -10,3 +10,5 @@ spring:
       database: 0
   application:
     name: plasticene-boot-redis-example
+  cache:
+    type: redis

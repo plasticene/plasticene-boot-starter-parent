@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -98,5 +99,13 @@ public class TestController {
     public ResponseVO<String> testMultilevelCache() {
         String value = multilevelCache.get("multi-key001", () -> UUID.randomUUID().toString());
         return ResponseVO.success(value);
+    }
+
+    @Operation(summary = "测试spring cache")
+    @GetMapping("/cache")
+    @Cacheable(value = "she-cache")
+    public ResponseVO<String> testSpringCache() {
+        log.info("执行方法了.....");
+        return ResponseVO.success("成功😄");
     }
 }
