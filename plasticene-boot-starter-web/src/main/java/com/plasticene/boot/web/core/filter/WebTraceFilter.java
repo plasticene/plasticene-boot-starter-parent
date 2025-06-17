@@ -23,8 +23,8 @@ import java.util.List;
 public class WebTraceFilter extends OncePerRequestFilter {
 
     private static final List<String> EXCLUDE_PATHS = List.of(
-            "doc.html",
-            "swagger-ui.html",
+            "/doc.html",
+            "/swagger-ui.html",
             "/v3/api-docs",
             "/favicon.ico",
             "/webjars"
