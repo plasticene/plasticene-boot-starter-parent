@@ -42,7 +42,6 @@ public class MybatisUtils {
 
     /**
      * 获得 Table 对应的表名
-     *
      * 兼容 MySQL 转义表名 `t_xxx`
      *
      * @param table 表

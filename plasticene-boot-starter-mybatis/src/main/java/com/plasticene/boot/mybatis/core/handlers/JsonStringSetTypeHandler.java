@@ -17,7 +17,8 @@ import java.util.Set;
  */
 public class JsonStringSetTypeHandler extends AbstractJsonTypeHandler<Object> {
 
-    private static final TypeReference<Set<String>> TYPE_REFERENCE = new TypeReference<Set<String>>(){};
+    private static final TypeReference<Set<String>> TYPE_REFERENCE = new TypeReference<>() {
+    };
 
     public JsonStringSetTypeHandler(Class<?> type) {
         super(type);
