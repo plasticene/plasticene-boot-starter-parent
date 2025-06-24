@@ -150,4 +150,16 @@ public class TestController {
         MDCTraceUtils.removeTrace();
     }
 
+    @Operation(summary = "测试错误日志打印")
+    @GetMapping("/log/error")
+    public ResponseVO<?> testLog() {
+        int i = 1;
+        try {
+            int a = i / 0;
+        } catch (Exception e) {
+            log.error("错误异常日志输出：i:{}", i, e);
+        }
+       return ResponseVO.success(i);
+    }
+
 }
