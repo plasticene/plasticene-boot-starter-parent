@@ -23,8 +23,7 @@ public class MybatisUtils {
 
     public static <T> Page<T> buildPage(PageParam pageParam) {
         // 页码 + 数量
-        Page<T> page = new Page<>(pageParam.getPageNo(), pageParam.getPageSize());
-        return page;
+        return new Page<>(pageParam.getPageNo(), pageParam.getPageSize());
     }
 
     /**

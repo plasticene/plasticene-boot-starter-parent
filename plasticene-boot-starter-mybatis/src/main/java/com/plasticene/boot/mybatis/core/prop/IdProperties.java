@@ -11,6 +11,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "ptc.id")
 @Data
 public class IdProperties {
-    private Long datacenter = 0l;
-    private Long worker = 0l;
+    private Long datacenter = 0L;
+    private Long worker = 0L;
 }

@@ -2,10 +2,10 @@ package com.plasticene.boot.mybatis.core.handlers;
 
 import cn.hutool.core.util.StrUtil;
 import com.plasticene.boot.mybatis.core.encrypt.EncryptService;
+import jakarta.annotation.Resource;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 
-import javax.annotation.Resource;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,6 +26,7 @@ public class EncryptTypeHandler<T> extends BaseTypeHandler<T> {
         ps.setString(i, encryptService.encrypt((String)parameter));
     }
     @Override
+    @SuppressWarnings("unchecked")
     public T getNullableResult(ResultSet rs, String columnName) throws SQLException {
         String columnValue = rs.getString(columnName);
         //有一些可能是空字符
@@ -33,12 +34,14 @@ public class EncryptTypeHandler<T> extends BaseTypeHandler<T> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public T getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
         String columnValue = rs.getString(columnIndex);
         return StrUtil.isBlank(columnValue) ? (T)columnValue : (T)encryptService.decrypt(columnValue);
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public T getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
         String columnValue = cs.getString(columnIndex);
         return StrUtil.isBlank(columnValue) ? (T)columnValue : (T)encryptService.decrypt(columnValue);

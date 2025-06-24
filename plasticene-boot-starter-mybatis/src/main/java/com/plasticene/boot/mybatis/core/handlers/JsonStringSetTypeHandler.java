@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.handlers.AbstractJsonTypeHandler;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.plasticene.boot.common.utils.JsonUtils;
 
+import java.lang.reflect.Field;
 import java.util.Set;
 
 /**
@@ -16,15 +17,23 @@ import java.util.Set;
  */
 public class JsonStringSetTypeHandler extends AbstractJsonTypeHandler<Object> {
 
-    private static final TypeReference<Set<String>> typeReference = new TypeReference<Set<String>>(){};
+    private static final TypeReference<Set<String>> TYPE_REFERENCE = new TypeReference<Set<String>>(){};
 
-    @Override
-    protected Object parse(String json) {
-        return JsonUtils.parseObject(json, typeReference);
+    public JsonStringSetTypeHandler(Class<?> type) {
+        super(type);
+    }
+
+    public JsonStringSetTypeHandler(Class<?> type, Field field) {
+        super(type, field);
     }
 
     @Override
-    protected String toJson(Object obj) {
+    public Object parse(String json) {
+        return JsonUtils.parseObject(json, TYPE_REFERENCE);
+    }
+
+    @Override
+    public String toJson(Object obj) {
         return JsonUtils.toJsonString(obj);
     }
 

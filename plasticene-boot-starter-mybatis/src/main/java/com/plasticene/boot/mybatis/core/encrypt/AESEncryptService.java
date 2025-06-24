@@ -3,9 +3,9 @@ package com.plasticene.boot.mybatis.core.encrypt;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.mybatis.core.prop.EncryptProperties;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Resource;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;

@@ -48,6 +48,6 @@ public class TenantDatabaseHandler implements TenantLineHandler {
     @Override
     public boolean ignoreTable(String tableName) {
         return TenantContextHolder.isIgnore()
-                || CollUtil.contains(ignoreTables, tableName); // 情况二，忽略多租户的表
+                || CollUtil.contains(ignoreTables, tableName);
     }
 }

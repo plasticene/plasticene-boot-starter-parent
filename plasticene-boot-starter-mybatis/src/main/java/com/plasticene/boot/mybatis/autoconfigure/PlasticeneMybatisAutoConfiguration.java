@@ -15,12 +15,12 @@ import com.plasticene.boot.mybatis.core.handlers.TenantDatabaseHandler;
 import com.plasticene.boot.mybatis.core.prop.EncryptProperties;
 import com.plasticene.boot.mybatis.core.prop.IdProperties;
 import com.plasticene.boot.mybatis.core.prop.TenantProperties;
+import jakarta.annotation.Resource;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import javax.annotation.Resource;
 
 /**
  * @author fjzheng
@@ -54,32 +54,23 @@ public class PlasticeneMybatisAutoConfiguration {
     }
 
     @Bean
-    public EncryptTypeHandler encryptTypeHandler() {
-        return new EncryptTypeHandler();
+    public EncryptTypeHandler<?> encryptTypeHandler() {
+        return new EncryptTypeHandler<>();
     }
 
     @Bean
     @ConditionalOnMissingBean(EncryptService.class)
     public EncryptService encryptService() {
         Algorithm algorithm = encryptProperties.getAlgorithm();
-        EncryptService encryptService;
-        switch (algorithm) {
-            case BASE64:
-                encryptService =  new Base64EncryptService();
-                break;
-            case AES:
-                encryptService = new AESEncryptService();
-                break;
-            default:
-                encryptService =  null;
-        }
-        return encryptService;
+        return switch (algorithm) {
+            case BASE64 -> new Base64EncryptService();
+            case AES -> new AESEncryptService();
+        };
     }
 
     @Bean
     @ConditionalOnMissingBean(IdGenerator.class)
     public IdGenerator idGenerator() {
-        IdGenerator idGenerator = new IdGenerator(idProperties.getDatacenter(), idProperties.getWorker());
-        return idGenerator;
+        return new IdGenerator(idProperties.getDatacenter(), idProperties.getWorker());
     }
 }
