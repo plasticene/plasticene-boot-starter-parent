@@ -41,7 +41,7 @@
         <java.version>17</java.version>
 
         <!-- mybatis-plus 依赖版本 -->
-        <mybatis-plus.version>3.5.2</mybatis-plus.version>
+        <mybatis-plus.version>3.5.12</mybatis-plus.version>
         <!-- druid 依赖版本 -->
         <druid.version>1.2.8</druid.version>
 
@@ -144,6 +144,15 @@
                 <version>${revision}</version>
             </dependency>
 
+            <!-- mybatis-plus -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-bom</artifactId>
+                <version>${mybatis-plus.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
 
 
             <dependency>
@@ -151,11 +160,7 @@
                 <artifactId>druid-spring-boot-starter</artifactId>
                 <version>${druid.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-boot-starter</artifactId>
-                <version>${mybatis-plus.version}</version>
-            </dependency>
+
 
             <!-- knife4j api文档 -->
             <dependency>
@@ -164,9 +169,10 @@
                 <version>${knife4j.version}</version>
             </dependency>
 
+            <!-- 解决 ThreadLocal 父子线程的传值问题 -->
             <dependency>
                 <groupId>com.alibaba</groupId>
-                <artifactId>transmittable-thread-local</artifactId> <!-- 解决 ThreadLocal 父子线程的传值问题 -->
+                <artifactId>transmittable-thread-local</artifactId>
                 <version>${transmittable-thread-local.version}</version>
             </dependency>
 
