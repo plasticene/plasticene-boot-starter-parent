@@ -153,13 +153,15 @@ public class TestController {
     @Operation(summary = "测试错误日志打印")
     @GetMapping("/log/error")
     public ResponseVO<?> testLog() {
-        int i = 1;
+        var traceId = MDCTraceUtils.getTraceId();
+        UserVO vo = new UserVO();
         try {
-            int a = i / 0;
+            int length = vo.getUserName().length();
+            log.info("length===={}", length);
         } catch (Exception e) {
-            log.error("错误异常日志输出：i:{}", i, e);
+            log.error("错误异常日志输出：traceId:{}", traceId, e);
         }
-       return ResponseVO.success(i);
+       return ResponseVO.success(vo);
     }
 
 }
