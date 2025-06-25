@@ -1,5 +1,7 @@
 package com.plasticene.boot.mybatis.core.encrypt;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
@@ -8,14 +10,16 @@ import java.util.Base64;
  * @version 1.0
  * @date 2022/7/22 14:46
  */
+@Slf4j
 public class Base64EncryptService implements EncryptService {
     @Override
     public String encrypt(String content) {
         try {
             return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            throw new RuntimeException("encrypt fail!", e);
+            log.error("base64 encrypt error: ", e);
         }
+        return content;
     }
 
     @Override
@@ -24,7 +28,8 @@ public class Base64EncryptService implements EncryptService {
             byte[] asBytes = Base64.getDecoder().decode(content);
             return new String(asBytes, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new RuntimeException("decrypt fail!", e);
+            log.error("base64 decrypt error: ", e);
         }
+        return content;
     }
 }

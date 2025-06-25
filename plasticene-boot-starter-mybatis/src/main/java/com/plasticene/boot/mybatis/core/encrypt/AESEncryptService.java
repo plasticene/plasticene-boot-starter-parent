@@ -33,9 +33,9 @@ public class AESEncryptService implements EncryptService{
             byte[] valueByte = cipher.doFinal(content.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(valueByte);
         } catch (Exception e) {
-            log.error("加密失败：", e);
-            throw new BizException("加密失败");
+            log.error("aes encrypt error: ", e);
         }
+        return content;
     }
 
     @Override
@@ -51,8 +51,8 @@ public class AESEncryptService implements EncryptService{
             byte[] valueByte = cipher.doFinal(originalData);
             return new String(valueByte);
         } catch (Exception e) {
-            log.error("解密失败：", e);
-            throw new BizException("解密失败");
+            log.error("aes decrypt error: ", e);
         }
+        return content;
     }
 }
