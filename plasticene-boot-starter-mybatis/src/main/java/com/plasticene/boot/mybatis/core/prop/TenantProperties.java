@@ -19,7 +19,7 @@ public class TenantProperties {
     /**
      * 是否开启多租户功能
      */
-    private Boolean enable = Boolean.TRUE;
+    private Boolean enable = Boolean.FALSE;
 
     /**
      * 需要忽略多租户的表
