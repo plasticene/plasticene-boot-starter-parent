@@ -143,6 +143,11 @@
                 <artifactId>plasticene-boot-starter-cache</artifactId>
                 <version>${revision}</version>
             </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-mybatis</artifactId>
+                <version>${revision}</version>
+            </dependency>
 
             <!-- mybatis-plus -->
             <dependency>
