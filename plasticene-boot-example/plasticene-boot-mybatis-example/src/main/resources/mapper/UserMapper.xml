@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.plasticene.boot.example.mybatis.dao.UserDAO">
+    <resultMap id="userMap" type="com.plasticene.boot.example.mybatis.entity.User">
+        <result column="role_id" jdbcType="VARCHAR" property="roleId" javaType="java.util.Set"
+                typeHandler="com.plasticene.boot.mybatis.core.handlers.type.LongSetTypeHandler"/>
+
+        <result column="hobby" jdbcType="VARCHAR" property="hobby" javaType="java.util.List"
+                typeHandler="com.plasticene.boot.mybatis.core.handlers.type.StringListTypeHandler"/>
+
+        <result column="remark" jdbcType="VARCHAR" property="remark" javaType="java.util.Map"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+
+        <result column="name" jdbcType="VARCHAR"  property="name" javaType="java.lang.String"
+                typeHandler="com.plasticene.boot.mybatis.core.handlers.EncryptTypeHandler" />
+        <result column="phone" jdbcType="VARCHAR"  property="phone" javaType="java.lang.String"
+                typeHandler="com.plasticene.boot.mybatis.core.handlers.EncryptTypeHandler" />
+        <result column="email" jdbcType="VARCHAR"  property="email" javaType="java.lang.String"
+                typeHandler="com.plasticene.boot.mybatis.core.handlers.EncryptTypeHandler" />
+    </resultMap>
+
+
+    <select id="getById" resultMap="userMap">
+        SELECT * FROM `tb_user` WHERE id=#{id}
+    </select>
+</mapper>

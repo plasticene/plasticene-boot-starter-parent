@@ -17,6 +17,7 @@
         <module>plasticene-boot-banner-example</module>
         <module>plasticene-boot-web-example</module>
         <module>plasticene-boot-redis-example</module>
+        <module>plasticene-boot-mybatis-example</module>
     </modules>
 
     <properties>

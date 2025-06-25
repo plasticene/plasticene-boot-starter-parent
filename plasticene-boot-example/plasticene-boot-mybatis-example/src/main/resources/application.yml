@@ -1,0 +1,22 @@
+server:
+  port: 8884
+
+
+spring:
+  application:
+    name: plasticene-boot-mybatis-example
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: root
+    url: jdbc:mysql://127.0.0.1:3306/db_test?&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+logging:
+  level:
+    com.plasticene.boot.example.mybatis: debug
+
+ptc:
+  encrypt:
+    algorithm: aes
+    key: plasticene666666
+    # 必须16位
+    iv: plasticene666666
