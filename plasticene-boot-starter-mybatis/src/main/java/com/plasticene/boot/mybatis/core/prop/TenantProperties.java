@@ -23,14 +23,12 @@ public class TenantProperties {
 
     /**
      * 需要忽略多租户的表
-     *
      * 即默认所有表都开启多租户的功能，所以记得添加对应的 tenant_id 字段哟
      */
     private Set<String> ignoreTables = Collections.emptySet();
 
     /**
      * 需要忽略多租户的请求，例如登录接口这时候还不知道是哪家租户
-     *
      * */
     private Set<String> ignoreUrls = Collections.emptySet();
 }
