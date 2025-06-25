@@ -34,6 +34,9 @@ public class User extends BaseDO {
     private Integer isDelete;
     private String address;
 
+    // --------- 多租户
+    private Long orgId;
+
     // --------- 加密存储字段
     @TableField(typeHandler = EncryptTypeHandler.class)
     private String name;

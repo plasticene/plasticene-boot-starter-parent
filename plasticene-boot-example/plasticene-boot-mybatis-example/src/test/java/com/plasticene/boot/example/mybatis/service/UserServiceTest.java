@@ -1,6 +1,9 @@
 package com.plasticene.boot.example.mybatis.service;
 
 import cn.hutool.core.date.DateUtil;
+import com.plasticene.boot.common.pojo.PageResult;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.RequestUserHolder;
 import com.plasticene.boot.example.mybatis.entity.User;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
@@ -78,13 +81,37 @@ class UserServiceTest {
     public void testEncrypt() {
         User user = new User();
         user.setUserNo(UUID.randomUUID().toString());
-        user.setName("加密存储：哈哈123，🎾");
+        user.setName("加密存储：哈哈123，⚽️");
         user.setPhone("010-123456789");
         user.setEmail("123456@qq.com");
         user.setRoleId(Set.of(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L));
         user.setHobby(List.of("网球", "篮球", "⚽️"));
         user.setRemark(Map.of("city", "杭州", "age",18, "idCard","132x"));
+        user.setOrgId(6L);
         userService.insertUser(user);
+    }
+
+
+    /**
+     * 测试分页
+     */
+    @Test
+    public void testPage() {
+        PageResult<User> result = userService.listUsers(2, 10, "吴八花");
+        System.out.println(result);
+    }
+
+    /**
+     * 测试多租户
+     */
+    @Test
+    public void testTenant() {
+        LoginUser loginUser = new LoginUser();
+        loginUser.setOrgId(6L);
+        RequestUserHolder.add(loginUser);
+        PageResult<User> result = userService.listUsers(1, 5, null);
+        System.out.println(result);
+        RequestUserHolder.remove();
     }
 
 

@@ -20,3 +20,6 @@ ptc:
     key: plasticene666666
     # 必须16位
     iv: plasticene666666
+
+  tenant:
+    enable: true
