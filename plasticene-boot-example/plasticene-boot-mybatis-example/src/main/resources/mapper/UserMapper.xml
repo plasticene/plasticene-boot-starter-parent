@@ -19,6 +19,68 @@
                 typeHandler="com.plasticene.boot.mybatis.core.handlers.EncryptTypeHandler" />
     </resultMap>
 
+    <insert id="batchUpdateOnDuplicate">
+        INSERT INTO tb_user(user_no, name, phone, address, gender, org_id) VALUES
+        <foreach collection="userList" item="item" separator=",">
+            (#{item.userNo}, #{item.name}, #{item.phone}, #{item.address}, #{item.gender}, #{item.orgId})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        name=VALUES(name), org_id=VALUES(org_id)
+    </insert>
+
+    <insert id="batchUpdateReplace">
+        REPLACE INTO tb_user(user_no, name, phone, address, gender, org_id) VALUES
+        <foreach collection="userList" item="item" separator=",">
+            (#{item.userNo}, #{item.name}, #{item.phone}, #{item.address}, #{item.gender}, #{item.orgId})
+        </foreach>
+    </insert>
+
+    <update id="batchUpdateByForeach">
+        <foreach collection="userList" item="u" separator=";">
+            UPDATE tb_user
+            SET
+            update_time = now()
+            <if test="u.name != null">
+                ,name = #{u.name}
+            </if>
+            <if test="u.address != null">
+                ,address = #{u.address}
+            </if>
+            <if test="u.gender != null">
+                ,gender = #{u.gender}
+            </if>
+            WHERE id = #{u.id}
+        </foreach>
+    </update>
+
+    <update id="batchUpdateByCaseWhen">
+        UPDATE tb_user
+        SET
+        update_time=now(),
+        name = CASE
+        <foreach collection="userList" item="item">
+            WHEN id = #{item.id} AND #{item.name} IS NOT NULL THEN #{item.name}
+        </foreach>
+        ELSE name
+        END,
+        address = CASE
+        <foreach collection="userList" item="item">
+            WHEN id = #{item.id} AND #{item.address} IS NOT NULL THEN #{item.address}
+        </foreach>
+        ELSE address
+        END,
+        gender = CASE
+        <foreach collection="userList" item="item">
+            WHEN id = #{item.id} AND #{item.gender} IS NOT NULL THEN #{item.gender}
+        </foreach>
+        ELSE gender
+        END
+        WHERE id IN
+        <foreach collection="userList" item="item" open="(" separator="," close=")">
+            #{item.id}
+        </foreach>
+    </update>
+
 
     <select id="getById" resultMap="userMap">
         SELECT * FROM `tb_user` WHERE id=#{id}

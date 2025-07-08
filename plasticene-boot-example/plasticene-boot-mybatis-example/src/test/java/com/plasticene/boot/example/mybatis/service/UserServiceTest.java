@@ -1,10 +1,13 @@
 package com.plasticene.boot.example.mybatis.service;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.RequestUserHolder;
+import com.plasticene.boot.example.mybatis.dao.UserDAO;
 import com.plasticene.boot.example.mybatis.entity.User;
+import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
@@ -24,6 +27,8 @@ import java.util.*;
 class UserServiceTest {
     @Resource
     private UserService userService;
+    @Resource
+    private UserDAO userDAO;
 
     /**
      * 测试连通性
@@ -112,6 +117,113 @@ class UserServiceTest {
         PageResult<User> result = userService.listUsers(1, 5, null);
         System.out.println(result);
         RequestUserHolder.remove();
+    }
+
+    @Test
+    public void testBatchUpdateByFor() {
+        List<User> users = listUsers();
+        long start = System.currentTimeMillis();
+        users.forEach(user -> {
+            userDAO.updateById(user);
+        });
+        long end = System.currentTimeMillis();
+        System.out.println("执行时长：" + (end - start) + "ms");
+    }
+
+
+    @Test
+    public void testBatchUpdateByForeach() {
+        List<User> users = listUsers();
+        long start = System.currentTimeMillis();
+        int sum = 0;
+        // 分批处理
+        List<List<User>> splitList = CollUtil.split(users, 500);
+        for (List<User> userList : splitList) {
+            int count = userDAO.batchUpdateByForeach(userList);
+            sum = sum + count;
+        }
+        long end = System.currentTimeMillis();
+        System.out.println("执行时长：" + (end - start) + "ms");
+        // 注意sum=20，而不是10000
+        System.out.println("sum:" + sum);
+    }
+
+    @Test
+    public void testBatchUpdateByCaseWhen() {
+        List<User> users = listUsers();
+        long start = System.currentTimeMillis();
+        // 分批处理
+        List<List<User>> splitList = CollUtil.split(users, 500);
+        for (List<User> userList : splitList) {
+            userDAO.batchUpdateByCaseWhen(userList);
+        }
+        long end = System.currentTimeMillis();
+        System.out.println("执行时长：" + (end - start) + "ms");
+    }
+
+
+    @Test
+    public void testBatchUpdateOnDuplicate() {
+        List<User> users = listUsers();
+        long start = System.currentTimeMillis();
+        // 分批处理
+        List<List<User>> splitList = CollUtil.split(users, 500);
+        for (List<User> userList : splitList) {
+            userDAO.batchUpdateOnDuplicate(userList);
+        }
+        long end = System.currentTimeMillis();
+        System.out.println("执行时长：" + (end - start) + "ms");
+    }
+
+    @Test
+    public void testBatchUpdateReplace() {
+        List<User> users = listUsers();
+        long start = System.currentTimeMillis();
+        // 分批处理
+        List<List<User>> splitList = CollUtil.split(users, 500);
+        for (List<User> userList : splitList) {
+            userDAO.batchUpdateReplace(userList);
+        }
+        long end = System.currentTimeMillis();
+        System.out.println("执行时长：" + (end - start) + "ms");
+    }
+
+    @Test
+    public void testBatchUpdateByMybatisPlus() {
+        List<User> users = listUsers();
+        long start = System.currentTimeMillis();
+        userDAO.updateById(users, 500);
+//        userService.updateBatchById(users, 500);
+        // 这个就是for循环单条操作，很慢
+//        userService.saveOrUpdateBatch(users, 500);
+        long end = System.currentTimeMillis();
+        System.out.println("执行时长：" + (end - start) + "ms");
+    }
+
+
+
+
+
+
+
+
+    public List<User> listUsers() {
+        PtcLambdaQueryWrapper<User> queryWrapper = new PtcLambdaQueryWrapper<>();
+        queryWrapper.select(User::getId, User::getName, User::getPhone);
+        queryWrapper.ge(User::getId, 20000L).lt(User::getId, 30000L);
+        List<User> users = userDAO.selectList(queryWrapper);
+        users.forEach(user -> {
+//            if (user.getId() % 100 == 0) {
+//                user.setId(null);
+//                user.setUserNo(UUID.randomUUID().toString());
+//            }
+            user.setName(user.getName() + "1");
+            user.setAddress("杭州" + user.getId());
+            user.setGender(user.getId() % 2 == 0 ? 1 : 0);
+            user.setUpdateTime(new Date());
+            user.setUpdater(user.getId());
+        });
+        return users;
     }
 
 

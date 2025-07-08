@@ -2,6 +2,7 @@ package com.plasticene.boot.example.mybatis.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.pojo.PageParam;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.example.mybatis.dao.UserDAO;
@@ -17,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2025/6/24
  */
 @Service
-public class UserService {
+public class UserService extends ServiceImpl<UserDAO, User> {
     @Resource
     private UserDAO userDAO;
 
