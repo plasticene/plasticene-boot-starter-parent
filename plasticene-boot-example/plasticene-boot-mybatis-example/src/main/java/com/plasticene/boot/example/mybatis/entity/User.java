@@ -38,11 +38,11 @@ public class User extends BaseDO {
     private Long orgId;
 
     // --------- 加密存储字段
-    @TableField(typeHandler = EncryptTypeHandler.class)
+//    @TableField(typeHandler = EncryptTypeHandler.class)
     private String name;
-    @TableField(typeHandler = EncryptTypeHandler.class)
+//    @TableField(typeHandler = EncryptTypeHandler.class)
     private String phone;
-    @TableField(typeHandler = EncryptTypeHandler.class)
+//    @TableField(typeHandler = EncryptTypeHandler.class)
     private String email;
 
     // -------- 复合字段类型处理
