@@ -42,6 +42,8 @@
 
         <!-- mybatis-plus 依赖版本 -->
         <mybatis-plus.version>3.5.12</mybatis-plus.version>
+        <!--screw 版本 生成数据库文档  -->
+        <screw.version>1.0.5</screw.version>
         <!-- druid 依赖版本 -->
         <druid.version>1.2.8</druid.version>
 
@@ -233,6 +235,13 @@
                 <groupId>org.jetbrains</groupId>
                 <artifactId>annotations</artifactId>
                 <version>${jetbrains.anno.version}</version>
+            </dependency>
+
+            <!-- 生成数据库文档  -->
+            <dependency>
+                <groupId>cn.smallbun.screw</groupId>
+                <artifactId>screw-core</artifactId>
+                <version>${screw.version}</version>
             </dependency>
 
 
