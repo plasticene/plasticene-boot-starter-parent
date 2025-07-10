@@ -79,18 +79,4 @@ public interface BaseMapperX<T> extends BaseMapper<T> {
         return selectList(new LambdaQueryWrapper<T>().in(field, values));
     }
 
-    /**
-     * 逐条插入，适合少量数据插入，或者对性能要求不高的场景
-     *
-     * 如果大量，请使用 {@link com.baomidou.mybatisplus.extension.service.impl.ServiceImpl#saveBatch(Collection)} 方法
-     *
-     * @param entities 实体们
-     */
-    default void insertBatch(Collection<T> entities) {
-        entities.forEach(this::insert);
-    }
-
-    default void updateBatch(T update) {
-        update(update, new QueryWrapper<>());
-    }
 }
