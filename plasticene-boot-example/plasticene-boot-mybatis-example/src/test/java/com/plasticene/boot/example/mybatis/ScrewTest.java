@@ -6,8 +6,6 @@ import cn.smallbun.screw.core.engine.EngineFileType;
 import cn.smallbun.screw.core.engine.EngineTemplateType;
 import cn.smallbun.screw.core.execute.DocumentationExecute;
 import cn.smallbun.screw.core.process.ProcessConfig;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,7 +31,7 @@ public class ScrewTest {
     public void test() {
 //        HikariConfig hikariConfig = new HikariConfig();
 //        hikariConfig.setDriverClassName("com.mysql.jdbc.Driver");
-//        hikariConfig.setJdbcUrl("jdbc:mysql://127.0.0.2:3306/anmi?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true");
+//        hikariConfig.setJdbcUrl("jdbc:mysql://127.0.0.1:3306/db_test?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true");
 //        hikariConfig.setUsername("root");
 //        hikariConfig.setPassword("root");
 //        // 设置可以获取tables remarks信息
