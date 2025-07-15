@@ -1,0 +1,21 @@
+server:
+  port: 8885
+
+spring:
+  application:
+    name: plasticene-boot-license-example
+
+
+
+ptc:
+  license:
+    license-path: /Users/shepherdmy/Desktop/license/license.lic
+    private-keys-store-path: /Users/shepherdmy/Desktop/license/privateKeys.keystore
+    public-keys-store-path: /Users/shepherdmy/Desktop/license/publicCerts.keystore
+    verify-system-switch: false
+    key-pass: she123456
+    store-pass: she123456
+    check-cron: 0 0/1 * * * ?
+    refresh-cron: 0 0/5 * * * ?
+#    enable: false
+
