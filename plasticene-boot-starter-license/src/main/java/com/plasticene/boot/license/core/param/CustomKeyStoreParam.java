@@ -38,11 +38,6 @@ public class CustomKeyStoreParam extends AbstractKeyStoreParam {
      */
     @Override
     public InputStream getStream() throws IOException {
-        final InputStream in = new FileInputStream(new File(storePath));
-        if (null == in){
-            throw new FileNotFoundException(storePath);
-        }
-
-        return in;
+        return new FileInputStream(storePath);
     }
 }

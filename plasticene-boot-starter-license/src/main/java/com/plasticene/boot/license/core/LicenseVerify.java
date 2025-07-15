@@ -1,22 +1,27 @@
 package com.plasticene.boot.license.core;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.digest.DigestUtil;
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.license.core.constant.LicenseConstant;
 import com.plasticene.boot.license.core.enums.VerifySystemType;
 import com.plasticene.boot.license.core.param.CustomKeyStoreParam;
 import com.plasticene.boot.license.core.param.SystemInfo;
 import com.plasticene.boot.license.core.prop.LicenseProperties;
 import com.plasticene.boot.license.core.utils.DmcUtils;
 import de.schlichtherle.license.*;
+import jakarta.annotation.Resource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.io.File;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
 
 /**
@@ -29,9 +34,27 @@ public class LicenseVerify {
     @Resource
     private LicenseProperties licenseProperties;
 
-    private static Logger logger = LogManager.getLogger(LicenseVerify.class);
-    private static final  DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private static final Logger logger = LogManager.getLogger(LicenseVerify.class);
 
+    /**
+     * license合法标识
+     */
+    private final AtomicBoolean licenseValid  = new AtomicBoolean(true);
+
+    /**
+     * license文件md5
+     */
+    private final AtomicReference<String> licenseFileMd5 = new AtomicReference<>(StrUtil.EMPTY);
+
+
+
+    /**
+     * license是否合法
+     * @return true/false
+     */
+    public boolean isValid() {
+        return licenseValid.get();
+    }
 
     /**
      * 安装License证书
@@ -39,35 +62,53 @@ public class LicenseVerify {
      * 此时根据开关验证服务器系统信息
      */
     public synchronized LicenseContent install() {
-        LicenseContent result = null;
-        try{
-            LicenseManager licenseManager = new LicenseManager(initLicenseParam());
+        try {
+            LicenseManager licenseManager = LicenseManagerHolder.getInstance(initLicenseParam());
             licenseManager.uninstall();
-            result = licenseManager.install(new File(licenseProperties.getLicensePath()));
-            verifySystemInfo(result);
-            logger.info("证书安装成功，证书有效期：{} - {}", df.format(result.getNotBefore()),
-                    df.format(result.getNotAfter()));
-        }catch (Exception e){
+            // 安装license
+            LicenseContent licenseContent = licenseManager.install(new File(licenseProperties.getLicensePath()));
+            // 校验硬件信息
+            verifySystemInfo(licenseContent);
+            logger.info("证书安装成功，证书有效期：{} - {}",
+                    DateUtil.formatDate(licenseContent.getNotBefore()),
+                    DateUtil.formatDate(licenseContent.getNotAfter()));
+            licenseValid.set(true);
+            String md5 = DigestUtil.md5Hex(new File(licenseProperties.getLicensePath()));
+            licenseFileMd5.set(md5);
+            return licenseContent;
+        } catch (Exception e) {
             logger.error("证书安装失败:", e);
             throw new BizException("证书安装失败");
         }
-        return result;
     }
 
     /**
-     * 校验License证书, 在接口使用{@link com.plasticene.boot.license.core.anno.License}
-     * 时候进入license切面时候调用，此时无需再验证服务器系统信息，验证证书和有效期即可
+     * 校验License证书，此时无需再验证服务器系统信息，验证证书和有效期即可
      */
-    public boolean verify() {
+    public LicenseContent verify() {
         try {
-            LicenseManager licenseManager = new LicenseManager(initLicenseParam());
-            LicenseContent licenseContent = licenseManager.verify();
-            verifyExpiry(licenseContent);
-            return true;
-        }catch (Exception e){
+            LicenseManager licenseManager = LicenseManagerHolder.getInstance(initLicenseParam());
+            LicenseContent content = licenseManager.verify();
+            licenseValid.set(true);
+            return content;
+        } catch (Exception e) {
+            licenseValid.set(false);
             logger.error("证书校验失败:", e);
             throw new BizException("证书检验失败");
         }
+    }
+
+    /**
+     * 动态刷新license证书
+     */
+    public synchronized void refresh() {
+        String md5 = DigestUtil.md5Hex(new File(licenseProperties.getLicensePath()));
+        if (Objects.equals(licenseFileMd5.get(), md5)) {
+            // license文件没有更新
+            return;
+        }
+        // license更新了，重新安装证书
+        install();
     }
 
     /**
@@ -91,6 +132,11 @@ public class LicenseVerify {
     }
 
     // 验证证书有效期
+
+    /**
+     * 验证证书有效期
+     * licenseManager.verify()已经验证有效期了，此方法没必要
+     */
     private void verifyExpiry(LicenseContent licenseContent) {
         Date expiry = licenseContent.getNotAfter();
         Date current = new Date();
@@ -99,19 +145,17 @@ public class LicenseVerify {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void verifySystemInfo(LicenseContent licenseContent) {
-        if (licenseProperties.getVerifySystemSwitch()) {
-            SystemInfo systemInfo = (SystemInfo) licenseContent.getExtra();
-            VerifySystemType verifySystemType = licenseProperties.getVerifySystemType();
-            switch (verifySystemType) {
-                case CPU_ID:
-                    checkCpuId(systemInfo.getCpuId());
-                    break;
-                case SYSTEM_UUID:
-                    checkSystemUuid(systemInfo.getUuid());
-                    break;
-                default:
-            }
+        if (!licenseProperties.getVerifySystemSwitch()) {
+            return;
+        }
+        Map<String, Object> map = (Map<String, Object>)licenseContent.getExtra();
+        SystemInfo systemInfo = (SystemInfo) map.get(LicenseConstant.SYSTEM_INFO);
+        VerifySystemType verifySystemType = licenseProperties.getVerifySystemType();
+        switch (verifySystemType) {
+            case CPU_ID -> checkCpuId(systemInfo.getCpuId());
+            case SYSTEM_UUID -> checkSystemUuid(systemInfo.getUuid());
         }
     }
 

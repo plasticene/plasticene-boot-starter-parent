@@ -20,7 +20,8 @@ public class DmcUtils {
         String result = "";
         String cmd = "dmidecode -t 4 | grep ID |sort -u |awk -F': ' '{print $2}'";
         try {
-            Process p = Runtime.getRuntime().exec(new String[] { "sh", "-c", cmd });// 管道
+            // 管道
+            Process p = Runtime.getRuntime().exec(new String[] { "sh", "-c", cmd });
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
 
             String line = reader.readLine().trim();
@@ -29,7 +30,6 @@ public class DmcUtils {
             }
             reader.close();
             return result.trim();
-
         } catch (IOException e) {
             log.error("获取服务器cpu id错误：", e);
             throw new BizException("获取服务器cpuId失败");
@@ -40,7 +40,8 @@ public class DmcUtils {
         String result = "";
         String cmd = "dmidecode -s system-uuid | tr 'A-Z' 'a-z'";
         try {
-            Process p = Runtime.getRuntime().exec(new String[] { "sh", "-c", cmd });// 管道
+            // 管道
+            Process p = Runtime.getRuntime().exec(new String[] { "sh", "-c", cmd });
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
             String line = reader.readLine().trim();
             if(StringUtils.isNotBlank(line)){
@@ -48,7 +49,6 @@ public class DmcUtils {
             }
             reader.close();
             return result.trim();
-
         } catch (IOException e) {
             log.error("获取系统uuid错误：", e);
             throw new BizException("获取系统uuid失败");
@@ -59,7 +59,8 @@ public class DmcUtils {
         String result = "";
         String cmd = "dmidecode | grep 'Serial Number' | awk '{print $3}' | tail -1";
         try {
-            Process p = Runtime.getRuntime().exec(new String[] { "sh", "-c", cmd });// 管道
+            // 管道
+            Process p = Runtime.getRuntime().exec(new String[] { "sh", "-c", cmd });
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
             String line = reader.readLine().trim();
             if(StringUtils.isNotBlank(line)){
@@ -67,7 +68,6 @@ public class DmcUtils {
             }
             reader.close();
             return result.trim();
-
         } catch (IOException e) {
             log.error("获取主板id错误：", e);
             throw new BizException("获取主板id失败");

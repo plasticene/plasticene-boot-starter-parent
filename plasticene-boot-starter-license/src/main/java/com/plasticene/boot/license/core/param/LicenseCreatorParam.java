@@ -5,6 +5,8 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author fjzheng
@@ -42,13 +44,15 @@ public class LicenseCreatorParam implements Serializable {
 
 
     /**
+     * 业务相关的额外信息，在生成证书安装之后可以基于该信息做逻辑处理
+     */
+    private Map<String, Object> extra = new HashMap<>();
+
+    /**
      * 服务器系统信息
      */
     private SystemInfo systemInfo;
 
-    public static void main(String[] args) {
-        System.out.println(System.currentTimeMillis() + 1000*60*60*24*365*10);
-    }
 
 
 }

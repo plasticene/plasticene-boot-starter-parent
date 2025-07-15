@@ -67,7 +67,7 @@ public class LicenseProperties {
     /**
      * 是否项目是验证license
      */
-    private Boolean startCheck = true;
+    private Boolean enable = true;
 
 
 }

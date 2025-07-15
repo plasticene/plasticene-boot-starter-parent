@@ -1,44 +1,51 @@
 package com.plasticene.boot.license.core;
 
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.license.core.constant.LicenseConstant;
 import com.plasticene.boot.license.core.param.CustomKeyStoreParam;
 import com.plasticene.boot.license.core.param.LicenseCreatorParam;
 import com.plasticene.boot.license.core.prop.LicenseProperties;
 import de.schlichtherle.license.*;
+import jakarta.annotation.Resource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import javax.security.auth.x500.X500Principal;
 import java.io.File;
+import java.io.IOException;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Map;
 import java.util.prefs.Preferences;
 
 /**
  * @author fjzheng
  * @version 1.0
  * @date 2022/7/28 14:31
+ * license使用流程：
+ * 1.密钥对生成：开发者生成公钥/私钥对
+ * 2.应用集成：将公钥集成到应用中
+ * 3.许可证生成：使用私钥生成许可证文件
+ * 4.分发：将许可证文件分发给最终用户
+ * 5.验证：应用使用公钥验证许可证
  */
-@Component
+
 public class LicenseCreator {
     @Resource
     private LicenseProperties licenseProperties;
 
-    private static Logger logger = LogManager.getLogger(LicenseCreator.class);
+    private static final Logger logger = LogManager.getLogger(LicenseCreator.class);
     private final static X500Principal DEFAULT_HOLDER_AND_ISSUER = new X500Principal("CN=localhost, OU=localhost, O=localhost, L=SH, ST=SH, C=CN");
 
 
     /**
      * 生成License证书
      */
-    public boolean generateLicense(LicenseCreatorParam param){
+    public void generateLicense(LicenseCreatorParam param, File licenseFile) throws IOException {
         try {
             LicenseManager licenseManager = new LicenseManager(initLicenseParam());
             LicenseContent licenseContent = initLicenseContent(param);
-            licenseManager.store(licenseContent, new File(licenseProperties.getLicensePath()));
-            return true;
+            licenseManager.store(licenseContent, licenseFile);
         }catch (Exception e){
             logger.error("证书生成失败：", e);
             throw new BizException("生成license证书失败");
@@ -50,8 +57,7 @@ public class LicenseCreator {
      */
     private LicenseParam initLicenseParam(){
         Preferences preferences = Preferences.userNodeForPackage(LicenseCreator.class);
-
-        //设置对证书内容加密的秘钥
+        // 设置对证书内容加密的秘钥
         CipherParam cipherParam = new DefaultCipherParam(licenseProperties.getStorePass());
 
         KeyStoreParam privateStoreParam = new CustomKeyStoreParam(LicenseCreator.class
@@ -60,12 +66,10 @@ public class LicenseCreator {
                 ,licenseProperties.getStorePass()
                 ,licenseProperties.getKeyPass());
 
-        LicenseParam licenseParam = new DefaultLicenseParam(licenseProperties.getSubject()
+        return new DefaultLicenseParam(licenseProperties.getSubject()
                 ,preferences
                 ,privateStoreParam
                 ,cipherParam);
-
-        return licenseParam;
     }
 
     /**
@@ -83,7 +87,9 @@ public class LicenseCreator {
         licenseContent.setConsumerType(param.getConsumerType());
         licenseContent.setConsumerAmount(param.getConsumerAmount());
         licenseContent.setInfo(param.getDescription());
-        licenseContent.setExtra(param.getSystemInfo());
+        Map<String, Object> extra = param.getExtra();
+        extra.put(LicenseConstant.SYSTEM_INFO, param.getSystemInfo());
+        licenseContent.setExtra(extra);
         return licenseContent;
     }
 
