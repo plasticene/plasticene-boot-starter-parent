@@ -3,6 +3,7 @@ package com.plasticene.boot.example.web.controller;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.ttl.threadpool.TtlExecutors;
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.example.web.param.UserParam;
 import com.plasticene.boot.example.web.vo.UserVO;
@@ -162,6 +163,12 @@ public class TestController {
             log.error("错误异常日志输出：traceId:{}", traceId, e);
         }
        return ResponseVO.success(vo);
+    }
+
+    @Operation(summary = "测试异常占位符")
+    @GetMapping("/exception")
+    public void testException() {
+       throw new BizException("id={0}和name={1}压根不存在", 23, "张三");
     }
 
 }
