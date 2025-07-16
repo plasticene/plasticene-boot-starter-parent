@@ -4,6 +4,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.license.core.LicenseCreator;
+import com.plasticene.boot.license.core.LicenseVerify;
 import com.plasticene.boot.license.core.param.LicenseCreatorParam;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +32,8 @@ public class LicenseController {
 
     @Resource
     private LicenseCreator licenseCreator;
+    @Resource
+    private LicenseVerify licenseVerify;
 
     @PostMapping("/create")
     @Operation(summary = "生成license")
@@ -48,5 +51,11 @@ public class LicenseController {
         } finally {
             FileUtils.delete(tempFile);
         }
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "热更新license")
+    public void refreshLicense() {
+        licenseVerify.refresh();
     }
 }

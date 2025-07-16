@@ -19,15 +19,15 @@ import java.util.Map;
 import java.util.prefs.Preferences;
 
 /**
- * @author fjzheng
- * @version 1.0
- * @date 2022/7/28 14:31
  * license使用流程：
  * 1.密钥对生成：开发者生成公钥/私钥对
  * 2.应用集成：将公钥集成到应用中
  * 3.许可证生成：使用私钥生成许可证文件
  * 4.分发：将许可证文件分发给最终用户
  * 5.验证：应用使用公钥验证许可证
+ * @author fjzheng
+ * @version 1.0
+ * @date 2022/7/28 14:31
  */
 
 public class LicenseCreator {
@@ -41,7 +41,7 @@ public class LicenseCreator {
     /**
      * 生成License证书
      */
-    public void generateLicense(LicenseCreatorParam param, File licenseFile) throws IOException {
+    public void generateLicense(LicenseCreatorParam param, File licenseFile) {
         try {
             LicenseManager licenseManager = new LicenseManager(initLicenseParam());
             LicenseContent licenseContent = initLicenseContent(param);

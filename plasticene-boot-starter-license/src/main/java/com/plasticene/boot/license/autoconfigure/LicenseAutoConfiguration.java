@@ -5,7 +5,7 @@ import com.plasticene.boot.license.core.LicenseCreator;
 import com.plasticene.boot.license.core.LicenseVerify;
 import com.plasticene.boot.license.core.aop.LicenseAspect;
 import com.plasticene.boot.license.core.prop.LicenseProperties;
-import com.plasticene.boot.license.core.schedule.CheckLicenseTask;
+import com.plasticene.boot.license.core.schedule.LicenseTask;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,8 +35,8 @@ public class LicenseAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(name = "ptc.license.enable", havingValue = "true", matchIfMissing = true)
-    public CheckLicenseTask checkLicenseTask() {
-        return new CheckLicenseTask();
+    public LicenseTask licenseTask() {
+        return new LicenseTask();
     }
 
     @Bean

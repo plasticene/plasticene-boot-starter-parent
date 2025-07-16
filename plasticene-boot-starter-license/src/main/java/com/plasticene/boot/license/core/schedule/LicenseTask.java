@@ -16,7 +16,7 @@ import java.util.Objects;
  */
 
 @Slf4j
-public class CheckLicenseTask {
+public class LicenseTask {
     @Autowired
     private LicenseVerify licenseVerify;
     @Autowired(required = false)

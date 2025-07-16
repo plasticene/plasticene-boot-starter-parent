@@ -109,6 +109,7 @@ public class LicenseVerify {
         }
         // license更新了，重新安装证书
         install();
+        logger.info("license刷新成功");
     }
 
     /**
@@ -129,20 +130,6 @@ public class LicenseVerify {
                 ,preferences
                 ,publicStoreParam
                 ,cipherParam);
-    }
-
-    // 验证证书有效期
-
-    /**
-     * 验证证书有效期
-     * licenseManager.verify()已经验证有效期了，此方法没必要
-     */
-    private void verifyExpiry(LicenseContent licenseContent) {
-        Date expiry = licenseContent.getNotAfter();
-        Date current = new Date();
-        if (current.after(expiry)) {
-            throw new BizException("证书已过期");
-        }
     }
 
     @SuppressWarnings("unchecked")

@@ -14,11 +14,13 @@ import org.springframework.core.annotation.Order;
 
 
 /**
- * @author fjzheng
- * @date 2022/8/3
  * 通过该切面实现License到期后服务不可用验证机制
  * 验证license有性能开销不能频繁，所以这里切面判断逻辑必须简单直接
+ * @author fjzheng
+ * @date 2022/8/3
  */
+
+
 @Aspect
 @Order(OrderConstant.AOP_LICENSE)
 public class LicenseAspect extends AbstractAspectSupport {
