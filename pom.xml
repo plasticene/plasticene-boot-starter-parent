@@ -132,6 +132,11 @@
             </dependency>
             <dependency>
                 <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-license</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
                 <artifactId>plasticene-boot-starter-web</artifactId>
                 <version>${revision}</version>
             </dependency>
