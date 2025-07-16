@@ -12,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.File;
-import java.io.IOException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
