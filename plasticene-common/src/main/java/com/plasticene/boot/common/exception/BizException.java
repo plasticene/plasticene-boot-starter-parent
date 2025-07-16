@@ -1,10 +1,5 @@
 package com.plasticene.boot.common.exception;
 
-/**
- * @author fjzheng
- * @version 1.0
- * @date 2022/7/12 18:40
- */
 
 import com.plasticene.boot.common.enums.ResponseStatusEnum;
 import lombok.Data;
