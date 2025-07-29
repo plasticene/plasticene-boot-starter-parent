@@ -61,7 +61,7 @@
         <!-- fastjson-->
         <fastjson.version>1.2.83</fastjson.version>
         <!-- apache commons -->
-        <commons.lang.version>3.12.0</commons.lang.version>
+        <commons.lang.version>3.18.0</commons.lang.version>
         <!-- hutool工具包 -->
         <hutool.version>5.8.24</hutool.version>
         <!-- 编码解码器 如base64 -->
