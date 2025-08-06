@@ -56,7 +56,7 @@ public class TreeUtils {
                 filter(isRoot)
                 // 给根节点构建子树
                 .peek(root -> setChildren.accept(root, buildChildren(root, dataList, isChild, setChildren)))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static <E> List<E> buildChildren(E parent,
@@ -68,7 +68,7 @@ public class TreeUtils {
                 .filter(child -> isChild.test(parent, child))
                 // 递归调用，构建子节点的子树
                 .peek(child -> setChildren.accept(child, buildChildren(child, dataList, isChild, setChildren)))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -221,7 +221,7 @@ public class TreeUtils {
                                           BiPredicate<Menu, Menu> isChild,
                                           BiConsumer<Menu, List<Menu>> setChildren) {
             // 1、获取所有根节点
-            List<Menu> roots = dataList.stream().filter(isRoot).collect(Collectors.toList());;
+            List<Menu> roots = dataList.stream().filter(isRoot).toList();
             // 2、所有根节点设置子节点
             roots.forEach(root -> buildChildren(root, dataList, isChild, setChildren));
             return roots;
