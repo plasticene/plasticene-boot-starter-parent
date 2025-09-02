@@ -32,12 +32,6 @@
             <artifactId>redisson</artifactId>
         </dependency>
 
-        <!-- 引入web依赖，获取请求的ip地址进行限流操作-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
 
     </dependencies>
 

@@ -6,25 +6,23 @@ import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.redis.core.anno.RateLimit;
 import com.plasticene.boot.redis.core.enums.LimitType;
+import com.plasticene.boot.redis.core.resolver.IpResolver;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * @author fjzheng
@@ -43,6 +41,8 @@ public class RateLimitAspect {
     private StringRedisTemplate stringRedisTemplate;
     @Resource
     private ApplicationContext applicationContext;
+    @Autowired(required = false)
+    private IpResolver ipResolver;
 
 
     /**
@@ -116,19 +116,9 @@ public class RateLimitAspect {
 
 
     public String getIpAddress() {
-        ServletRequestAttributes requestAttributes = (ServletRequestAttributes)RequestContextHolder.getRequestAttributes();
-        Objects.requireNonNull(requestAttributes, "requestAttributes is null");
-        HttpServletRequest request = requestAttributes.getRequest();
-        String ip = request.getHeader("x-forwarded-for");
-        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
+        if (ipResolver == null) {
+            throw new BizException("无法获取IP地址，IP限流不可用");
         }
-        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
+        return ipResolver.resolve();
     }
 }
