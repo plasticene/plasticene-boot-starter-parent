@@ -26,9 +26,6 @@
         <tag/>
         <url/>
     </scm>
-    <properties>
-        <java.version>17</java.version>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>com.plasticene.boot</groupId>
@@ -62,18 +59,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.graalvm.buildtools</groupId>
                 <artifactId>native-maven-plugin</artifactId>
