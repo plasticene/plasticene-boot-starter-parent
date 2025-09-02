@@ -1,0 +1,86 @@
+package com.plasticene.boot.flow.core.dto;
+
+import lombok.Data;
+
+import java.util.List;
+
+/**
+ * 流程节点
+ * @author ZFJ
+ * @date 2025/9/2
+ */
+@Data
+public class ProcessNode {
+
+    /**
+     * 节点key
+     */
+    private String key;
+
+    /**
+     * 节点名称
+     */
+    private String name;
+
+    /**
+     * 节点类型
+     * -1：结束节点   0：发起人   1：审批人   2：抄送人   3：条件审批   4：条件分支
+     */
+    private Integer type;
+
+    /**
+     * 节点参与者类型 0：指定人员  1：主管   2：连续多级主管  3：角色
+     */
+    private Integer assigneeType;
+
+    /**
+     * 节点参与者 如审批节点、抄送节点指定的人员
+     */
+    private List<Long> assigneeList;
+
+    /**
+     * 参与者为主管时，指定主管等级，如 1：发起人的直接主管
+     */
+    private Integer leaderLevel;
+
+    /**
+     * 参与者为连续多级主管时，指定当前节点审批结束等级  如 1：发起人的直接主管审批之后流入下一个节点
+     * 0：表示连续审批到最上层主管
+     */
+    private Integer leaderEndLevel;
+
+    /**
+     * 审批类型 0：人工审批  1：自动通过 2：自动拒绝
+     */
+    private Integer approveType;
+
+    /**
+     * 多人审批方式
+     * 0：按顺序依次审批(此方式一个审批节点等同于包含多个审批节点，这种配置可以有效降低流程模型的高度)
+     * 1：会签 (同时审批，每个人必须审批通过)
+     * 2：或签 (有一人审批通过即可流入下一个节点)
+     */
+    private Integer approveMode;
+
+    /**
+     * 是否需要填写审批意见  0：否  1：是
+     */
+    private Integer requireApproveDesc;
+
+    /**
+     * 子节点
+     */
+    private ProcessNode childNode;
+
+    /**
+     * 条件节点
+     */
+    private List<ProcessNodeCondition> conditionNodes;
+
+    /**
+     * 父节点
+     */
+    private ProcessNode parentNode;
+
+}
+

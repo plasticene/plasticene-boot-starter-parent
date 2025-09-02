@@ -11,10 +11,20 @@
 
     <artifactId>plasticene-boot-starter-flow</artifactId>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.plasticene.boot</groupId>
+            <artifactId>plasticene-boot-starter-mybatis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.plasticene.boot</groupId>
+            <artifactId>plasticene-boot-starter-web</artifactId>
+        </dependency>
+
+
+    </dependencies>
+
+
 
 </project>
