@@ -31,7 +31,6 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author fjzheng
