@@ -93,8 +93,8 @@ public class PlasticeneWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(NonceChecker.class)
-    public NonceChecker nonceChecker() {
-        return new LocalNonceChecker();
+    public NonceChecker nonceChecker(ApiSecurityProperties properties) {
+        return new LocalNonceChecker(properties);
     }
 
     @Bean

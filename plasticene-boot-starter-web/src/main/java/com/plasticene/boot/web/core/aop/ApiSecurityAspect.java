@@ -3,6 +3,7 @@ package com.plasticene.boot.web.core.aop;
 import com.alibaba.fastjson.JSONObject;
 import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.web.core.advice.NonceChecker;
 import com.plasticene.boot.web.core.anno.ApiSecurity;
 import com.plasticene.boot.web.core.global.RequestBodyWrapper;
 import com.plasticene.boot.web.core.model.ApiSecurityParam;
@@ -21,14 +22,12 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.annotation.Order;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 当前处理接口入参解密和验签的切面，暂时未注入到Spring Bean 容器中
@@ -50,9 +49,7 @@ public class ApiSecurityAspect {
     @Resource
     private ApiSecurityProperties apiSecurityProperties;
     @Resource
-    private StringRedisTemplate stringRedisTemplate;
-
-    private static final String NONCE_KEY = "x-nonce-";
+    private NonceChecker nonceChecker;
 
     @Pointcut("execution(* com.plasticene..controller..*(..)) && " +
             "(@annotation(com.plasticene.boot.web.core.anno.ApiSecurity) ||" +
@@ -149,23 +146,20 @@ public class ApiSecurityAspect {
             throw new BizException("签名已过期");
         }
 
-        // 判断nonce
-        boolean nonceExists = stringRedisTemplate.hasKey(NONCE_KEY + nonce);
-        if (nonceExists) {
-            //请求重复
-            throw new BizException("唯一标识nonce已存在");
-        }
-
         // 验签
-        SortedMap sortedMap = SignUtil.beanToMap(o);
+        SortedMap<?, ?> sortedMap = SignUtil.beanToMap(o);
         String content = SignUtil.getContent(sortedMap, nonce, timestamp);
         boolean flag = RSAUtil.verifySignByPublicKey(content, sign, apiSecurityProperties.getRsaPublicKey());
         if (!flag) {
             throw new BizException("签名验证不通过");
         }
 
-        stringRedisTemplate.opsForValue().set(NONCE_KEY+ nonce, "1", apiSecurityProperties.getValidTime(),
-                TimeUnit.SECONDS);
+        // 检验nonce
+        boolean exist = nonceChecker.checkAndStoreNonce(nonce);
+        if (exist) {
+            // 请求重复
+            throw new BizException("唯一标识nonce已存在");
+        }
     }
 
 
