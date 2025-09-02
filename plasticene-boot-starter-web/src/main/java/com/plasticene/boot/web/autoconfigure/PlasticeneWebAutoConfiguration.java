@@ -86,9 +86,15 @@ public class PlasticeneWebAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(ApiSecurityKeyProvider.class)
     public ApiSecurityKeyProvider apiSecurityKeyProvider(ApiSecurityProperties properties) {
         return new DefaultApiSecurityKeyProvider(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(NonceChecker.class)
+    public NonceChecker nonceChecker() {
+        return new LocalNonceChecker();
     }
 
     @Bean

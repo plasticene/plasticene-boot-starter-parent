@@ -48,11 +48,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.plasticene.boot</groupId>
-            <artifactId>plasticene-boot-starter-redis</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
@@ -82,6 +77,12 @@
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
 
 
 

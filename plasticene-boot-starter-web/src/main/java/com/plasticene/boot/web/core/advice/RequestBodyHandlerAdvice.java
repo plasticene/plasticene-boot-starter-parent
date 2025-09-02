@@ -44,9 +44,9 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
     @Autowired
     private ApiSecurityProperties apiSecurityProperties;
     @Autowired
-    private StringRedisTemplate stringRedisTemplate;
-    @Autowired
     private ApiSecurityKeyProvider apiSecurityKeyProvider;
+    @Autowired
+    private NonceChecker nonceChecker;
 
 
     private static final String SIGN_KEY = "X-Sign";
@@ -188,13 +188,6 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
             throw new BizException("非法的时间戳");
         }
 
-        // 判断nonce
-        boolean nonceExists = stringRedisTemplate.hasKey(NONCE_KEY + nonce);
-        if (nonceExists) {
-            //请求重复
-            throw new BizException("唯一标识nonce已存在");
-        }
-
         // 验签
         SortedMap<?, ?> sortedMap = SignUtil.beanToMap(body);
         String content = SignUtil.getContent(sortedMap, nonce, timestamp);
@@ -204,8 +197,12 @@ public class RequestBodyHandlerAdvice implements RequestBodyAdvice {
             throw new BizException("签名验证不通过");
         }
 
-        stringRedisTemplate.opsForValue().set(NONCE_KEY+ nonce, "1", apiSecurityProperties.getValidTime(),
-                TimeUnit.SECONDS);
+        // 检验nonce
+        boolean exist = nonceChecker.checkAndStoreNonce(nonce);
+        if (exist) {
+            // 请求重复
+            throw new BizException("唯一标识nonce已存在");
+        }
     }
 
     ApiSecurityKey getApiSecurityKey(String appId) {
