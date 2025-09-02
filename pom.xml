@@ -20,6 +20,7 @@
         <module>plasticene-boot-starter-data-scope</module>
         <module>plasticene-boot-starter-excel</module>
         <module>plasticene-boot-example</module>
+        <module>plasticene-boot-starter-flow</module>
     </modules>
 
     <properties>
