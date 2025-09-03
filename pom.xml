@@ -148,6 +148,11 @@
             </dependency>
             <dependency>
                 <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-flow</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
                 <artifactId>plasticene-boot-starter-cache</artifactId>
                 <version>${revision}</version>
             </dependency>
