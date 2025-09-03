@@ -30,7 +30,7 @@
 
         <!--  依赖尽量采用最新稳定原则     -->
         <!-- spring boot 依赖版本(当前最新稳定版本) -->
-        <spring.boot.version>3.4.5</spring.boot.version>
+        <spring.boot.version>3.4.9</spring.boot.version>
         <!-- Spring Cloud版本 从官网可知boot3.4.x对应cloud为2024版本  -->
         <spring.cloud.version>2024.0.0</spring.cloud.version>
         <!-- Spring Cloud Alibaba 2023.0.3.2(当前最新版本) 对应的是Spring cloud是2023.0.3，但这里引入的cloud版本2024.0，
