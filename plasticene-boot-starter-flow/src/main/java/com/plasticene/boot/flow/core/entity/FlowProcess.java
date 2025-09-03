@@ -36,17 +36,9 @@ public class FlowProcess extends BaseDO {
      */
     private String category;
     /**
-     * 流程版本
-     */
-    private Integer version;
-    /**
      * 流程状态 0：草稿  1：已发布  2：历史
      */
     private Integer status;
-    /**
-     * 流程发布时间
-     */
-    private Date releaseTime;
     /**
      * 流程表单id
      */

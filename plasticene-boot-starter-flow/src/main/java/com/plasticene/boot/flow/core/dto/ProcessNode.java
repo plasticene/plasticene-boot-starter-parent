@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.dto;
 
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.List;
 
@@ -10,6 +11,7 @@ import java.util.List;
  * @date 2025/9/2
  */
 @Data
+@ToString(exclude = {"parentNode"})   //解决toString循环问题
 public class ProcessNode {
 
     /**
@@ -81,6 +83,5 @@ public class ProcessNode {
      * 父节点
      */
     private ProcessNode parentNode;
-
 }
 

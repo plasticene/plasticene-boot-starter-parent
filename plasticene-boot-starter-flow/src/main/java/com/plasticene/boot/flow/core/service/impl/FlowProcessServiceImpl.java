@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowProcessDAO;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
@@ -15,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2025/9/2
  */
 @Service
-public class FlowProcessServiceImpl implements FlowProcessService {
+public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProcess> implements FlowProcessService {
     @Resource
     private FlowProcessDAO flowProcessDAO;
 
@@ -24,8 +25,8 @@ public class FlowProcessServiceImpl implements FlowProcessService {
     public Long createFlowProcess(FlowProcessParam param) {
         FlowProcess flowProcess = PtcBeanUtils.copy(param, FlowProcess.class);
         flowProcess.setOrgId(0L);
-        if (param.getProcessId() != null) {
-            flowProcess.setModel(JSON.toJSONString(param.getProcessId()));
+        if (param.getProcessNode() != null) {
+            flowProcess.setModel(JSON.toJSONString(param.getProcessNode()));
         }
         flowProcessDAO.insert(flowProcess);
         return flowProcess.getId();
@@ -36,6 +37,9 @@ public class FlowProcessServiceImpl implements FlowProcessService {
     public void updateFlowProcess(FlowProcessParam param) {
         FlowProcess flowProcess = PtcBeanUtils.copy(param, FlowProcess.class);
         flowProcess.setId(param.getProcessId());
+        if (param.getProcessNode() != null) {
+            flowProcess.setModel(JSON.toJSONString(param.getProcessNode()));
+        }
         flowProcessDAO.updateById(flowProcess);
     }
 }
