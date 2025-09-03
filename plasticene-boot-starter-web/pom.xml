@@ -27,7 +27,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- knife4.5.0对应boot是3.2.3→spring web6.1+  但boot3.4.5→spring web6.2.6
+        <!-- knife4.5.0对应boot是3.2.3→spring web6.1+  但boot3.4.9→spring web6.2.10
              导致ControllerAdviceBean不一致报错，knife4j页面加载不出来，所以单独处理下
              等后续knife4j版本升级适配此处再升级即可-->
         <dependency>
