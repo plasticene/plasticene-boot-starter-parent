@@ -16,9 +16,14 @@ public class ProcessConditionRule {
     private Integer source;
 
     /**
-     * 属性
+     * 字段
      */
-    private String attr;
+    private String field;
+
+    /**
+     * 字段类型
+     */
+    private Integer type;
 
     /**
      * 运算符
@@ -29,5 +34,6 @@ public class ProcessConditionRule {
      * 输入值
      */
     private String inputValue;
+
 
 }

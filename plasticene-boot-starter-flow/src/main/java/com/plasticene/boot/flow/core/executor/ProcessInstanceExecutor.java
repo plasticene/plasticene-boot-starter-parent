@@ -10,7 +10,10 @@ import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowConditionTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
+import com.plasticene.boot.flow.core.factory.OperatorFactory;
+import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
+import com.plasticene.boot.flow.core.operator.Operator;
 import jakarta.annotation.Resource;
 
 import java.util.List;
@@ -29,6 +32,18 @@ public class ProcessInstanceExecutor {
         Integer type = currentNode.getType();
         if (Objects.equals(type, FlowProcessNodeEnum.Type.START.getCode())) {
             handleStartNode(instance, currentNode);
+        }
+        if (Objects.equals(type, FlowProcessNodeEnum.Type.END.getCode())) {
+            handleEndNode(instance, currentNode);
+        }
+        if (Objects.equals(type, FlowProcessNodeEnum.Type.APPROVE.getCode())) {
+            handleApproveNode(instance, currentNode);
+        }
+        if (Objects.equals(type, FlowProcessNodeEnum.Type.COPY.getCode())) {
+            handleCopyNode(instance, currentNode);
+        }
+        if (Objects.equals(type, FlowProcessNodeEnum.Type.CONDITION_BRANCH.getCode())) {
+            handleConditionBranch(instance, currentNode);
         }
     }
 
@@ -62,24 +77,36 @@ public class ProcessInstanceExecutor {
     }
 
     public void handleConditionBranch(FlowInstance instance, ProcessNode currentNode) {
-        flowTaskService.createConditionTask(instance, currentNode);
+        flowTaskService.createConditionBranchTask(instance, currentNode);
         List<ProcessNodeCondition> conditionNodes = currentNode.getConditionNodes();
-//        Boolean match = handleConditionNode(instance, conditionNodes);
-        moveToNextNode(instance, currentNode);
+        for (ProcessNodeCondition conditionNode : conditionNodes) {
+            boolean match = handleConditionNode(instance, conditionNode);
+            // 条件节点匹配成功
+            if (match) {
+                flowTaskService.createConditionNodeTask(instance, conditionNode);
+                // 条件节点是否有子节点
+                ProcessNode childNode = conditionNode.getChildNode();
+                if (childNode != null) {
+                    // 有，流转到条件节点的子节点
+                    executeNode(instance, childNode);
+                } else {
+                    // 没有子节点，那就回退到当前条件分支，执行条件分支节点的子节点
+                    moveToNextNode(instance, currentNode);
+                }
+                // 匹配成功后，同一个条件分支节点下的后续条件节点不再遍历
+                break;
+            }
+        }
     }
 
-    public Boolean handleConditionNode(FlowInstance instance, ProcessNodeCondition conditionNode) {
-        ProcessNode childNode = conditionNode.getChildNode();
+    public boolean handleConditionNode(FlowInstance instance, ProcessNodeCondition conditionNode) {
         List<ProcessConditionGroup> conditionGroups = conditionNode.getConditionGroups();
-        // 没有条件配置并且没有子节点，直接回退到流程主干分支执行下一个节点
-        if (CollUtil.isEmpty(conditionGroups) && Objects.isNull(childNode)) {
+
+        // 没有条件配置直接通过，默认条件节点就是没有条件的
+        if (CollUtil.isEmpty(conditionGroups)) {
             return true;
         }
-        // 没有条件配置，但有子节点，直接流入下一个节点
-        if (CollUtil.isEmpty(conditionGroups) && Objects.nonNull(childNode)) {
-            executeNode(instance, childNode);
-        }
-
+        // 校验条件规则
         Map<String, Object> varMap = JSON.parseObject(instance.getVarMap(), new TypeReference<Map<String, Object>>(){});
         Integer matchType = conditionNode.getType();
         boolean andMatch = Objects.equals(matchType, FlowConditionTypeEnum.AND.getCode());
@@ -103,13 +130,13 @@ public class ProcessInstanceExecutor {
             return true;
         }
         for (ProcessConditionRule rule : conditionRules) {
-            String attr = rule.getAttr();
-            Object value = varMap.get(attr);
-            String operator = rule.getOperator();
+            String field = rule.getField();
+            Integer filedType = rule.getType();
+            Object fieldValue = varMap.get(field);
+            String op = rule.getOperator();
             String inputValue = rule.getInputValue();
-//            OperComparator comparator = ComparatorFactory.getComparator(operator);
-//            boolean compare = comparator.compare(value, inputValue);
-            boolean compare = true;
+            Operator operator = OperatorFactory.getOperator(op);
+            boolean compare = operator.compare(filedType, fieldValue, inputValue);
             if (andMatch && !compare) {
                 return false;
             }
@@ -121,16 +148,9 @@ public class ProcessInstanceExecutor {
     }
 
 
-
-
-
-
-
-
-
     private void moveToNextNode(FlowInstance instance, ProcessNode currentNode) {
-        ProcessNode childNode = currentNode.getChildNode();
-        executeNode(instance, childNode);
+        ProcessNode nextNode = FlowParser.findNextNode(currentNode);
+        executeNode(instance, nextNode);
     }
 
 

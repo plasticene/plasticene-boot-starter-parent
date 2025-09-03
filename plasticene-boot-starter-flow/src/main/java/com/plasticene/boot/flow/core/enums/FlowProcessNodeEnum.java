@@ -14,7 +14,7 @@ public class FlowProcessNodeEnum {
         START(0, "开始节点"),
         APPROVE(1, "审批节点"),
         COPY(2, "抄送节点"),
-        CONDITION(3, "条件结点"),
+        CONDITION_NODE(3, "条件结点"),
         CONDITION_BRANCH(4, "条件分支")
         ;
 

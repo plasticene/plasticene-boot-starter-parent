@@ -110,11 +110,6 @@ public class FlowParser {
             return childNode;
         }
         ProcessNode parentNode = processNode.getParentNode();
-        // 开始节点
-        if (parentNode == null) {
-            return null;
-        }
-
         // 条件节点
         ProcessNode child = parentNode.getChildNode();
         if (child != null) {

@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.service;
 
 import com.plasticene.boot.flow.core.dto.ProcessNode;
+import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 
 /**
@@ -17,6 +18,8 @@ public interface FlowTaskService {
 
     void createEndTask(FlowInstance instance, ProcessNode currentNode);
 
-    void createConditionTask(FlowInstance instance, ProcessNode currentNode);
+    void createConditionBranchTask(FlowInstance instance, ProcessNode currentNode);
+
+    void createConditionNodeTask(FlowInstance instance, ProcessNodeCondition conditionNode);
 
 }

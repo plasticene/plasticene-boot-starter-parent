@@ -3,6 +3,7 @@ package com.plasticene.boot.flow.core.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.dto.ProcessNode;
+import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
@@ -94,10 +95,26 @@ public class FlowTaskServiceImpl implements FlowTaskService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void createConditionTask(FlowInstance instance, ProcessNode currentNode) {
+    public void createConditionBranchTask(FlowInstance instance, ProcessNode currentNode) {
         FlowTask task = buildFlowTask(instance, currentNode);
         task.setEndTime(new Date());
         task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+        flowTaskDAO.insert(task);
+    }
+
+    @Override
+    public void createConditionNodeTask(FlowInstance instance, ProcessNodeCondition conditionNode) {
+        FlowTask task = new FlowTask();
+        task.setOrgId(instance.getOrgId());
+        task.setInstanceId(instance.getId());
+        task.setNodeKey(conditionNode.getKey());
+        task.setNodeName(conditionNode.getName());
+        task.setNodeType(FlowProcessNodeEnum.Type.CONDITION_NODE.getCode());
+        task.setStartTime(new Date());
+        task.setEndTime(new Date());
+        task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+        task.setCreateTime(new Date());
+        task.setUpdateTime(new Date());
         flowTaskDAO.insert(task);
     }
 
@@ -126,4 +143,5 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         task.setUpdateTime(new Date());
         return task;
     }
+
 }
