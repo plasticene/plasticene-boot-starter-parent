@@ -19,10 +19,40 @@ public class FlowTest {
 
     @Test
     public void testParseProcessNode() {
-        FlowProcess flowProcess = flowProcessService.getById(2L);
+        FlowProcess flowProcess = flowProcessService.getById(3L);
         String model = flowProcess.getModel();
         ProcessNode processNode = FlowParser.parseProcessNode(model);
         System.out.println(processNode);
 
     }
+
+    @Test
+    public void testParseValidateProcessNode() {
+        FlowProcess flowProcess = flowProcessService.getById(3L);
+        String model = flowProcess.getModel();
+        ProcessNode processNode = FlowParser.parseProcessNode(model);
+        Boolean b = FlowParser.validateProcessNode(processNode);
+        System.out.println(b);
+    }
+
+    @Test
+    public void testFindNodeByKey() {
+        FlowProcess flowProcess = flowProcessService.getById(3L);
+        String model = flowProcess.getModel();
+        ProcessNode processNode = FlowParser.parseProcessNode(model);
+        ProcessNode node = FlowParser.findNodeByKey(processNode, "node-012");
+        System.out.println(node);
+    }
+
+    @Test
+    public void testFindNextNode() {
+        FlowProcess flowProcess = flowProcessService.getById(3L);
+        String model = flowProcess.getModel();
+        ProcessNode processNode = FlowParser.parseProcessNode(model);
+        ProcessNode node = FlowParser.findNodeByKey(processNode, "node-012");
+        ProcessNode nextNode = FlowParser.findExecutionNextNode(node);
+        System.out.println(nextNode);
+    }
+
+
 }
