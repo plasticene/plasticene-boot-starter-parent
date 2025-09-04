@@ -63,7 +63,7 @@ public class FlowParser {
      * 1.必须包含一个审批节点
      * 2. todo 校验条件节点的条件规则是否合法
      */
-    public static Boolean validateProcessNode(ProcessNode processNode) {
+    public static boolean validateProcessNode(ProcessNode processNode) {
         if (processNode == null) {
             return false;
         }

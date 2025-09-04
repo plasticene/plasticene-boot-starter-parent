@@ -54,7 +54,7 @@ public class FlowTask extends BaseDO {
      */
     private Integer status;
     /**
-     * 是否删除  0：饭后  1；是
+     * 是否删除  0：否  1；是
      */
     private Integer isDelete;
     /**
