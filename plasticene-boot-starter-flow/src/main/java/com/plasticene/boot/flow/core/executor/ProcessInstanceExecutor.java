@@ -149,7 +149,7 @@ public class ProcessInstanceExecutor {
 
 
     private void moveToNextNode(FlowInstance instance, ProcessNode currentNode) {
-        ProcessNode nextNode = FlowParser.findNextNode(currentNode);
+        ProcessNode nextNode = FlowParser.findExecutionNextNode(currentNode);
         executeNode(instance, nextNode);
     }
 
