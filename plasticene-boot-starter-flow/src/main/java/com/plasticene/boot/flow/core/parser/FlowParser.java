@@ -16,6 +16,11 @@ import java.util.Objects;
  * @date 2025/9/2
  */
 public class FlowParser {
+    /**
+     * 统一解析流程模型节点树并设置父节点
+     * @param model 模型
+     * @return 模型节点树
+     */
     public static ProcessNode parseProcessNode(String model) {
         if (StrUtil.isBlank(model)) {
             return null;
@@ -26,6 +31,9 @@ public class FlowParser {
     }
 
 
+    /**
+     * 设置父节点
+     */
     public static void makeParentNode(ProcessNode processNode) {
         if (processNode == null) {
             return;
@@ -50,6 +58,11 @@ public class FlowParser {
         }
     }
 
+    /**
+     * 校验流程模型节点是否合法
+     * 1.必须包含一个审批节点
+     * 2. todo 校验条件节点的条件规则是否合法
+     */
     public static Boolean validateProcessNode(ProcessNode processNode) {
         if (processNode == null) {
             return false;
@@ -74,6 +87,12 @@ public class FlowParser {
         return false;
     }
 
+    /**
+     * 根据key查找节点node
+     * @param processNode 完整的流程模型
+     * @param nodeKey 节点key
+     * @return 节点
+     */
     public static ProcessNode findNodeByKey(ProcessNode processNode, String nodeKey) {
         if (processNode == null) {
             return null;
@@ -104,18 +123,38 @@ public class FlowParser {
         return null;
     }
 
-    public static ProcessNode findNextNode(ProcessNode processNode) {
+    /**
+     * 获取当前节点执行流转的下一个节点
+     * @param processNode 当前节点
+     * @return 待执行的下一个节点
+     */
+    public static ProcessNode findExecutionNextNode(ProcessNode processNode) {
+        if (processNode == null) {
+            return null;
+        }
         ProcessNode childNode = processNode.getChildNode();
         if (childNode != null) {
             return childNode;
         }
+        return findUpNextNode(processNode);
+    }
+
+    /**
+     * 如果当前节点的子节点为空，那么说明当前节点在条件分支里面
+     * 只能向上查找应该流入的下一个节点
+     */
+    private static ProcessNode findUpNextNode(ProcessNode processNode) {
+        if (processNode == null) {
+            return null;
+        }
         ProcessNode parentNode = processNode.getParentNode();
-        // 条件节点
+        // 条件分支下的节点
         ProcessNode child = parentNode.getChildNode();
-        if (child != null) {
+        // 找到父节点层级，流入父节点的子节点，如果子节点是当前节点，那么需要父节点再往上找
+        if (child != null && child != processNode) {
             return child;
         }
         // 再往上找
-        return findNextNode(parentNode);
+        return findUpNextNode(parentNode);
     }
 }
