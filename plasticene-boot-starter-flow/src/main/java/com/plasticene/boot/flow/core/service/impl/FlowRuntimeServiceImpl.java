@@ -62,4 +62,9 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
         return instance;
     }
+
+    @Override
+    public FlowInstance selectInstanceForUpdate(Long instanceId) {
+        return flowInstanceDAO.selectInstanceForUpdate(instanceId);
+    }
 }

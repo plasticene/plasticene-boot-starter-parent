@@ -59,6 +59,22 @@ public class FlowProcessNodeEnum {
         }
     }
 
+    @Getter
+    public enum ApproveMode {
+        ALL(0, "会签"),
+        ANY(1,"或签"),
+        ORDER(2, "顺序审批")
+        ;
+
+        private final Integer code;
+        private final String name;
+
+        ApproveMode(Integer code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+    }
+
 
 
 

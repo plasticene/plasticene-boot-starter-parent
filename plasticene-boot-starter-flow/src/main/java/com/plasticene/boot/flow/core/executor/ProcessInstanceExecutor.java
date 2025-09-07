@@ -47,6 +47,11 @@ public class ProcessInstanceExecutor {
         }
     }
 
+    public void moveToNextNode(FlowInstance instance, ProcessNode currentNode) {
+        ProcessNode nextNode = FlowParser.findExecutionNextNode(currentNode);
+        executeNode(instance, nextNode);
+    }
+
 
     private void handleStartNode(FlowInstance instance, ProcessNode currentNode) {
         flowTaskService.createStartTask(instance, currentNode);
@@ -76,7 +81,7 @@ public class ProcessInstanceExecutor {
 
     }
 
-    public void handleConditionBranch(FlowInstance instance, ProcessNode currentNode) {
+    private void handleConditionBranch(FlowInstance instance, ProcessNode currentNode) {
         flowTaskService.createConditionBranchTask(instance, currentNode);
         List<ProcessNodeCondition> conditionNodes = currentNode.getConditionNodes();
         for (ProcessNodeCondition conditionNode : conditionNodes) {
@@ -99,7 +104,7 @@ public class ProcessInstanceExecutor {
         }
     }
 
-    public boolean handleConditionNode(FlowInstance instance, ProcessNodeCondition conditionNode) {
+    private boolean handleConditionNode(FlowInstance instance, ProcessNodeCondition conditionNode) {
         List<ProcessConditionGroup> conditionGroups = conditionNode.getConditionGroups();
 
         // 没有条件配置直接通过，默认条件节点就是没有条件的
@@ -146,14 +151,6 @@ public class ProcessInstanceExecutor {
         }
         return andMatch;
     }
-
-
-    private void moveToNextNode(FlowInstance instance, ProcessNode currentNode) {
-        ProcessNode nextNode = FlowParser.findExecutionNextNode(currentNode);
-        executeNode(instance, nextNode);
-    }
-
-
 
 
 

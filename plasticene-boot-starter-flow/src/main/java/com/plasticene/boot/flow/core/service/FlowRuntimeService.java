@@ -11,4 +11,6 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
 
     FlowInstance startFlowInstanceById(Long processId);
 
+    FlowInstance selectInstanceForUpdate(Long instanceId);
+
 }

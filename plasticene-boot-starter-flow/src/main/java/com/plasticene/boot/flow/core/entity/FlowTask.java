@@ -42,11 +42,11 @@ public class FlowTask extends BaseDO {
      */
     private Long assignee;
     /**
-     * 审批类型
+     * 审批类型 0：人工审批 1：自动通过 2：自动拒绝
      */
     private Integer approveType;
     /**
-     * 审批方式
+     * 多人审批方式 0：会签  1：或签  2：顺序审批
      */
     private Integer approveMode;
     /**
@@ -69,4 +69,9 @@ public class FlowTask extends BaseDO {
      * 审批意见
      */
     private String comment;
+
+    /**
+     * 是否需要填写审批意见  0：否  1：是
+     */
+    private Integer requireComment;
 }

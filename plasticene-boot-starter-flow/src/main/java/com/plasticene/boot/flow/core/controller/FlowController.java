@@ -3,6 +3,7 @@ package com.plasticene.boot.flow.core.controller;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.flow.core.param.FlowInstanceParam;
 import com.plasticene.boot.flow.core.param.FlowProcessParam;
+import com.plasticene.boot.flow.core.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.service.FlowProcessService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.vo.FlowProcessVO;
@@ -55,5 +56,13 @@ public class FlowController {
     public ResponseVO<Void> startFlowInstance(@RequestBody FlowInstanceParam param) {
         flowRuntimeService.startFlowInstanceById(param.getProcessId());
         return ResponseVO.success();
+    }
+
+    @PostMapping("/task/approve")
+    @Operation(summary = "审批流程实例任务")
+    public ResponseVO<Void> approveFlowTask(@RequestBody @Validated FlowTaskParam param) {
+        return ResponseVO.success();
+
+
     }
 }
