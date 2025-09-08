@@ -1,5 +1,11 @@
 package com.plasticene.boot.flow.core.operator;
 
+import cn.hutool.core.util.NumberUtil;
+import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.flow.core.enums.FieldTypeEnum;
+
+import java.util.Objects;
+
 /**
  * 运算符接口
  * @author ZFJ
@@ -28,6 +34,30 @@ public interface Operator {
      * @return 符号
      */
     String op();
+
+
+    default void checkInputValue(Integer fieldType, String inputValue) {
+        if (inputValue == null) {
+            throw new BizException("条件输入值不能为空");
+        }
+        if (Objects.equals(fieldType, FieldTypeEnum.NUMBER.getCode())) {
+            if (NumberUtil.isNumber(inputValue)) {
+                return;
+            }
+        }
+        if (Objects.equals(fieldType, FieldTypeEnum.DATE.getCode())) {
+            // 日期时间类型统一输入时间戳，好比较
+            if (NumberUtil.isNumber(inputValue)) {
+                return;
+            }
+        }
+        if (Objects.equals(fieldType, FieldTypeEnum.BOOL.getCode())) {
+            if ("true".equalsIgnoreCase(inputValue) || "false".equalsIgnoreCase(inputValue)) {
+                return;
+            }
+        }
+        throw new BizException("输入的数据与类型不匹配");
+    }
 
 
 
