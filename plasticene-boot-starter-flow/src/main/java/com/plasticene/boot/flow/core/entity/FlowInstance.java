@@ -68,4 +68,9 @@ public class FlowInstance extends BaseDO {
      * 参数变量值
      */
     private String varMap;
+
+    /**
+     * 流程分类
+     */
+    private String category;
 }
