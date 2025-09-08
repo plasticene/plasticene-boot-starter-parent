@@ -3,10 +3,7 @@ package com.plasticene.boot.flow.core.service;
 import com.plasticene.boot.flow.core.dto.ProcessNode;
 import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
-import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.param.FlowTaskParam;
-
-import java.util.List;
 
 /**
  * @author ZFJ

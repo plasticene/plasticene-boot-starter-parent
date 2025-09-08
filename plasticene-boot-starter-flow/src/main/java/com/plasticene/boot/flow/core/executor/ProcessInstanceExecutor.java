@@ -117,7 +117,7 @@ public class ProcessInstanceExecutor {
             return true;
         }
         // 校验条件规则
-        Map<String, Object> varMap = JSON.parseObject(instance.getVarMap(), new TypeReference<Map<String, Object>>(){});
+        Map<String, Object> varMap = JSON.parseObject(instance.getVarMap(), new TypeReference<>() {});
         Integer matchType = conditionNode.getType();
         boolean andMatch = Objects.equals(matchType, FlowConditionTypeEnum.AND.getCode());
         for (ProcessConditionGroup conditionGroup : conditionGroups) {

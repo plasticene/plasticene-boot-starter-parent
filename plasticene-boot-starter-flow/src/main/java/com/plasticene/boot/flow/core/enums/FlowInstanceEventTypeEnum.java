@@ -6,5 +6,5 @@ package com.plasticene.boot.flow.core.enums;
  */
 public enum FlowInstanceEventTypeEnum {
     START,
-    END;
+    END
 }
