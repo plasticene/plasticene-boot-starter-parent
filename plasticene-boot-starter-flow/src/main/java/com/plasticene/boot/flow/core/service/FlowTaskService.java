@@ -28,5 +28,7 @@ public interface FlowTaskService {
 
     void approveTask(FlowTaskParam param);
 
+    void rejectTask(FlowTaskParam param);
+
 
 }

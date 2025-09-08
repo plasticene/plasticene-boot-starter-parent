@@ -10,6 +10,7 @@ import com.plasticene.boot.flow.core.dto.ProcessNode;
 import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.executor.ProcessInstanceExecutor;
@@ -115,6 +116,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         flowTaskDAO.insert(task);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void createConditionNodeTask(FlowInstance instance, ProcessNodeCondition conditionNode) {
         FlowTask task = new FlowTask();
@@ -170,6 +172,34 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         processInstanceExecutor.moveToNextNode(flowInstance, currentNode);
 
 
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void rejectTask(FlowTaskParam param) {
+        Long taskId = param.getTaskId();
+        String comment = param.getComment();
+        FlowTask flowTask = flowTaskDAO.selectById(taskId);
+        Integer requireComment = flowTask.getRequireComment();
+        if (Objects.equals(requireComment, CommonConstant.IS_ON) && StrUtil.isBlank(comment)) {
+            throw new BizException("意见不能为空");
+        }
+        Long instanceId = flowTask.getInstanceId();
+        String nodeKey = flowTask.getNodeKey();
+        FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(instanceId);
+        // 再次查询任务
+        flowTask = flowTaskDAO.selectById(taskId);
+        if (Objects.equals(flowTask.getIsDelete(), CommonConstant.IS_DEL)) {
+            throw new BizException("当前节点已审批，不能再审");
+        }
+        completeTask(taskId, comment, FlowTaskStatusEnum.REJECT);
+        deleteOtherTask(instanceId, nodeKey, taskId);
+
+        // 终止流程实例
+        String model = instance.getModel();
+        ProcessNode processNode = FlowParser.parseProcessNode(model);
+        ProcessNode currentNode = FlowParser.findNodeByKey(processNode, nodeKey);
+        flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
     }
 
     @Transactional(rollbackFor = Exception.class)

@@ -6,6 +6,7 @@ import com.plasticene.boot.flow.core.param.FlowProcessParam;
 import com.plasticene.boot.flow.core.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.service.FlowProcessService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
+import com.plasticene.boot.flow.core.service.FlowTaskService;
 import com.plasticene.boot.flow.core.vo.FlowProcessVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +29,8 @@ public class FlowController {
     private FlowProcessService flowProcessService;
     @Resource
     private FlowRuntimeService flowRuntimeService;
+    @Resource
+    private FlowTaskService flowTaskService;
 
 
     @PostMapping("/process")
@@ -61,8 +64,14 @@ public class FlowController {
     @PostMapping("/task/approve")
     @Operation(summary = "审批流程实例任务")
     public ResponseVO<Void> approveFlowTask(@RequestBody @Validated FlowTaskParam param) {
+        flowTaskService.approveTask(param);
         return ResponseVO.success();
+    }
 
-
+    @PostMapping("/task/reject")
+    @Operation(summary = "拒绝流程实例任务")
+    public ResponseVO<Void> rejectFlowTask(@RequestBody @Validated FlowTaskParam param) {
+        flowTaskService.rejectTask(param);
+        return ResponseVO.success();
     }
 }
