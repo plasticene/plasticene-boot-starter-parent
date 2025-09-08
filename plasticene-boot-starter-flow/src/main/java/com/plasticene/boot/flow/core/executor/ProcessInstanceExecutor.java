@@ -9,9 +9,11 @@ import com.plasticene.boot.flow.core.dto.ProcessNode;
 import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowConditionTypeEnum;
+import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
 import com.plasticene.boot.flow.core.factory.OperatorFactory;
 import com.plasticene.boot.flow.core.parser.FlowParser;
+import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import com.plasticene.boot.flow.core.operator.Operator;
 import jakarta.annotation.Resource;
@@ -27,6 +29,8 @@ import java.util.Objects;
 public class ProcessInstanceExecutor {
     @Resource
     private FlowTaskService flowTaskService;
+    @Resource
+    private FlowRuntimeService flowRuntimeService;
 
     public void executeNode(FlowInstance instance, ProcessNode currentNode) {
         Integer type = currentNode.getType();
@@ -61,12 +65,13 @@ public class ProcessInstanceExecutor {
 
     private void handleApproveNode(FlowInstance instance, ProcessNode currentNode) {
         flowTaskService.createApproveTask(instance, currentNode);
+        flowRuntimeService.updateInstanceCurrentNode(instance.getId(), currentNode);
         Integer approveType = currentNode.getApproveType();
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_PASS.getCode())) {
             moveToNextNode(instance, currentNode);
         }
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_REJECT.getCode())) {
-            // todo 完成流程实例，发布通知
+            flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
         }
     }
 
@@ -77,8 +82,8 @@ public class ProcessInstanceExecutor {
 
     private void handleEndNode(FlowInstance instance, ProcessNode currentNode) {
         flowTaskService.createEndTask(instance, currentNode);
-        // todo 完成流程实例，发布通知
-
+        flowRuntimeService.updateInstanceCurrentNode(instance.getId(), currentNode);
+        flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.APPROVE);
     }
 
     private void handleConditionBranch(FlowInstance instance, ProcessNode currentNode) {
