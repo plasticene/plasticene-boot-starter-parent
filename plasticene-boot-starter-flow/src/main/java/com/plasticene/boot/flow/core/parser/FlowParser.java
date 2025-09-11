@@ -3,12 +3,14 @@ package com.plasticene.boot.flow.core.parser;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
+import com.plasticene.boot.flow.core.dto.ProcessConditionGroup;
+import com.plasticene.boot.flow.core.dto.ProcessConditionRule;
 import com.plasticene.boot.flow.core.dto.ProcessNode;
 import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 流程解析器
@@ -157,4 +159,90 @@ public class FlowParser {
         // 再往上找
         return findUpNextNode(parentNode);
     }
+
+    /**
+     * 从流程模型中提取所有条件属性字段信息-不重复
+     * @param processNode 流程模型
+     * @return 流程模型中所有条件属性字段
+     */
+    public static List<ProcessConditionRule> getAllProcessConditionRules(ProcessNode processNode) {
+        List<ProcessConditionRule> conditionRules = new ArrayList<>();
+        findConditionRules(processNode, conditionRules);
+        return conditionRules;
+    }
+
+    private static void findConditionRules(ProcessNode processNode, List<ProcessConditionRule> result) {
+        if (processNode == null) {
+            return;
+        }
+
+        // 使用 Set 记录已存在的字段，避免 stream.noneMatch 重复遍历
+        Set<String> exists = result.stream()
+                .map(ProcessConditionRule::getField)
+                .collect(Collectors.toSet());
+
+        // 处理条件节点
+        List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
+        if (CollUtil.isNotEmpty(conditionNodes)) {
+            for (ProcessNodeCondition conditionNode : conditionNodes) {
+                // 收集规则
+                List<ProcessConditionRule> rules = Optional.ofNullable(conditionNode.getConditionGroups())
+                        .orElse(Collections.emptyList())
+                        .stream()
+                        .filter(Objects::nonNull)
+                        .map(ProcessConditionGroup::getConditionRules)
+                        .filter(CollUtil::isNotEmpty)
+                        .flatMap(List::stream)
+                        .toList();
+
+                for (ProcessConditionRule rule : rules) {
+                    if (exists.add(rule.getField())) {
+                        result.add(rule);
+                    }
+                }
+
+                // 递归子条件节点
+                findConditionRules(conditionNode.getChildNode(), result);
+            }
+        }
+
+        // 递归子节点
+        findConditionRules(processNode.getChildNode(), result);
+    }
+
+
+//    private static void findConditionRules(ProcessNode processNode, List<ProcessConditionRule> result) {
+//        if (processNode == null) {
+//            return;
+//        }
+//        // 处理条件节点
+//        List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
+//        if (CollUtil.isNotEmpty(conditionNodes)) {
+//            for (ProcessNodeCondition conditionNode : conditionNodes) {
+//                List<ProcessConditionGroup> conditionGroups = conditionNode.getConditionGroups();
+//                if (CollUtil.isNotEmpty(conditionGroups)) {
+//                    for (ProcessConditionGroup conditionGroup : conditionGroups) {
+//                        List<ProcessConditionRule> rules = conditionGroup.getConditionRules();
+//                        if (CollUtil.isNotEmpty(rules)) {
+//                            for (ProcessConditionRule rule : rules) {
+//                                String field = rule.getField();
+//                                boolean b = result.stream()
+//                                        .noneMatch(r -> Objects.equals(r.getField(), field));
+//                                if (b) {
+//                                    result.add(rule);
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                ProcessNode conditionChildNode = conditionNode.getChildNode();
+//                // 递归子节点
+//                findConditionRules(conditionChildNode, result);
+//            }
+//        }
+//        // 递归处理子节点
+//        findConditionRules(processNode.getChildNode(), result);
+//    }
+
+
 }
