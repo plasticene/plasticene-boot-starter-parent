@@ -12,8 +12,7 @@ public enum FieldTypeEnum {
     STRING(0, "字符串"),
     NUMBER(1, "数字"),
     DATE(2, "日期"),
-    BOOL(3, "布尔值"),
-    COLLECTION(4, "集合");
+    COLLECTION(3, "集合");
 
 
     private final Integer code;
