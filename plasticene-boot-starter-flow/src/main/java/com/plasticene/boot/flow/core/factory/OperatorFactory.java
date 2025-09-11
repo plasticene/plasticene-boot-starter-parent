@@ -1,7 +1,6 @@
 package com.plasticene.boot.flow.core.factory;
 
-import com.plasticene.boot.flow.core.operator.EqualsOperator;
-import com.plasticene.boot.flow.core.operator.Operator;
+import com.plasticene.boot.flow.core.operator.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +20,14 @@ public class OperatorFactory {
 
     static {
         OPERATOR_LIST.add(new EqualsOperator());
+        OPERATOR_LIST.add(new NotEqualsOperator());
+        OPERATOR_LIST.add(new LessThanOperator());
+        OPERATOR_LIST.add(new LessThanOrEqualsOperator());
+        OPERATOR_LIST.add(new GreaterThanOperator());
+        OPERATOR_LIST.add(new GreaterThanOrEqualsOperator());
+
+
+
         OPERATOR_MAP = OPERATOR_LIST.stream()
                 .collect(Collectors.toMap(Operator::op, Function.identity()));
     }
