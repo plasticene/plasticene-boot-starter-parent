@@ -2,6 +2,8 @@ package com.plasticene.boot.example.flow;
 
 import com.plasticene.boot.flow.core.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
+import com.plasticene.boot.flow.core.factory.OperatorFactory;
+import com.plasticene.boot.flow.core.operator.Operator;
 import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.service.FlowProcessService;
 import jakarta.annotation.Resource;
@@ -52,6 +54,19 @@ public class FlowTest {
         ProcessNode node = FlowParser.findNodeByKey(processNode, "node-012");
         ProcessNode nextNode = FlowParser.findExecutionNextNode(node);
         System.out.println(nextNode);
+    }
+
+    @Test
+    public void testOperatorValidate() {
+        Operator operator = OperatorFactory.getOperator(">=");
+        operator.validate(1, "123");
+    }
+
+    @Test
+    public void testOperatorCompare() {
+        Operator operator = OperatorFactory.getOperator(">=");
+        boolean compare = operator.compare(1, "8", "6");
+        System.out.println(compare);
     }
 
 
