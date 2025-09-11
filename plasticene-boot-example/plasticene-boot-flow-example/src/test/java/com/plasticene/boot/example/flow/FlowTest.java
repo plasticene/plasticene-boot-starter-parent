@@ -1,5 +1,6 @@
 package com.plasticene.boot.example.flow;
 
+import com.plasticene.boot.flow.core.dto.ProcessConditionRule;
 import com.plasticene.boot.flow.core.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.factory.OperatorFactory;
@@ -9,6 +10,8 @@ import com.plasticene.boot.flow.core.service.FlowProcessService;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.List;
 
 /**
  * @author ZFJ
@@ -55,6 +58,21 @@ public class FlowTest {
         ProcessNode nextNode = FlowParser.findExecutionNextNode(node);
         System.out.println(nextNode);
     }
+
+    @Test
+    public void testGetAllProcessConditionRule() {
+        FlowProcess flowProcess = flowProcessService.getById(4L);
+        String model = flowProcess.getModel();
+        ProcessNode processNode = FlowParser.parseProcessNode(model);
+        List<ProcessConditionRule> rules = FlowParser.getAllProcessConditionRules(processNode);
+        System.out.println(rules);
+
+    }
+
+
+
+
+
 
     @Test
     public void testOperatorValidate() {
