@@ -1,0 +1,6 @@
+server:
+  port: 8887
+
+spring:
+  application:
+    name: plasticene-boot-delay-example

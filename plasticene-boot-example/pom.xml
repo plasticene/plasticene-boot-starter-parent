@@ -20,6 +20,7 @@
         <module>plasticene-boot-mybatis-example</module>
         <module>plasticene-boot-license-example</module>
         <module>plasticene-boot-flow-example</module>
+        <module>plasticene-boot-delay-example</module>
     </modules>
 
 
