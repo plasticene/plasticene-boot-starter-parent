@@ -70,6 +70,10 @@
         <codec.version>1.13</codec.version>
         <jetbrains.anno.version>24.0.1</jetbrains.anno.version>
 
+        <logback-classic.version>1.5.19</logback-classic.version>
+        <logback-core.version>1.5.19</logback-core.version>
+
+
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -150,6 +154,11 @@
             <dependency>
                 <groupId>com.plasticene.boot</groupId>
                 <artifactId>plasticene-boot-starter-flow</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-delay-queue</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
@@ -254,6 +263,17 @@
                 <groupId>cn.smallbun.screw</groupId>
                 <artifactId>screw-core</artifactId>
                 <version>${screw.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback-classic.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback-core.version}</version>
             </dependency>
 
 
