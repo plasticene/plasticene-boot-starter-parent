@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-public class TestTaskExecutor implements DelayTaskExecutor {
+public class OrderTaskExecutor implements DelayTaskExecutor {
     @Override
     public void run(DelayTask delayedTask) {
         log.info("run delay task {}", delayedTask);
@@ -19,6 +19,6 @@ public class TestTaskExecutor implements DelayTaskExecutor {
 
     @Override
     public String queueName() {
-        return "test";
+        return "order";
     }
 }
