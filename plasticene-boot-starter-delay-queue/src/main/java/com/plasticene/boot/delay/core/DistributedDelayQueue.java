@@ -132,7 +132,7 @@ public class DistributedDelayQueue implements InitializingBean, ApplicationListe
         long endTime = System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(delayProperties.getRemovePeriod());
         removeExecutor.scheduleAtFixedRate(() -> taskStorage.removeExecutedTask(0L, endTime),
                 delayProperties.getRemoveInitialDelay(), delayProperties.getRemovePeriod(), TimeUnit.SECONDS);
-        logger.info("distributeDelayQueue init");
+        logger.info("distributeDelayQueue init: {}", this.nodeId);
     }
 
     /**
@@ -152,7 +152,7 @@ public class DistributedDelayQueue implements InitializingBean, ApplicationListe
         delayMap.clear();
         taskIdSet.clear();
         queueNameSet.clear();
-        logger.info("distributeDelayQueue destroy");
+        logger.info("distributeDelayQueue destroy: {}", this.nodeId);
     }
 
     private void executeTask(DelayTask task) {
@@ -211,19 +211,17 @@ public class DistributedDelayQueue implements InitializingBean, ApplicationListe
             return;
         }
         long end = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(delayProperties.getPullPeriod());
-        deadNodes.forEach(deadNode -> {
-            queueNameSet.forEach(queueName -> {
-                List<DelayTask> tasks = taskStorage.listTask(queueName, 0L, end);
-                tasks.forEach(task-> {
-                    int hash = Math.abs(task.getTaskId().hashCode());
-                    int index = hash % originNodes.size();
-                    // 判断当前任务之前是否分配到了下线节点上
-                    if (Objects.equals(originNodes.get(index), deadNode)) {
-                        offerTask(task);
-                    }
-                });
+        deadNodes.forEach(deadNode -> queueNameSet.forEach(queueName -> {
+            List<DelayTask> tasks = taskStorage.listTask(queueName, 0L, end);
+            tasks.forEach(task-> {
+                int hash = Math.abs(task.getTaskId().hashCode());
+                int index = hash % originNodes.size();
+                // 判断当前任务之前是否分配到了下线节点上
+                if (Objects.equals(originNodes.get(index), deadNode)) {
+                    offerTask(task);
+                }
             });
-        });
+        }));
     }
 
 
@@ -237,6 +235,7 @@ public class DistributedDelayQueue implements InitializingBean, ApplicationListe
         if (!running.get()) {
             return;
         }
+        logger.info("distributeDelayQueue load data: {}", this.nodeId);
         List<String> activeNodes = coordinator.getActiveNodes();
         long end = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(delayProperties.getPullPeriod());
         queueNameSet.forEach(queueName -> {
@@ -244,7 +243,7 @@ public class DistributedDelayQueue implements InitializingBean, ApplicationListe
             tasks.forEach(task-> {
                 // 判断任务是否应该分配到此节点
                 if (canProcess(task, activeNodes)) {
-                    this.offerTask(task);
+                    offerTask(task);
                 }
             });
         });
@@ -281,6 +280,7 @@ public class DistributedDelayQueue implements InitializingBean, ApplicationListe
         delayQueue.offer(task);
         // 记录当前节点已经加载了这个业务任务
         taskIdSet.add(task.queueTaskId());
+        logger.info("task offer, queueTaskId:{}, nodeId: {}", task.queueTaskId(), this.nodeId);
     }
 }
 

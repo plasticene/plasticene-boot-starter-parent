@@ -109,6 +109,7 @@ public class RedisCoordinator implements Coordinator {
             if (!isLock) {
                 return;
             }
+            logger.info("distributeDelayQueue check cluster health");
             // 获取集群节点信息
             List<String> nodes = stringRedisTemplate.opsForList().range(DelayConstant.NODES_KEY, 0, -1);
             if (CollUtil.isEmpty(nodes)) {
