@@ -13,8 +13,11 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.lang.NonNull;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -25,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author ZFJ
  * @date 2025/10/17
  */
-public class DistributedDelayQueue implements InitializingBean, DisposableBean {
+public class DistributedDelayQueue implements InitializingBean, ApplicationListener<ContextClosedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(DistributedDelayQueue.class);
     @Resource
     private Coordinator coordinator;
@@ -34,9 +37,9 @@ public class DistributedDelayQueue implements InitializingBean, DisposableBean {
     @Resource
     private RedissonClient redissonClient;
     @Resource
-    private List<DelayTaskExecutor> taskExecutors;
-    @Resource
     private DelayProperties delayProperties;
+    @Autowired(required = false)
+    private List<DelayTaskExecutor> taskExecutors;
 
     /**  队列名称 -> 延迟队列
      *   业务队列隔离开来
@@ -88,6 +91,10 @@ public class DistributedDelayQueue implements InitializingBean, DisposableBean {
      */
     @Override
     public void afterPropertiesSet() {
+        // 没有业务延时任务处理器，就没必要进行后续初始化操作了
+        if (CollUtil.isEmpty(taskExecutors)) {
+            return;
+        }
         // 获取业务类型
         taskExecutors.forEach(taskExecutor -> this.queueNameSet.add(taskExecutor.queueName()));
         // 1.注册节点，建立心跳机制
@@ -125,14 +132,18 @@ public class DistributedDelayQueue implements InitializingBean, DisposableBean {
         long endTime = System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(delayProperties.getRemovePeriod());
         removeExecutor.scheduleAtFixedRate(() -> taskStorage.removeExecutedTask(0L, endTime),
                 delayProperties.getRemoveInitialDelay(), delayProperties.getRemovePeriod(), TimeUnit.SECONDS);
+        logger.info("distributeDelayQueue init");
     }
 
+    /**
+     * 优雅下线
+     */
     @Override
-    public void destroy() {
-        // 关闭时清理
-        logger.info("distributeDelayQueue destroy");
+    public void onApplicationEvent(@NonNull ContextClosedEvent event) {
         running.set(false);
+        // 在正式销毁前先执行Redis相关操作，此时Redis连接还可用
         coordinator.unRegisterNode(this.nodeId);
+        // 先关闭健康检查和拉取数据
         healthExecutor.shutdown();
         loadExecutor.shutdown();
         runningExecutor.shutdown();
@@ -141,6 +152,7 @@ public class DistributedDelayQueue implements InitializingBean, DisposableBean {
         delayMap.clear();
         taskIdSet.clear();
         queueNameSet.clear();
+        logger.info("distributeDelayQueue destroy");
     }
 
     private void executeTask(DelayTask task) {
