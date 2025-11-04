@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.plasticene.boot</groupId>
         <artifactId>plasticene-boot-starter-parent</artifactId>
-        <version>2025.3.0</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>plasticene-boot-starter-delay-queue</artifactId>

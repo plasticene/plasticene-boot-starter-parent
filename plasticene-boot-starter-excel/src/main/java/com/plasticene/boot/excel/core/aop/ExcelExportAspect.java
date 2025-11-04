@@ -3,6 +3,7 @@ package com.plasticene.boot.excel.core.aop;
 import com.alibaba.excel.EasyExcel;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.excel.core.anno.ExcelExport;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -15,7 +16,6 @@ import org.springframework.http.MediaTypeFactory;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
