@@ -78,6 +78,13 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <!-- Maven Plugin Versions -->
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <!-- JUnit 5 requires Surefire version 2.22.0 or higher -->
+        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
+        <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
+
+
 
 
 
@@ -284,14 +291,62 @@
 
     <build>
         <plugins>
+            <!-- 代码编译插件   -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <!-- 配置会继承到子模块 -->
+                <inherited>true</inherited>
                 <configuration>
+                    <!-- 使用 JDK 21 -->
                     <source>21</source>
                     <target>21</target>
                 </configuration>
             </plugin>
+
+            <!-- 单元测试插件  -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <inherited>true</inherited>
+                <configuration>
+                    <!-- 创建1个独立的JVM进程来运行测试  -->
+                    <forkCount>1</forkCount>
+                    <!-- 每个测试类都在新的JVM中运行（隔离性好，但速度慢)  -->
+                    <reuseForks>false</reuseForks>
+                </configuration>
+            </plugin>
+
+            <!-- 解决CI-friendly版本号（如${revision}）在IDE和部署时的问题  解决父POM中定义的属性在依赖解析时不会被传递到子模块。  -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
         </plugins>
     </build>
 
