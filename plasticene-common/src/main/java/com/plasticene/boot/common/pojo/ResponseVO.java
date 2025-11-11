@@ -73,7 +73,7 @@ public class ResponseVO<T> implements Serializable {
      * 业务异常返回业务代码和描述信息
      */
     public static <T> ResponseVO<T> failure() {
-        return new ResponseVO<T>(ResponseCodeEnum.SYSTEM_ERROR, null);
+        return new ResponseVO<>(ResponseCodeEnum.SYSTEM_ERROR, null);
     }
 
     /**
@@ -88,13 +88,13 @@ public class ResponseVO<T> implements Serializable {
      */
     public static <T> ResponseVO<T> failure(ResponseCodeEnum resultStatus, T data) {
         if (resultStatus == null) {
-            return new ResponseVO<T>(ResponseCodeEnum.SYSTEM_ERROR, null);
+            return new ResponseVO<>(ResponseCodeEnum.SYSTEM_ERROR, null);
         }
-        return new ResponseVO<T>(resultStatus, data);
+        return new ResponseVO<>(resultStatus, data);
     }
 
     public static <T> ResponseVO<T> failure(Integer code, String msg) {
-        return new ResponseVO<T>(code, msg);
+        return new ResponseVO<>(code, msg);
     }
 }
 
