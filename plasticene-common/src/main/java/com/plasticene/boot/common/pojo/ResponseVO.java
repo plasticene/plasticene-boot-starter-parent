@@ -66,7 +66,7 @@ public class ResponseVO<T> implements Serializable {
         if (resultStatus == null) {
             return success(data);
         }
-        return new ResponseVO<T>(resultStatus, data);
+        return new ResponseVO<>(resultStatus, data);
     }
 
     /**

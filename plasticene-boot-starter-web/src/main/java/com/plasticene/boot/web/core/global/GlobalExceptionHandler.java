@@ -30,8 +30,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 全局异常处理
-     * @param e
-     * @return
      */
     @ResponseBody
     @ResponseStatus(HttpStatus.BAD_REQUEST)
