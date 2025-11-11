@@ -1,6 +1,6 @@
 package com.plasticene.boot.web.core.global;
 
-import com.plasticene.boot.common.enums.ResponseStatusEnum;
+import com.plasticene.boot.common.enums.ResponseCodeEnum;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import lombok.extern.slf4j.Slf4j;
@@ -37,39 +37,46 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(Exception.class)
     public ResponseVO<?> exceptionHandler(Exception e){
-        // 处理业务异常
-        if (e instanceof BizException bizException) {
-            if (bizException.getCode() == null) {
-                bizException.setCode(ResponseStatusEnum.BAD_REQUEST.getCode());
+        switch (e) {
+            case BizException bizException -> {
+                if (bizException.getCode() == null) {
+                    bizException.setCode(ResponseCodeEnum.BAD_REQUEST.getCode());
+                }
+                return ResponseVO.failure(bizException.getCode(), bizException.getMessage());
             }
-            return ResponseVO.failure(bizException.getCode(), bizException.getMessage());
-        } else if (e instanceof MethodArgumentNotValidException methodArgumentNotValidException) {
-            // 参数检验异常
-            Map<String, String> map = new HashMap<>();
-            BindingResult result = methodArgumentNotValidException.getBindingResult();
-            result.getFieldErrors().forEach((item)->{
-                String message = item.getDefaultMessage();
-                String field = item.getField();
-                map.put(field, message);
-            });
-            log.error("数据校验出现错误：", e);
-            return ResponseVO.failure(ResponseStatusEnum.BAD_REQUEST, map);
-        } else if (e instanceof HttpRequestMethodNotSupportedException) {
-            log.error("请求方法错误：", e);
-            return ResponseVO.failure(ResponseStatusEnum.BAD_REQUEST.getCode(), "请求方法不正确");
-        } else if (e instanceof MissingServletRequestParameterException ex) {
-            log.error("请求参数缺失：", e);
-            return ResponseVO.failure(ResponseStatusEnum.BAD_REQUEST.getCode(), "请求参数缺少: " + ex.getParameterName());
-        } else if (e instanceof MethodArgumentTypeMismatchException ex) {
-            log.error("请求参数类型错误：", e);
-            return ResponseVO.failure(ResponseStatusEnum.BAD_REQUEST.getCode(), "请求参数类型不正确：" + ex.getName());
-        } else if (e instanceof NoHandlerFoundException ex) {
-            log.error("请求地址不存在：", e);
-            return ResponseVO.failure(ResponseStatusEnum.NOT_EXIST, ex.getRequestURL());
-        } else {
-            //如果是系统的异常，比如空指针这些异常
-            log.error("【系统异常】", e);
-            return ResponseVO.failure(ResponseStatusEnum.SYSTEM_ERROR.getCode(), ResponseStatusEnum.SYSTEM_ERROR.getMsg());
+            case MethodArgumentNotValidException methodArgumentNotValidException -> {
+                // 参数检验异常
+                Map<String, String> map = new HashMap<>();
+                BindingResult result = methodArgumentNotValidException.getBindingResult();
+                result.getFieldErrors().forEach((item) -> {
+                    String message = item.getDefaultMessage();
+                    String field = item.getField();
+                    map.put(field, message);
+                });
+                log.error("数据校验出现错误：", e);
+                return ResponseVO.failure(ResponseCodeEnum.BAD_REQUEST, map);
+            }
+            case HttpRequestMethodNotSupportedException ignored -> {
+                log.error("请求方法错误：", e);
+                return ResponseVO.failure(ResponseCodeEnum.BAD_REQUEST.getCode(), "请求方法不正确");
+            }
+            case MissingServletRequestParameterException ex -> {
+                log.error("请求参数缺失：", e);
+                return ResponseVO.failure(ResponseCodeEnum.BAD_REQUEST.getCode(), "请求参数缺少: " + ex.getParameterName());
+            }
+            case MethodArgumentTypeMismatchException ex -> {
+                log.error("请求参数类型错误：", e);
+                return ResponseVO.failure(ResponseCodeEnum.BAD_REQUEST.getCode(), "请求参数类型不正确：" + ex.getName());
+            }
+            case NoHandlerFoundException ex -> {
+                log.error("请求地址不存在：", e);
+                return ResponseVO.failure(ResponseCodeEnum.NOT_FOUND, ex.getRequestURL());
+            }
+            case null, default -> {
+                // 如果是系统的异常，比如空指针这些异常
+                log.error("【系统异常】", e);
+                return ResponseVO.failure(ResponseCodeEnum.SYSTEM_ERROR.getCode(), ResponseCodeEnum.SYSTEM_ERROR.getMsg());
+            }
         }
     }
 

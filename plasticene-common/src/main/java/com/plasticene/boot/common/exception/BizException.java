@@ -1,7 +1,7 @@
 package com.plasticene.boot.common.exception;
 
 
-import com.plasticene.boot.common.enums.ResponseStatusEnum;
+import com.plasticene.boot.common.enums.ResponseCodeEnum;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -34,9 +34,9 @@ public class BizException extends RuntimeException {
         this.code = code;
     }
 
-    public BizException(ResponseStatusEnum responseStatusEnum) {
-        super(responseStatusEnum.getMsg());
-        this.code = responseStatusEnum.getCode();
+    public BizException(ResponseCodeEnum responseCodeEnum) {
+        super(responseCodeEnum.getMsg());
+        this.code = responseCodeEnum.getCode();
     }
 
 }
