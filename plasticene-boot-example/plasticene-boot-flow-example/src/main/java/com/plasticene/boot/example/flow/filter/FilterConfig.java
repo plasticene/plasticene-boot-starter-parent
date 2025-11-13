@@ -18,7 +18,7 @@ public class FilterConfig {
 
     @Bean
     public FilterRegistrationBean<AuthFilter> buildAuthFilter() {
-        FilterRegistrationBean<AuthFilter> filterRegistrationBean = new FilterRegistrationBean();
+        FilterRegistrationBean<AuthFilter> filterRegistrationBean = new FilterRegistrationBean<>();
         filterRegistrationBean.setOrder(OrderConstant.FILTER_TRACE + 10);
         filterRegistrationBean.setFilter(authFilter);
         filterRegistrationBean.addUrlPatterns("/*");
