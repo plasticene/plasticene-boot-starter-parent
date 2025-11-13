@@ -6,7 +6,7 @@ import com.plasticene.boot.common.user.RequestUserHolder;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import org.apache.ibatis.reflection.MetaObject;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -23,24 +23,24 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
     public void insertFill(MetaObject metaObject) {
         if (Objects.nonNull(metaObject) && metaObject.getOriginalObject() instanceof BaseDO baseDO) {
 
-            Date current = new Date();
+            LocalDateTime now = LocalDateTime.now();
             // 创建时间为空，则以当前时间为插入时间
             if (Objects.isNull(baseDO.getCreateTime())) {
-                baseDO.setCreateTime(current);
+                baseDO.setCreateTime(now);
             }
             // 更新时间为空，则以当前时间为更新时间
             if (Objects.isNull(baseDO.getUpdateTime())) {
-                baseDO.setUpdateTime(current);
+                baseDO.setUpdateTime(now);
             }
 
-            LoginUser currentUser = RequestUserHolder.getCurrentUser();
+            LoginUser loginUser = RequestUserHolder.getLoginUser();
             // 当前登录用户不为空，创建人为空，则当前登录用户为创建人
-            if (Objects.nonNull(currentUser) && Objects.isNull(baseDO.getCreator())) {
-                baseDO.setCreator(currentUser.getId());
+            if (Objects.nonNull(loginUser) && Objects.isNull(baseDO.getCreator())) {
+                baseDO.setCreator(loginUser.getId());
             }
             // 当前登录用户不为空，更新人为空，则当前登录用户为更新人
-            if (Objects.nonNull(currentUser) && Objects.isNull(baseDO.getUpdater())) {
-                baseDO.setUpdater(currentUser.getId());
+            if (Objects.nonNull(loginUser) && Objects.isNull(baseDO.getUpdater())) {
+                baseDO.setUpdater(loginUser.getId());
             }
         }
     }
@@ -48,16 +48,16 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
     @Override
     public void updateFill(MetaObject metaObject) {
         // 更新时间为空，则以当前时间为更新时间
-        Object modifyTime = getFieldValByName("updateTime", metaObject);
-        if (Objects.isNull(modifyTime)) {
-            setFieldValByName("updateTime", new Date(), metaObject);
+        Object updateTime = getFieldValByName("updateTime", metaObject);
+        if (Objects.isNull(updateTime)) {
+            setFieldValByName("updateTime", LocalDateTime.now(), metaObject);
         }
 
-        LoginUser currentUser = RequestUserHolder.getCurrentUser();
+        LoginUser loginUser = RequestUserHolder.getLoginUser();
         // 当前登录用户不为空，更新人为空，则当前登录用户为更新人
         Object modifier = getFieldValByName("updater", metaObject);
-        if (Objects.nonNull(currentUser) && Objects.isNull(modifier)) {
-            setFieldValByName("updater", currentUser.getId(), metaObject);
+        if (Objects.nonNull(loginUser) && Objects.isNull(modifier)) {
+            setFieldValByName("updater", loginUser.getId(), metaObject);
         }
     }
 }

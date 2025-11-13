@@ -42,7 +42,7 @@ public class TenantDatabaseHandler implements TenantLineHandler {
 
     @Override
     public Expression getTenantId() {
-        return new LongValue(RequestUserHolder.getCurrentUser().getOrgId());
+        return new LongValue(RequestUserHolder.getLoginUser().getOrgId());
     }
 
     @Override
