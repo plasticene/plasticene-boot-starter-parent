@@ -12,7 +12,8 @@ import java.util.List;
  * @date 2025/9/2
  */
 @Data
-@ToString(exclude = {"parentNode"})   //解决toString循环问题
+// 解决toString循环问题
+@ToString(exclude = {"parentNode"})
 public class ProcessNode {
 
     /**

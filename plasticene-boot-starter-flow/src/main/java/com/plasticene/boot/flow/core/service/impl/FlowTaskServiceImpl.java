@@ -128,8 +128,6 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         task.setStartTime(new Date());
         task.setEndTime(new Date());
         task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
-        task.setCreateTime(new Date());
-        task.setUpdateTime(new Date());
         flowTaskDAO.insert(task);
     }
 
@@ -166,8 +164,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         }
 
         // 流转下一个节点
-        String model = flowInstance.getModel();
-        ProcessNode processNode = FlowParser.parseProcessNode(model);
+        ProcessNode processNode = flowInstance.getModel();
         ProcessNode currentNode = FlowParser.findNodeByKey(processNode, nodeKey);
         processInstanceExecutor.moveToNextNode(flowInstance, currentNode);
 
@@ -196,8 +193,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         deleteOtherTask(instanceId, nodeKey, taskId);
 
         // 终止流程实例
-        String model = instance.getModel();
-        ProcessNode processNode = FlowParser.parseProcessNode(model);
+        ProcessNode processNode = instance.getModel();
         ProcessNode currentNode = FlowParser.findNodeByKey(processNode, nodeKey);
         flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
     }
@@ -260,8 +256,6 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         task.setApproveType(currentNode.getApproveType());
         task.setApproveMode(currentNode.getApproveMode());
         task.setStartTime(new Date());
-        task.setCreateTime(new Date());
-        task.setUpdateTime(new Date());
         return task;
     }
 

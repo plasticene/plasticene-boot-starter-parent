@@ -1,7 +1,10 @@
 package com.plasticene.boot.flow.core.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.plasticene.boot.flow.core.dto.ProcessNode;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -57,7 +60,8 @@ public class FlowInstance extends BaseDO {
     /**
      * 模型快照
      */
-    private String model;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private ProcessNode model;
 
     /**
      * 表单配置

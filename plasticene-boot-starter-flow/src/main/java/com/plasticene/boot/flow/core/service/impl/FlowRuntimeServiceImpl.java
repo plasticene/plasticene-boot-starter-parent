@@ -2,6 +2,8 @@ package com.plasticene.boot.flow.core.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.RequestUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
@@ -44,21 +46,21 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         if (process == null) {
             throw new BizException("流程模型不存在");
         }
-        ProcessNode processNode = FlowParser.parseProcessNode(process.getModel());
+        ProcessNode processNode = process.getProcessNode();
         boolean isValid = FlowParser.validateProcessNode(processNode);
         if (!isValid) {
             throw new BizException("当前流程模型不合法");
         }
         FlowInstance instance = new FlowInstance();
         instance.setProcessId(processId);
-        instance.setModel(process.getModel());
+        instance.setModel(processNode);
         instance.setCategory(process.getCategory());
         instance.setOrgId(process.getOrgId());
         instance.setStartTime(new Date());
         instance.setCurrentNodeKey(processNode.getKey());
         instance.setCurrentNodeName(processNode.getName());
-        // todo 处理表单 申请人等
-        instance.setUserId(1L);
+        LoginUser loginUser = RequestUserHolder.getLoginUser();
+        instance.setUserId(loginUser.getId());
         flowInstanceDAO.insert(instance);
 
         // 开始流转流程

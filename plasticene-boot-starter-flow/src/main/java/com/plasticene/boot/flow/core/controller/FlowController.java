@@ -8,6 +8,8 @@ import com.plasticene.boot.flow.core.service.FlowProcessService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import com.plasticene.boot.flow.core.vo.FlowProcessVO;
+import com.plasticene.boot.web.core.validator.Insert;
+import com.plasticene.boot.web.core.validator.Update;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -33,17 +35,30 @@ public class FlowController {
     private FlowTaskService flowTaskService;
 
 
-    @PostMapping("/process")
     @Operation(summary = "创建流程模型")
-    public ResponseVO<Long> createFlowProcess(@RequestBody @Validated FlowProcessParam param) {
+    @PostMapping("/process")
+    public ResponseVO<Long> createFlowProcess(@RequestBody @Validated(Insert.class) FlowProcessParam param) {
         Long id = flowProcessService.createFlowProcess(param);
         return ResponseVO.success(id);
     }
 
-    @PutMapping("/process")
     @Operation(summary = "修改流程模型")
-    public ResponseVO<Void> updateFlowProcess(@RequestBody FlowProcessParam param) {
+    @PutMapping("/process")
+    public ResponseVO<Void> updateFlowProcess(@RequestBody @Validated(Update.class) FlowProcessParam param) {
         flowProcessService.updateFlowProcess(param);
+        return ResponseVO.success();
+    }
+
+    @Operation(summary = "基于流程id发布")
+    @PostMapping("/process/release/{processId}")
+    public ResponseVO<Void> releaseFlowProcess(@PathVariable("processId") Long processId) {
+        flowProcessService.releaseFlowProcess(processId);
+        return ResponseVO.success();
+    }
+    @Operation(summary = "基于流程配置直接发布")
+    @PostMapping("/process/release")
+    public ResponseVO<Void> releaseFlowProcess(@RequestBody FlowProcessParam param) {
+        flowProcessService.releaseFlowProcess(param);
         return ResponseVO.success();
     }
 
