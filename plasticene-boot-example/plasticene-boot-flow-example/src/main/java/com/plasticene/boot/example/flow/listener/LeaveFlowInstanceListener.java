@@ -1,4 +1,4 @@
-package com.plasticene.boot.example.flow;
+package com.plasticene.boot.example.flow.listener;
 
 import com.plasticene.boot.flow.core.event.BaseFlowInstanceListener;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
