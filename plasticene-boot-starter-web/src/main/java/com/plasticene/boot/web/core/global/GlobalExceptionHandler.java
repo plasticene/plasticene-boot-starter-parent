@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -69,6 +70,10 @@ public class GlobalExceptionHandler {
             case NoHandlerFoundException ex -> {
                 log.error("请求地址不存在：", e);
                 return ResponseVO.failure(ResponseCodeEnum.NOT_FOUND, ex.getRequestURL());
+            }
+            case NoResourceFoundException ex -> {
+                log.error("请求地址不存在：", e);
+                return ResponseVO.failure(ResponseCodeEnum.NOT_FOUND, ex.getResourcePath());
             }
             case null, default -> {
                 // 如果是系统的异常，比如空指针这些异常
