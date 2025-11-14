@@ -7,11 +7,11 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author ZFJ
- * @date 2025/9/8
+ * @date 2025/11/14
  */
 @Component
 @Slf4j
-public class LeaveFlowInstanceListener extends BaseFlowInstanceListener {
+public class VisitFlowInstanceListener extends BaseFlowInstanceListener {
     @Override
     public void doProcessInstanceEvent(InstanceEvent event) {
         log.info("======>>>instance event: {}", event);
@@ -19,6 +19,6 @@ public class LeaveFlowInstanceListener extends BaseFlowInstanceListener {
 
     @Override
     public String businessType() {
-        return "fw:leave";
+        return "fw:visit";
     }
 }

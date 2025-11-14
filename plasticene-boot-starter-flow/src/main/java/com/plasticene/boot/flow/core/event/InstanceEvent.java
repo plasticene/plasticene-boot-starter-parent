@@ -5,6 +5,7 @@ import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.springframework.context.ApplicationEvent;
 
 /**
@@ -14,6 +15,7 @@ import org.springframework.context.ApplicationEvent;
  */
 @Getter
 @Setter
+@ToString
 public class InstanceEvent extends ApplicationEvent {
     /**
      * 当前审批流程实例

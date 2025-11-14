@@ -3,13 +3,14 @@ package com.plasticene.boot.flow.core.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.plasticene.boot.flow.core.dto.ProcessNode;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * @author ZFJ
@@ -17,6 +18,7 @@ import java.util.Date;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
+@TableName(value = "flow_instance", autoResultMap = true)
 public class FlowInstance extends BaseDO {
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -39,11 +41,11 @@ public class FlowInstance extends BaseDO {
     /**
      * 开始时间
      */
-    private Date startTime;
+    private LocalDateTime startTime;
     /**
      * 结束时间
      */
-    private Date endTime;
+    private LocalDateTime endTime;
     /**
      * 当前节点key
      */
@@ -58,12 +60,6 @@ public class FlowInstance extends BaseDO {
     private Long businessId;
 
     /**
-     * 模型快照
-     */
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private ProcessNode model;
-
-    /**
      * 表单配置
      */
     private String form;
@@ -71,7 +67,8 @@ public class FlowInstance extends BaseDO {
     /**
      * 参数变量值
      */
-    private String varMap;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> varMap;
 
     /**
      * 流程分类

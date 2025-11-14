@@ -57,19 +57,27 @@ public class ProcessInstanceExecutor {
     }
 
 
+    /**
+     * 处理开始节点
+     */
     private void handleStartNode(FlowInstance instance, ProcessNode currentNode) {
         flowTaskService.createStartTask(instance, currentNode);
         // 流入下一个节点
         moveToNextNode(instance, currentNode);
     }
 
+    /**
+     * 处理审批节点
+     */
     private void handleApproveNode(FlowInstance instance, ProcessNode currentNode) {
         flowTaskService.createApproveTask(instance, currentNode);
         flowRuntimeService.updateInstanceCurrentNode(instance.getId(), currentNode);
         Integer approveType = currentNode.getApproveType();
+        // 自动通过 → 流入下一个节点
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_PASS.getCode())) {
             moveToNextNode(instance, currentNode);
         }
+        // 自动拒绝 → 结束流程
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_REJECT.getCode())) {
             flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
         }
@@ -111,13 +119,12 @@ public class ProcessInstanceExecutor {
 
     private boolean handleConditionNode(FlowInstance instance, ProcessNodeCondition conditionNode) {
         List<ProcessConditionGroup> conditionGroups = conditionNode.getConditionGroups();
-
         // 没有条件配置直接通过，默认条件节点就是没有条件的
         if (CollUtil.isEmpty(conditionGroups)) {
             return true;
         }
         // 校验条件规则
-        Map<String, Object> varMap = JSON.parseObject(instance.getVarMap(), new TypeReference<>() {});
+        Map<String, Object> varMap = instance.getVarMap();
         Integer matchType = conditionNode.getType();
         boolean andMatch = Objects.equals(matchType, FlowConditionTypeEnum.AND.getCode());
         for (ProcessConditionGroup conditionGroup : conditionGroups) {

@@ -30,7 +30,7 @@ public class FlowProcessParam {
     private String code;
     @Schema(description = "流程名称")
     @NotBlank(message = "流程名称不能为空", groups = Insert.class)
-    @Size(max = 16, message = "名称长度不能超过32个字符")
+    @Size(max = 32, message = "名称长度不能超过32个字符")
     private String name;
     @Schema(description = "流程分类标识")
     @NotBlank(message = "流程分类不能为空", groups = Insert.class)

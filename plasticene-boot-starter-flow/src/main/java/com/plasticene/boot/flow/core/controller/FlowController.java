@@ -17,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author ZFJ
@@ -65,15 +66,17 @@ public class FlowController {
     @GetMapping("/process")
     @Operation(summary = "获取流程列表")
     public ResponseVO<List<FlowProcessVO>> listFlowProcess() {
-
         return ResponseVO.success(null);
     }
 
     @PostMapping("/instance/start")
     @Operation(summary = "基于流程模型发起实例")
-    public ResponseVO<Void> startFlowInstance(@RequestBody FlowInstanceParam param) {
-        flowRuntimeService.startFlowInstanceById(param.getProcessId());
-        return ResponseVO.success();
+    public ResponseVO<Long> startFlowInstance(@RequestBody @Validated FlowInstanceParam param) {
+        Long processId = param.getProcessId();
+        Long businessId = param.getBusinessId();
+        Map<String, Object> varMap = param.getVarMap();
+        long instanceId = flowRuntimeService.startFlowInstanceById(processId, businessId, varMap);
+        return ResponseVO.success(instanceId);
     }
 
     @PostMapping("/task/approve")

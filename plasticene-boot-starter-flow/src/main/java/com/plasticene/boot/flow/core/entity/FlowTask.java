@@ -6,7 +6,7 @@ import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * @author ZFJ
@@ -60,11 +60,11 @@ public class FlowTask extends BaseDO {
     /**
      * 开始时间
      */
-    private Date startTime;
+    private LocalDateTime startTime;
     /**
      * 结束时间
      */
-    private Date endTime;
+    private LocalDateTime endTime;
     /**
      * 审批意见
      */
