@@ -124,9 +124,7 @@ class UserServiceTest {
     public void testBatchUpdateByFor() {
         List<User> users = listUsers();
         long start = System.currentTimeMillis();
-        users.forEach(user -> {
-            userDAO.updateById(user);
-        });
+        users.forEach(user -> userDAO.updateById(user));
         long end = System.currentTimeMillis();
         System.out.println("执行时长：" + (end - start) + "ms");
     }
