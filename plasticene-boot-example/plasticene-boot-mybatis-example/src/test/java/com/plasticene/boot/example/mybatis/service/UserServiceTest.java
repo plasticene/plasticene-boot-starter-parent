@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 
@@ -113,7 +114,7 @@ class UserServiceTest {
     public void testTenant() {
         LoginUser loginUser = new LoginUser();
         loginUser.setOrgId(6L);
-        RequestUserHolder.add(loginUser);
+        RequestUserHolder.setLoginUser(loginUser);
         PageResult<User> result = userService.listUsers(1, 5, null);
         System.out.println(result);
         RequestUserHolder.remove();
@@ -220,7 +221,7 @@ class UserServiceTest {
             user.setName(user.getName() + "1");
             user.setAddress("杭州" + user.getId());
             user.setGender(user.getId() % 2 == 0 ? 1 : 0);
-            user.setUpdateTime(new Date());
+            user.setUpdateTime(LocalDateTime.now());
             user.setUpdater(user.getId());
         });
         return users;
