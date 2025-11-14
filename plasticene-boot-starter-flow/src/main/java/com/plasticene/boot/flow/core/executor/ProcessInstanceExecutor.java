@@ -1,8 +1,6 @@
 package com.plasticene.boot.flow.core.executor;
 
 import cn.hutool.core.collection.CollUtil;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.plasticene.boot.flow.core.dto.ProcessConditionGroup;
 import com.plasticene.boot.flow.core.dto.ProcessConditionRule;
 import com.plasticene.boot.flow.core.dto.ProcessNode;
