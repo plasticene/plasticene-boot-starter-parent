@@ -1,5 +1,7 @@
 package com.plasticene.boot.flow.core.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
@@ -7,11 +9,14 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.RequestUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowProcessDAO;
-import com.plasticene.boot.flow.core.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.enums.FlowProcessStatusEnum;
-import com.plasticene.boot.flow.core.param.FlowProcessParam;
+import com.plasticene.boot.flow.core.model.param.FlowProcessParam;
+import com.plasticene.boot.flow.core.model.vo.CategoryVO;
+import com.plasticene.boot.flow.core.model.vo.FlowProcessVO;
 import com.plasticene.boot.flow.core.parser.FlowParser;
+import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.flow.core.service.FlowProcessService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
@@ -19,7 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author ZFJ
@@ -29,6 +35,8 @@ import java.util.Objects;
 public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProcess> implements FlowProcessService {
     @Resource
     private FlowProcessDAO flowProcessDAO;
+    @Resource
+    private CategoryService categoryService;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -124,6 +132,40 @@ public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProc
         }
         // 最终发布
         releaseFlowProcess(releaseProcessId);
+    }
+
+    @Override
+    public List<CategoryVO> listFlowProcess(String processName) {
+        List<CategoryVO> categoryList = categoryService.listCategory();
+        LoginUser loginUser = RequestUserHolder.getLoginUser();
+        PtcLambdaQueryWrapper<FlowProcess> queryWrapper = new PtcLambdaQueryWrapper<>();
+        queryWrapper.likeIfPresent(FlowProcess::getName, processName);
+        queryWrapper.eq(FlowProcess::getOrgId, loginUser.getOrgId());
+        queryWrapper.in(FlowProcess::getStatus, List.of(FlowProcessStatusEnum.DRAFT.getCode(),
+                FlowProcessStatusEnum.RELEASE.getCode()));
+        queryWrapper.orderByDesc(FlowProcess::getId);
+        List<FlowProcess> list = flowProcessDAO.selectList(queryWrapper);
+        List<FlowProcessVO> processList = PtcBeanUtils.copyList(list, FlowProcessVO.class);
+        // 有搜索，返回命中的分组及其流程
+        if (StrUtil.isNotBlank(processName)) {
+            if (CollUtil.isEmpty(processList)) {
+                return new ArrayList<>();
+            }
+            Set<String> categorySet = processList.stream().map(FlowProcessVO::getCategory).collect(Collectors.toSet());
+            categoryList = categoryList.stream().
+                    filter(vo -> categorySet.contains(vo.getCode()))
+                    .toList();
+        }
+        Map<String, List<FlowProcessVO>> processMap = processList.stream()
+                .collect(Collectors.groupingBy(
+                        FlowProcessVO::getCategory,
+                        Collectors.toList()
+                ));
+        categoryList.forEach(category -> {
+            List<FlowProcessVO> voList = processMap.getOrDefault(category.getCode(), List.of());
+            category.setProcessList(voList);
+        });
+        return categoryList;
     }
 
     boolean existProcessByCode(Long orgId, String code) {

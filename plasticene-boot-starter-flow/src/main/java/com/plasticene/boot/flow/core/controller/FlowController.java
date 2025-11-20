@@ -1,13 +1,15 @@
 package com.plasticene.boot.flow.core.controller;
 
 import com.plasticene.boot.common.pojo.ResponseVO;
-import com.plasticene.boot.flow.core.param.FlowInstanceParam;
-import com.plasticene.boot.flow.core.param.FlowProcessParam;
-import com.plasticene.boot.flow.core.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.param.CategoryParam;
+import com.plasticene.boot.flow.core.model.param.FlowInstanceParam;
+import com.plasticene.boot.flow.core.model.param.FlowProcessParam;
+import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.vo.CategoryVO;
+import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.flow.core.service.FlowProcessService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
-import com.plasticene.boot.flow.core.vo.FlowProcessVO;
 import com.plasticene.boot.web.core.validator.Insert;
 import com.plasticene.boot.web.core.validator.Update;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,6 +36,8 @@ public class FlowController {
     private FlowRuntimeService flowRuntimeService;
     @Resource
     private FlowTaskService flowTaskService;
+    @Resource
+    private CategoryService categoryService;
 
 
     @Operation(summary = "创建流程模型")
@@ -56,6 +60,7 @@ public class FlowController {
         flowProcessService.releaseFlowProcess(processId);
         return ResponseVO.success();
     }
+
     @Operation(summary = "基于流程配置直接发布")
     @PostMapping("/process/release")
     public ResponseVO<Void> releaseFlowProcess(@RequestBody FlowProcessParam param) {
@@ -63,14 +68,15 @@ public class FlowController {
         return ResponseVO.success();
     }
 
+    @Operation(summary = "获取流程列表(基于分组分类)")
     @GetMapping("/process")
-    @Operation(summary = "获取流程列表")
-    public ResponseVO<List<FlowProcessVO>> listFlowProcess() {
-        return ResponseVO.success(null);
+    public ResponseVO<List<CategoryVO>> listFlowProcess(@RequestParam(name = "processName", required = false) String processName) {
+        List<CategoryVO> voList = flowProcessService.listFlowProcess(processName);
+        return ResponseVO.success(voList);
     }
 
-    @PostMapping("/instance/start")
     @Operation(summary = "基于流程模型发起实例")
+    @PostMapping("/instance/start")
     public ResponseVO<Long> startFlowInstance(@RequestBody @Validated FlowInstanceParam param) {
         Long processId = param.getProcessId();
         Long businessId = param.getBusinessId();
@@ -79,17 +85,46 @@ public class FlowController {
         return ResponseVO.success(instanceId);
     }
 
-    @PostMapping("/task/approve")
     @Operation(summary = "审批流程实例任务")
+    @PostMapping("/task/approve")
     public ResponseVO<Void> approveFlowTask(@RequestBody @Validated FlowTaskParam param) {
         flowTaskService.approveTask(param);
         return ResponseVO.success();
     }
 
-    @PostMapping("/task/reject")
     @Operation(summary = "拒绝流程实例任务")
+    @PostMapping("/task/reject")
     public ResponseVO<Void> rejectFlowTask(@RequestBody @Validated FlowTaskParam param) {
         flowTaskService.rejectTask(param);
         return ResponseVO.success();
+    }
+
+    @Operation(summary = "新增分组")
+    @PostMapping("/category")
+    public ResponseVO<Long> createCategory(@RequestBody CategoryParam param) {
+        Long id = categoryService.createCategory(param);
+        return ResponseVO.success(id);
+    }
+
+    @Operation(summary = "更新分组")
+    @PutMapping("/category")
+    public ResponseVO<Void> updateCategory(@RequestBody @Validated(Update.class) CategoryParam param) {
+        categoryService.updateCategory(param);
+        return ResponseVO.success();
+    }
+
+    @Operation(summary = "分组排序")
+    @PostMapping("/category/sort")
+    public ResponseVO<Void> sortCategory(CategoryParam param) {
+        List<Long> ids = param.getIds();
+        categoryService.sortCategory(ids);
+        return ResponseVO.success();
+    }
+
+    @Operation(summary = "分组列表")
+    @GetMapping("/category")
+    public ResponseVO<List<CategoryVO>> listCategory() {
+        List<CategoryVO> voList = categoryService.listCategory();
+        return ResponseVO.success(voList);
     }
 }

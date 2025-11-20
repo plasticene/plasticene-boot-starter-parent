@@ -1,6 +1,6 @@
 package com.plasticene.boot.flow.core.event;
 
-import com.plasticene.boot.flow.core.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
 import lombok.Getter;

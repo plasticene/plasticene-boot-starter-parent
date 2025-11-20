@@ -2,7 +2,11 @@ package com.plasticene.boot.flow.core.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
-import com.plasticene.boot.flow.core.param.FlowProcessParam;
+import com.plasticene.boot.flow.core.model.param.FlowProcessParam;
+import com.plasticene.boot.flow.core.model.vo.CategoryVO;
+import org.springframework.lang.Nullable;
+
+import java.util.List;
 
 /**
  * @author ZFJ
@@ -36,6 +40,15 @@ public interface FlowProcessService extends IService<FlowProcess> {
      * @param param 流程模型参数
      */
     void releaseFlowProcess(FlowProcessParam param);
+
+    /**
+     * 查询流程列表 基于分组分类返回, 有流程名称搜索返回命中的分组及其流程，没搜索返回所有分组 <br>
+     * 一个流程可能三种状态数据：草稿、发布、历史<br>
+     * 返回流程数据逻辑：有发布返回发布，没有返回草稿，历史在列表不返回
+     * @param processName 根据流程名称左右模糊搜索，支持为空
+     * @return 流程列表
+     */
+    List<CategoryVO> listFlowProcess(@Nullable String processName);
 
 
 

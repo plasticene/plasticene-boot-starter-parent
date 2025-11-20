@@ -5,7 +5,7 @@ import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.RequestUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
-import com.plasticene.boot.flow.core.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;

@@ -1,12 +1,11 @@
 package com.plasticene.boot.flow.core.provider;
 
-import com.plasticene.boot.flow.core.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * @author ZFJ

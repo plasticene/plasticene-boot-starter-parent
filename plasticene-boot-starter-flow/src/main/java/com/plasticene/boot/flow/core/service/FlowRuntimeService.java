@@ -1,7 +1,7 @@
 package com.plasticene.boot.flow.core.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.plasticene.boot.flow.core.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 

@@ -1,4 +1,4 @@
-package com.plasticene.boot.flow.core.param;
+package com.plasticene.boot.flow.core.model.param;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;

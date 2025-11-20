@@ -3,10 +3,10 @@ package com.plasticene.boot.flow.core.parser;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
-import com.plasticene.boot.flow.core.dto.ProcessConditionGroup;
-import com.plasticene.boot.flow.core.dto.ProcessConditionRule;
-import com.plasticene.boot.flow.core.dto.ProcessNode;
-import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
+import com.plasticene.boot.flow.core.model.dto.ProcessConditionGroup;
+import com.plasticene.boot.flow.core.model.dto.ProcessConditionRule;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
 
 import java.util.*;

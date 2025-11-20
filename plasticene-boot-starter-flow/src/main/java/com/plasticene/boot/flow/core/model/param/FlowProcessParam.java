@@ -1,6 +1,6 @@
-package com.plasticene.boot.flow.core.param;
+package com.plasticene.boot.flow.core.model.param;
 
-import com.plasticene.boot.flow.core.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.web.core.validator.Insert;
 import com.plasticene.boot.web.core.validator.Update;
 import io.swagger.v3.oas.annotations.media.Schema;

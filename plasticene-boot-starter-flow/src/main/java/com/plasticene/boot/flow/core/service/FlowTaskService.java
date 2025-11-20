@@ -1,9 +1,9 @@
 package com.plasticene.boot.flow.core.service;
 
-import com.plasticene.boot.flow.core.dto.ProcessNode;
-import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
-import com.plasticene.boot.flow.core.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 
 /**
  * @author ZFJ

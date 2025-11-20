@@ -1,10 +1,10 @@
 package com.plasticene.boot.flow.core.executor;
 
 import cn.hutool.core.collection.CollUtil;
-import com.plasticene.boot.flow.core.dto.ProcessConditionGroup;
-import com.plasticene.boot.flow.core.dto.ProcessConditionRule;
-import com.plasticene.boot.flow.core.dto.ProcessNode;
-import com.plasticene.boot.flow.core.dto.ProcessNodeCondition;
+import com.plasticene.boot.flow.core.model.dto.ProcessConditionGroup;
+import com.plasticene.boot.flow.core.model.dto.ProcessConditionRule;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowConditionTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;

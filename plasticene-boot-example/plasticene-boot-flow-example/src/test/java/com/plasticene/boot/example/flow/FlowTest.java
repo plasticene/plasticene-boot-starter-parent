@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow;
 
-import com.plasticene.boot.flow.core.dto.ProcessConditionRule;
-import com.plasticene.boot.flow.core.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.ProcessConditionRule;
+import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.factory.OperatorFactory;
 import com.plasticene.boot.flow.core.operator.Operator;

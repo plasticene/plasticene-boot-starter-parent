@@ -1,4 +1,4 @@
-package com.plasticene.boot.flow.core.dto;
+package com.plasticene.boot.flow.core.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
