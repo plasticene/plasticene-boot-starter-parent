@@ -81,12 +81,8 @@ public class FlowTest {
 
     @Test
     public void testSelectInstanceForUpdate() throws ExecutionException, InterruptedException {
-        Future<?> future1 = executorService.submit(() -> {
-            flowRuntimeServiceTest.selectInstanceForUpdate(8L);
-        });
-        Future<?> future2 = executorService.submit(() -> {
-            flowRuntimeServiceTest.selectInstanceForUpdate(8L);
-        });
+        Future<?> future1 = executorService.submit(() -> flowRuntimeServiceTest.selectInstanceForUpdate(8L));
+        Future<?> future2 = executorService.submit(() -> flowRuntimeServiceTest.selectInstanceForUpdate(8L));
         future1.get();
         future2.get();
     }
