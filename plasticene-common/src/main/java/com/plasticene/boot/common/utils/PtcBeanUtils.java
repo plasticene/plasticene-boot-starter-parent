@@ -7,7 +7,9 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 
 import java.beans.PropertyDescriptor;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -19,31 +21,73 @@ public class PtcBeanUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(PtcBeanUtils.class);
 
-    public static <A, B> B copy(A a, Class<B> clazz) {
-        if (a == null || clazz == null) {
+    /**
+     * 拷贝属性，生成目标类
+     * @param source 源对象
+     * @param clazz 目标类class
+     */
+    public static <S, T> T copy(S source, Class<T> clazz) {
+        if (source == null || clazz == null) {
             return null;
         }
-
         try {
-            B b = clazz.getDeclaredConstructor().newInstance();
-            BeanUtils.copyProperties(a, b);
-            return b;
+            T target = clazz.getDeclaredConstructor().newInstance();
+            BeanUtils.copyProperties(source, target);
+            return target;
         } catch (Exception e) {
-            logger.error("PtcBeanUtils#copy error.", e);
+            logger.error("PtcBeanUtils#copy error:", e);
         }
         return null;
     }
 
-    public static <A, B> void copy(A a, B b) {
-        if (a == null || b == null) {
+    /**
+     * 拷贝属性
+     * @param source 源对象
+     * @param target 目标对象
+     */
+    public static <S, T> void copy(S source, T target) {
+        if (source == null || target == null) {
             return;
         }
         try {
-            BeanUtils.copyProperties(a, b);
+            BeanUtils.copyProperties(source, target);
         } catch (Exception e) {
-            logger.error("PtcBeanUtils#copy error.", e);
+            logger.error("PtcBeanUtils#copy error:", e);
         }
     }
+
+    /**
+     * 拷贝list
+     * @param sourceList 源对象list
+     * @param clazz 目标类class
+     */
+    public static <S, T> List<T> copyList(List<S> sourceList, Class<T> clazz) {
+        if (sourceList == null || clazz == null) {
+            return new ArrayList<>();
+        }
+        List<T> targetList = new ArrayList<>(sourceList.size());
+        for (S source : sourceList) {
+            T target = copy(source, clazz);
+            targetList.add(target);
+        }
+        return targetList;
+    }
+
+    /**
+     * 拷贝属性，不覆盖target中已有的非null值
+     * @param source 源对象
+     * @param target 目标对象
+     */
+    public static void copyPropertiesSkipExisting(Object source, Object target) {
+        if (source == null || target == null) {
+            return;
+        }
+        // 获取target中非null的字段名
+        String[] nonNullProperties = getNonNullPropertyNames(target);
+        // 使用Spring的BeanUtils，忽略target中非null的字段
+        BeanUtils.copyProperties(source, target, nonNullProperties);
+    }
+
 
     /**
      * 拷贝属性，忽略源对象中的null值
@@ -76,20 +120,6 @@ public class PtcBeanUtils {
         return emptyNames.toArray(new String[0]);
     }
 
-    /**
-     * 拷贝属性，不覆盖target中已有的非null值
-     * @param source 源对象
-     * @param target 目标对象
-     */
-    public static void copyPropertiesSkipExisting(Object source, Object target) {
-        if (source == null || target == null) {
-            return;
-        }
-        // 获取target中非null的字段名
-        String[] nonNullProperties = getNonNullPropertyNames(target);
-        // 使用Spring的BeanUtils，忽略target中非null的字段
-        BeanUtils.copyProperties(source, target, nonNullProperties);
-    }
 
     /**
      * 获取对象中非null的属性名数组
