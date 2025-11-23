@@ -10,12 +10,16 @@ public class FlowProcessNodeEnum {
 
     @Getter
     public enum Type {
+        // 0-10 操作节点
         END(-1, "结束节点"),
         START(0, "开始节点"),
         APPROVE(1, "审批节点"),
         COPY(2, "抄送节点"),
-        CONDITION_NODE(3, "条件结点"),
-        CONDITION_BRANCH(4, "条件分支")
+
+        // 10-20 条件节点及分支
+        CONDITION_NODE(10, "条件结点"),
+        CONDITION_BRANCH(11, "条件分支"),
+        PARALLEL_BRANCH(12, "并行分支")
         ;
 
         private final Integer code;

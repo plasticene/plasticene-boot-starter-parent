@@ -47,10 +47,25 @@ public class ProcessInstanceExecutor {
         if (Objects.equals(type, FlowProcessNodeEnum.Type.CONDITION_BRANCH.getCode())) {
             handleConditionBranch(instance, currentNode);
         }
+        if (Objects.equals(type, FlowProcessNodeEnum.Type.PARALLEL_BRANCH.getCode())) {
+            handleParallelBranch(instance, currentNode);
+        }
     }
 
     public void moveToNextNode(FlowInstance instance, ProcessNode currentNode) {
         ProcessNode nextNode = FlowParser.findExecutionNextNode(currentNode);
+        ProcessNode parentNode = nextNode.getParentNode();
+        // 如果要执行的下一个节点的父节点是并行分支，需要判断所有分支是否已经执行，才能流入下一个节点
+        if (Objects.equals(parentNode.getType(), FlowProcessNodeEnum.Type.PARALLEL_BRANCH.getCode())) {
+            // 并行分支完成分支数+1，并返回最新完成分支数
+            int completedBranch = flowTaskService.incrementCompletedBranchAndGet(instance.getId(), parentNode.getKey());
+            // 并行分支数
+            int branches = parentNode.getConditionNodes().size();
+            if (completedBranch != branches) {
+                // 完成的分支数不等于并行分支数，不流入下一个节点
+                return;
+            }
+        }
         executeNode(instance, nextNode);
     }
 
@@ -93,7 +108,7 @@ public class ProcessInstanceExecutor {
     }
 
     private void handleConditionBranch(FlowInstance instance, ProcessNode currentNode) {
-        flowTaskService.createConditionBranchTask(instance, currentNode);
+        flowTaskService.createBranchTask(instance, currentNode);
         List<ProcessNodeCondition> conditionNodes = currentNode.getConditionNodes();
         for (ProcessNodeCondition conditionNode : conditionNodes) {
             boolean match = handleConditionNode(instance, conditionNode);
@@ -160,6 +175,24 @@ public class ProcessInstanceExecutor {
             }
         }
         return andMatch;
+    }
+
+    private void handleParallelBranch(FlowInstance instance, ProcessNode currentNode) {
+        flowTaskService.createBranchTask(instance, currentNode);
+        // 并行分支下的条件节点是不配置条件的，直接进入条件节点的下一个节点
+        List<ProcessNodeCondition> conditionNodes = currentNode.getConditionNodes();
+        for (ProcessNodeCondition conditionNode : conditionNodes) {
+            // 条件节点是否有子节点
+            ProcessNode childNode = conditionNode.getChildNode();
+            if (childNode != null) {
+                // 有，流转到条件节点的子节点
+                executeNode(instance, childNode);
+            } else {
+                // 没有子节点，那就回退到当前条件分支，执行条件分支节点的子节点
+                moveToNextNode(instance, currentNode);
+            }
+        }
+
     }
 
 

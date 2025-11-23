@@ -2,6 +2,7 @@ package com.plasticene.boot.flow.core.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
@@ -57,7 +58,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
             FlowTask task = buildFlowTask(instance, currentNode);
             task.setEndTime(LocalDateTime.now());
             task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
-            task.setComment("系统自动审批通过");
+            task.setComment("系统自动通过");
             flowTaskDAO.insert(task);
         }
         // 自动拒绝
@@ -106,6 +107,16 @@ public class FlowTaskServiceImpl implements FlowTaskService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
+    public void createStartTask(FlowInstance instance, ProcessNode currentNode) {
+        FlowTask task = buildFlowTask(instance, currentNode);
+        task.setEndTime(LocalDateTime.now());
+        task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+        task.setAssignee(instance.getUserId());
+        flowTaskDAO.insert(task);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
     public void createEndTask(FlowInstance instance, ProcessNode currentNode) {
         FlowTask task = buildFlowTask(instance, currentNode);
         task.setEndTime(LocalDateTime.now());
@@ -115,7 +126,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void createConditionBranchTask(FlowInstance instance, ProcessNode currentNode) {
+    public void createBranchTask(FlowInstance instance, ProcessNode currentNode) {
         FlowTask task = buildFlowTask(instance, currentNode);
         task.setEndTime(LocalDateTime.now());
         task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
@@ -213,14 +224,14 @@ public class FlowTaskServiceImpl implements FlowTaskService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void createStartTask(FlowInstance instance, ProcessNode currentNode) {
-        FlowTask task = buildFlowTask(instance, currentNode);
-        task.setEndTime(LocalDateTime.now());
-        task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
-        task.setAssignee(instance.getUserId());
-        flowTaskDAO.insert(task);
+    public int incrementCompletedBranchAndGet(Long instanceId, String nodeKey) {
+        flowTaskDAO.incrementCompletedBranch(instanceId, nodeKey);
+        LambdaQueryWrapper<FlowTask> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(FlowTask::getInstanceId, instanceId);
+        queryWrapper.eq(FlowTask::getNodeKey, nodeKey);
+        FlowTask flowTask = flowTaskDAO.selectOne(queryWrapper);
+        return flowTask.getCompletedBranch();
     }
-
 
     private void completeTask(Long taskId, String comment, FlowTaskStatusEnum statusEnum) {
         FlowTask task = new FlowTask();

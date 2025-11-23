@@ -19,13 +19,21 @@ public interface FlowTaskService {
 
     void createEndTask(FlowInstance instance, ProcessNode currentNode);
 
-    void createConditionBranchTask(FlowInstance instance, ProcessNode currentNode);
+    void createBranchTask(FlowInstance instance, ProcessNode currentNode);
 
     void createConditionNodeTask(FlowInstance instance, ProcessNodeCondition conditionNode);
 
     void approveTask(FlowTaskParam param);
 
     void rejectTask(FlowTaskParam param);
+
+    /**
+     * 并行分支任务完成的分支数量+1
+     * @param instanceId 实例id
+     * @param nodeKey 并行分支节点key
+     * @return 最新完成分支数量
+     */
+    int incrementCompletedBranchAndGet(Long instanceId, String nodeKey);
 
 
 }

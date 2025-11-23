@@ -74,4 +74,9 @@ public class FlowTask extends BaseDO {
      * 是否需要填写审批意见  0：否  1：是
      */
     private Integer requireComment;
+
+    /**
+     * 并行分支完成的分支数
+     */
+    private Integer completedBranch;
 }

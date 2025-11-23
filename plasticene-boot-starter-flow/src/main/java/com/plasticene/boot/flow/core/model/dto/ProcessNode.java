@@ -30,7 +30,8 @@ public class ProcessNode {
 
     /**
      * 节点类型
-     * -1：结束节点   0：发起人   1：审批人   2：抄送人   3：条件节点   4：条件分支
+     * -1：结束节点   0：发起人   1：审批人   2：抄送人   3：条件节点   4：条件分支 <br>
+     * 关联枚举类{@link com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum.Type}
      */
     @Schema(description = "节点类型 -1：结束节点 0：发起人 1：审批人 2：抄送人 3：条件节点 4：条件分支")
     private Integer type;
