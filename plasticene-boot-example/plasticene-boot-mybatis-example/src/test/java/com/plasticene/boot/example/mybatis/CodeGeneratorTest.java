@@ -3,7 +3,6 @@ package com.plasticene.boot.example.mybatis;
 import com.baomidou.mybatisplus.generator.FastAutoGenerator;
 import com.baomidou.mybatisplus.generator.engine.FreemarkerTemplateEngine;
 import com.baomidou.mybatisplus.generator.model.ClassAnnotationAttributes;
-import lombok.Data;
 
 
 /**
