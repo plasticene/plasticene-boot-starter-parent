@@ -60,6 +60,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
             task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
             task.setComment("系统自动通过");
             flowTaskDAO.insert(task);
+            return;
         }
         // 自动拒绝
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_REJECT.getCode())) {
@@ -68,10 +69,13 @@ public class FlowTaskServiceImpl implements FlowTaskService {
             task.setStatus(FlowTaskStatusEnum.REJECT.getCode());
             task.setComment("系统自动拒绝");
             flowTaskDAO.insert(task);
+            return;
         }
         // 人工手动审批
-        if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.MANUAL.getCode())) {
-            List<Long> assignees = flowTaskAssigneeProvider.getAssignees(currentNode);
+        List<Long> assignees = flowTaskAssigneeProvider.getAssignees(currentNode);
+        Integer approveMode = currentNode.getApproveMode();
+        // 不是顺序审批 即会签或者或签
+        if (!Objects.equals(approveMode, FlowProcessNodeEnum.ApproveMode.ORDER.getCode())) {
             List<FlowTask> taskList = new ArrayList<>();
             assignees.forEach(assignee -> {
                 FlowTask task = buildFlowTask(instance, currentNode);
@@ -79,13 +83,15 @@ public class FlowTaskServiceImpl implements FlowTaskService {
                 task.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
                 taskList.add(task);
             });
-            if (CollUtil.isNotEmpty(taskList)) {
-                flowTaskDAO.insert(taskList);
-            }
-            // todo 审批模式为顺序审批时，需适配
+            flowTaskDAO.insert(taskList);
+            return;
         }
-
-
+        // 顺序审批
+        FlowTask task = buildFlowTask(instance, currentNode);
+        task.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
+        task.setAssignee(assignees.getFirst());
+        task.setAssigneeList(assignees);
+        flowTaskDAO.insert(task);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -162,9 +168,10 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         String nodeKey = flowTask.getNodeKey();
         Integer approveMode = flowTask.getApproveMode();
         FlowInstance flowInstance = flowRuntimeService.selectInstanceForUpdate(instanceId);
+        // 完成任务
+        completeTask(taskId, comment, FlowTaskStatusEnum.COMPLETE);
         // 会签
         if (Objects.equals(approveMode, FlowProcessNodeEnum.ApproveMode.ALL.getCode())) {
-            completeTask(taskId, comment, FlowTaskStatusEnum.COMPLETE);
             boolean existed = existUncompletedTask(instanceId, nodeKey);
             // 会签存在其他人未审批
             if (existed) {
@@ -178,10 +185,28 @@ public class FlowTaskServiceImpl implements FlowTaskService {
             if (Objects.equals(flowTask.getIsDelete(), CommonConstant.IS_DEL)) {
                 throw new BizException("当前节点已审批，不能再审");
             }
-            completeTask(taskId, comment, FlowTaskStatusEnum.COMPLETE);
             deleteOtherTask(instanceId, nodeKey, taskId);
         }
-        // 顺序依次审批 todo
+        // 顺序审批
+        if (Objects.equals(approveMode, FlowProcessNodeEnum.ApproveMode.ORDER.getCode())) {
+            Long assignee = flowTask.getAssignee();
+            List<Long> assigneeList = flowTask.getAssigneeList();
+            int index = assigneeList.indexOf(assignee);
+            if (index < assigneeList.size() - 1) {
+                // 不是当前节点最后一个审批人，插入下一个审批人任务
+                flowTask.setId(null);
+                flowTask.setAssignee(assigneeList.get(index + 1));
+                flowTask.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
+                flowTask.setStartTime(LocalDateTime.now());
+                flowTask.setEndTime(null);
+                flowTask.setCreator(null);
+                flowTask.setUpdater(null);
+                flowTask.setCreateTime(null);
+                flowTask.setUpdateTime(null);
+                flowTaskDAO.insert(flowTask);
+                return;
+            }
+        }
 
         // 根据流程模型查找当前节点并流转下一个节点
         FlowProcess flowProcess = flowProcessService.getById(flowInstance.getProcessId());

@@ -1,12 +1,16 @@
 package com.plasticene.boot.flow.core.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * @author ZFJ
@@ -14,6 +18,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
+@TableName(value = "flow_task", autoResultMap = true)
 public class FlowTask extends BaseDO {
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -79,4 +84,9 @@ public class FlowTask extends BaseDO {
      * 并行分支完成的分支数
      */
     private Integer completedBranch;
+    /**
+     * 多人顺序审批时存放处理人
+     */
+    @TableField(typeHandler = LongListTypeHandler.class)
+    private List<Long> assigneeList;
 }
