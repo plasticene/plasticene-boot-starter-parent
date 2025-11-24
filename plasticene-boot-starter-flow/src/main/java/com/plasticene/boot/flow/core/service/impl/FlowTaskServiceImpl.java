@@ -193,7 +193,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
             List<Long> assigneeList = flowTask.getAssigneeList();
             int index = assigneeList.indexOf(assignee);
             if (index < assigneeList.size() - 1) {
-                // 不是当前节点最后一个审批人，插入下一个审批人任务
+                // 不是当前节点最后一个审批人，插入下一个审批人任务，不流入下个节点
                 flowTask.setId(null);
                 flowTask.setAssignee(assigneeList.get(index + 1));
                 flowTask.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
