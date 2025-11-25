@@ -41,6 +41,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     private ApplicationContext applicationContext;
 
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public long startFlowInstanceById(Long processId, Long businessId, Map<String, Object> varMap) {
         FlowProcess process = flowProcessService.getById(processId);
@@ -60,19 +61,21 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         instance.setCategory(process.getCategory());
         instance.setOrgId(process.getOrgId());
         instance.setStartTime(LocalDateTime.now());
+        instance.setStatus(FlowInstanceStatusEnum.RUNNING.getCode());
         instance.setCurrentNodeKey(processNode.getKey());
         instance.setCurrentNodeName(processNode.getName());
         LoginUser loginUser = RequestUserHolder.getLoginUser();
         instance.setUserId(loginUser.getId());
         flowInstanceDAO.insert(instance);
 
+        // 发布流程实例开始事件
+        InstanceEvent instanceEvent = buildInstanceEvent(instance, processNode, FlowInstanceEventTypeEnum.START);
+        applicationContext.publishEvent(instanceEvent);
+
         // 开始流转流程
         FlowParser.makeParentNode(processNode);
         processInstanceExecutor.executeNode(instance, processNode);
 
-        // 发布流程实例开始事件
-        InstanceEvent instanceEvent = buildInstanceEvent(instance, processNode, FlowInstanceEventTypeEnum.START);
-        applicationContext.publishEvent(instanceEvent);
         return instance.getId();
     }
 

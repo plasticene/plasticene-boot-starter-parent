@@ -83,7 +83,7 @@ public class ProcessInstanceExecutor {
      * 处理审批节点
      */
     private void handleApproveNode(FlowInstance instance, ProcessNode currentNode) {
-        flowTaskService.createApproveTask(instance, currentNode);
+        Long taskId = flowTaskService.createApproveTask(instance, currentNode);
         flowRuntimeService.updateInstanceCurrentNode(instance.getId(), currentNode);
         Integer approveType = currentNode.getApproveType();
         // 自动通过 → 流入下一个节点
@@ -92,6 +92,8 @@ public class ProcessInstanceExecutor {
         }
         // 自动拒绝 → 结束流程
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_REJECT.getCode())) {
+            instance.setStatus(FlowInstanceStatusEnum.REJECT.getCode());
+            flowTaskService.deleteOtherRunningTask(instance.getId(), taskId);
             flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
         }
     }
@@ -182,6 +184,11 @@ public class ProcessInstanceExecutor {
         // 并行分支下的条件节点是不配置条件的，直接进入条件节点的下一个节点
         List<ProcessNodeCondition> conditionNodes = currentNode.getConditionNodes();
         for (ProcessNodeCondition conditionNode : conditionNodes) {
+            Integer status = instance.getStatus();
+            if (!Objects.equals(status, FlowInstanceStatusEnum.RUNNING.getCode())) {
+                // 实例状态不是运行中，则结束 eg:第一个分支自动拒绝了，后续分支就没必要执行了
+                break;
+            }
             // 条件节点是否有子节点
             ProcessNode childNode = conditionNode.getChildNode();
             if (childNode != null) {

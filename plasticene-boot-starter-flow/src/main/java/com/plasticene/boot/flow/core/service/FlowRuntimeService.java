@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -18,6 +19,7 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @param processId 流程模型id
      * @return 实例id
      */
+    @Transactional(rollbackFor = Exception.class)
     default long startFlowInstanceById(Long processId) {
         return startFlowInstanceById(processId, null, null);
     }
@@ -28,6 +30,7 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @param businessId 申请业务id
      * @return 实例id
      */
+    @Transactional(rollbackFor = Exception.class)
     default long startFlowInstanceById(Long processId, Long businessId) {
         return startFlowInstanceById(processId, businessId, null);
     }

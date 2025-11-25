@@ -51,7 +51,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void createApproveTask(FlowInstance instance, ProcessNode currentNode) {
+    public Long createApproveTask(FlowInstance instance, ProcessNode currentNode) {
         Integer approveType = currentNode.getApproveType();
         // 自动通过
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_PASS.getCode())) {
@@ -60,7 +60,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
             task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
             task.setComment("系统自动通过");
             flowTaskDAO.insert(task);
-            return;
+            return task.getId();
         }
         // 自动拒绝
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_REJECT.getCode())) {
@@ -69,7 +69,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
             task.setStatus(FlowTaskStatusEnum.REJECT.getCode());
             task.setComment("系统自动拒绝");
             flowTaskDAO.insert(task);
-            return;
+            return task.getId();
         }
         // 人工手动审批
         List<Long> assignees = flowTaskAssigneeProvider.getAssignees(currentNode);
@@ -84,7 +84,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
                 taskList.add(task);
             });
             flowTaskDAO.insert(taskList);
-            return;
+            return null;
         }
         // 顺序审批
         FlowTask task = buildFlowTask(instance, currentNode);
@@ -92,6 +92,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         task.setAssignee(assignees.getFirst());
         task.setAssigneeList(assignees);
         flowTaskDAO.insert(task);
+        return task.getId();
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -185,7 +186,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
             if (Objects.equals(flowTask.getIsDelete(), CommonConstant.IS_DEL)) {
                 throw new BizException("当前节点已审批，不能再审");
             }
-            deleteOtherTask(instanceId, nodeKey, taskId);
+            deleteOtherRunningTask(instanceId, taskId);
         }
         // 顺序审批
         if (Objects.equals(approveMode, FlowProcessNodeEnum.ApproveMode.ORDER.getCode())) {
@@ -237,7 +238,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
             throw new BizException("当前节点已审批，不能再审");
         }
         completeTask(taskId, comment, FlowTaskStatusEnum.REJECT);
-        deleteOtherTask(instanceId, nodeKey, taskId);
+        deleteOtherRunningTask(instanceId, taskId);
 
         // 终止流程实例
         FlowProcess flowProcess = flowProcessService.getById(instance.getProcessId());
@@ -258,6 +259,17 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         return flowTask.getCompletedBranch();
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void deleteOtherRunningTask(Long instanceId, Long taskId) {
+        LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(FlowTask::getInstanceId, instanceId);
+        updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
+        updateWrapper.ne(FlowTask::getId, taskId);
+        updateWrapper.set(FlowTask::getIsDelete, CommonConstant.IS_DEL);
+        flowTaskDAO.update(updateWrapper);
+    }
+
     private void completeTask(Long taskId, String comment, FlowTaskStatusEnum statusEnum) {
         FlowTask task = new FlowTask();
         task.setId(taskId);
@@ -270,15 +282,6 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         if (update != 1) {
             throw new BizException("任务已经处理过，请勿重复处理");
         }
-    }
-
-    private void deleteOtherTask(Long instanceId, String nodeKey, Long taskId) {
-        LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(FlowTask::getInstanceId, instanceId);
-        updateWrapper.eq(FlowTask::getNodeKey, nodeKey);
-        updateWrapper.ne(FlowTask::getId, taskId);
-        updateWrapper.set(FlowTask::getIsDelete, CommonConstant.IS_DEL);
-        flowTaskDAO.update(updateWrapper);
     }
 
     private boolean existUncompletedTask(Long instanceId, String nodeKey) {
