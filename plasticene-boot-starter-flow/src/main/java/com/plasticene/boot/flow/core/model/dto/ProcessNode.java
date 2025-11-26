@@ -62,6 +62,27 @@ public class ProcessNode {
     private Integer leaderEndLevel;
 
     /**
+     * 当审批人与提交人同一人时处理方式
+     * 0：自己审批  1：自动跳过 2：转给直属上级审批  3：转给部门 负责人审批 <br>
+     * {@link com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum.SelfApprove}
+     */
+    @Schema(description = "当审批人与提交人同一人时处理方式 0：自己审批  1：自动跳过 2：转给直属上级审批  3：转给部门负责人审批 ")
+    private Integer selfApprove;
+
+    /**
+     * 当审批人为空时处理方式
+     * 0：自动通过  1：自动拒绝 2：指定人员审批  3：转给流程管理员<br>
+     * {@link com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum.AssigneeEmpty}
+     */
+    @Schema(description = "当审批人为空时处理方式 0：自动通过  1：自动拒绝 2：指定人员审批  3：转给流程管理员")
+    private Integer assigneeEmpty;
+    /**
+     * 当审批人为空时指定的人员
+     */
+    @Schema(description = "当审批人为空时指定的人员")
+    private List<Long> emptyUserIds;
+
+    /**
      * 审批类型 0：人工审批  1：自动通过 2：自动拒绝
      */
     @Schema(description = "审批类型 0：人工审批 1：自动通过 2：自动拒绝")

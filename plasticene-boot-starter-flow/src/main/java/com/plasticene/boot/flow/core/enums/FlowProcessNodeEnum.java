@@ -79,6 +79,40 @@ public class FlowProcessNodeEnum {
         }
     }
 
+    @Getter
+    public enum SelfApprove {
+        MANUAL(0,"由提交人对自己审批"),
+        AUTO_SKIP(1, "自动跳过"),
+        TO_LEADER(2, "转给直属领导审批"),
+        TO_DEPT_LEADER(3, "转给部门领导审批")
+        ;
+
+        private final Integer code;
+        private final String name;
+
+        SelfApprove(Integer code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+    }
+
+    @Getter
+    public enum AssigneeEmpty {
+        AUTO_APPROVE(0, "自动通过"),
+        AUTO_REJECT(1, "自动拒绝"),
+        TO_USER(2,"指定人员审批"),
+        TO_MANAGER(3, "转给管理员审批")
+        ;
+
+        private final Integer code;
+        private final String name;
+
+        AssigneeEmpty(Integer code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+    }
+
 
 
 
