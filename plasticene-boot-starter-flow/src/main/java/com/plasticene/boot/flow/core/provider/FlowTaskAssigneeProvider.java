@@ -11,4 +11,8 @@ import java.util.List;
 public interface FlowTaskAssigneeProvider {
 
     List<Long> getAssignees(ProcessNode currentNode);
+
+    Long getLeader(Long userId);
+
+    Long getDeptLeader(Long userId);
 }

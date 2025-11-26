@@ -24,4 +24,14 @@ public class DefaultFlowTaskAssigneeProvider implements FlowTaskAssigneeProvider
         return Collections.emptyList();
     }
 
+    @Override
+    public Long getLeader(Long userId) {
+        return 0L;
+    }
+
+    @Override
+    public Long getDeptLeader(Long userId) {
+        return 0L;
+    }
+
 }

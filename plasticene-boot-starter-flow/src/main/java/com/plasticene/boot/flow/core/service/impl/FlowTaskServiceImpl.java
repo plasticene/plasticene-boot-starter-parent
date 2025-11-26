@@ -297,6 +297,65 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         return flowTaskDAO.selectList(queryWrapper);
     }
 
+    private List<Long> processAssigneeEmpty(FlowInstance instance, ProcessNode currentNode) {
+        List<Long> assignees = flowTaskAssigneeProvider.getAssignees(currentNode);
+        if (CollUtil.isEmpty(assignees)) {
+            // 处理审批人为空
+            Integer assigneeEmpty = currentNode.getAssigneeEmpty();
+            if (Objects.equals(assigneeEmpty, FlowProcessNodeEnum.AssigneeEmpty.AUTO_APPROVE.getCode())) {
+                FlowTask task = buildFlowTask(instance, currentNode);
+                task.setEndTime(LocalDateTime.now());
+                task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+                task.setComment("审批人为空，系统自动通过");
+                flowTaskDAO.insert(task);
+            }
+            if (Objects.equals(assigneeEmpty, FlowProcessNodeEnum.AssigneeEmpty.AUTO_REJECT.getCode())) {
+                FlowTask task = buildFlowTask(instance, currentNode);
+                task.setEndTime(LocalDateTime.now());
+                task.setStatus(FlowTaskStatusEnum.REJECT.getCode());
+                task.setComment("审批人为空，系统自动拒绝");
+                flowTaskDAO.insert(task);
+            }
+            if (Objects.equals(assigneeEmpty, FlowProcessNodeEnum.AssigneeEmpty.TO_USER.getCode())) {
+                assignees = currentNode.getEmptyUserIds();
+            }
+            if (Objects.equals(assigneeEmpty, FlowProcessNodeEnum.AssigneeEmpty.TO_MANAGER.getCode())) {
+                FlowProcess process = flowProcessService.getById(instance.getProcessId());
+                assignees = process.getManagerUserIds();
+            }
+        }
+        return assignees;
+    }
+
+    private void processSelfApprove(FlowInstance instance, ProcessNode currentNode, List<Long> assignees) {
+        Long userId = instance.getUserId();
+        if (CollUtil.isEmpty(assignees) || !assignees.contains(userId)) {
+            return;
+        }
+        Integer selfApprove = currentNode.getSelfApprove();
+        if (Objects.equals(selfApprove, FlowProcessNodeEnum.SelfApprove.MANUAL.getCode())) {
+            return;
+        }
+        if (Objects.equals(selfApprove, FlowProcessNodeEnum.SelfApprove.AUTO_SKIP.getCode())) {
+            if (assignees.size() == 1) {
+                FlowTask task = buildFlowTask(instance, currentNode);
+                task.setEndTime(LocalDateTime.now());
+                task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+                task.setComment("审批人为空，系统自动通过");
+                return;
+            }
+            assignees.remove(userId);
+        }
+        if (Objects.equals(selfApprove, FlowProcessNodeEnum.SelfApprove.TO_LEADER.getCode())) {
+            Long leaderId = flowTaskAssigneeProvider.getLeader(userId);
+            assignees.set(assignees.indexOf(userId), leaderId);
+        }
+        if (Objects.equals(selfApprove, FlowProcessNodeEnum.SelfApprove.TO_DEPT_LEADER.getCode())) {
+            Long leaderId = flowTaskAssigneeProvider.getDeptLeader(userId);
+            assignees.set(assignees.indexOf(userId), leaderId);
+        }
+    }
+
 
     private FlowTask buildFlowTask(FlowInstance instance, ProcessNode currentNode) {
         FlowTask task = new FlowTask();
