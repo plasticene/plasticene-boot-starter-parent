@@ -11,8 +11,8 @@ spring:
     username: root
     password: root
     url: jdbc:mysql://127.0.0.1:3306/ptc_flow?&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&allowMultiQueries=true
-  main:
-    allow-circular-references: true
+#  main:
+#    allow-circular-references: true
 
 
 logging:
