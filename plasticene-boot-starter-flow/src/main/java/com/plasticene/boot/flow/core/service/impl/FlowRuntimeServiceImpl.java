@@ -18,6 +18,7 @@ import com.plasticene.boot.flow.core.service.FlowProcessService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import jakarta.annotation.Resource;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Resource
     private FlowProcessService flowProcessService;
     @Resource
+    @Lazy
     private ProcessInstanceExecutor processInstanceExecutor;
     @Resource
     private ApplicationContext applicationContext;
@@ -97,12 +99,16 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void endInstance(FlowInstance instance, ProcessNode currentNode, FlowInstanceStatusEnum status) {
+        // 更新按照规范只更新必须的字段
         FlowInstance updateInstance = new FlowInstance();
         updateInstance.setId(instance.getId());
         updateInstance.setStatus(status.getCode());
         updateInstance.setEndTime(LocalDateTime.now());
+        updateInstance.setCurrentNodeKey(currentNode.getKey());
+        updateInstance.setCurrentNodeName(currentNode.getName());
         flowInstanceDAO.updateById(updateInstance);
-
+        // 上下文instance需要传递最新状态
+        instance.setStatus(status.getCode());
         // 发布流程结束事件
         InstanceEvent instanceEvent = buildInstanceEvent(instance, currentNode, FlowInstanceEventTypeEnum.END);
         applicationContext.publishEvent(instanceEvent);

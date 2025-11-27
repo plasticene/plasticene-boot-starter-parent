@@ -83,8 +83,8 @@ public class ProcessInstanceExecutor {
      * 处理审批节点
      */
     private void handleApproveNode(FlowInstance instance, ProcessNode currentNode) {
-        Long taskId = flowTaskService.createApproveTask(instance, currentNode);
         flowRuntimeService.updateInstanceCurrentNode(instance.getId(), currentNode);
+        flowTaskService.createApproveTask(instance, currentNode);
         Integer approveType = currentNode.getApproveType();
         // 自动通过 → 流入下一个节点
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_PASS.getCode())) {
@@ -92,8 +92,7 @@ public class ProcessInstanceExecutor {
         }
         // 自动拒绝 → 结束流程
         if (Objects.equals(approveType, FlowProcessNodeEnum.ApproveType.AUTO_REJECT.getCode())) {
-            instance.setStatus(FlowInstanceStatusEnum.REJECT.getCode());
-            flowTaskService.deleteOtherRunningTask(instance.getId(), taskId);
+            flowTaskService.delInstanceRunningTask(instance.getId());
             flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
         }
     }
@@ -105,7 +104,6 @@ public class ProcessInstanceExecutor {
 
     private void handleEndNode(FlowInstance instance, ProcessNode currentNode) {
         flowTaskService.createEndTask(instance, currentNode);
-        flowRuntimeService.updateInstanceCurrentNode(instance.getId(), currentNode);
         flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.APPROVE);
     }
 

@@ -13,7 +13,7 @@ public interface FlowTaskService {
 
     void createStartTask(FlowInstance instance, ProcessNode currentNode);
 
-    Long createApproveTask(FlowInstance instance, ProcessNode currentNode);
+    void createApproveTask(FlowInstance instance, ProcessNode currentNode);
 
     void createCopyTask(FlowInstance instance, ProcessNode currentNode);
 
@@ -36,12 +36,10 @@ public interface FlowTaskService {
     int incrementCompletedBranchAndGet(Long instanceId, String nodeKey);
 
     /**
-     * 删除其他正在执行中的任务.
-     * 暴露该接口方法主要用于并行分支中自动拒绝之后，其他分支进行中的任务要删除掉
+     * 删除流程实例下其他正在执行中的任务.
      * @param instanceId 实例id
-     * @param taskId 当前任务id
      */
-    void deleteOtherRunningTask(Long instanceId, Long taskId);
+    void delInstanceRunningTask(Long instanceId);
 
 
 }

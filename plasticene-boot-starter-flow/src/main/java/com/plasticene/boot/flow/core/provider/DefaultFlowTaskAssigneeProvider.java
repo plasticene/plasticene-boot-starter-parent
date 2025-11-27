@@ -3,7 +3,7 @@ package com.plasticene.boot.flow.core.provider;
 import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -21,7 +21,7 @@ public class DefaultFlowTaskAssigneeProvider implements FlowTaskAssigneeProvider
         }
 
         // todo 其他类型需完善
-        return Collections.emptyList();
+        return new ArrayList<>();
     }
 
     @Override
