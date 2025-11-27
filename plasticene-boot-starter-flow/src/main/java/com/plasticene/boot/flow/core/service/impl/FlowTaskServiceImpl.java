@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
+import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
@@ -15,7 +16,6 @@ import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
-import com.plasticene.boot.flow.core.executor.ProcessInstanceExecutor;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
@@ -47,7 +47,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
     private FlowRuntimeService flowRuntimeService;
     @Resource
     @Lazy
-    private ProcessInstanceExecutor processInstanceExecutor;
+    private ProcessExecutor processExecutor;
     @Resource
     private FlowProcessService flowProcessService;
 
@@ -117,7 +117,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         if (Objects.equals(assigneeEmpty, FlowProcessNodeEnum.AssigneeEmpty.AUTO_APPROVE.getCode())) {
             createAutoApproveTask(instance, currentNode, FlowTaskStatusEnum.COMPLETE, "审批人为空，系统自动通过");
             // 移动到下一个节点
-            processInstanceExecutor.moveToNextNode(instance, currentNode);
+            processExecutor.moveToNextNode(instance, currentNode);
         }
         // 自动拒绝
         if (Objects.equals(assigneeEmpty, FlowProcessNodeEnum.AssigneeEmpty.AUTO_REJECT.getCode())) {
@@ -157,7 +157,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
                 task.setComment("审批人与提交人是同一人，系统自动通过");
                 flowTaskDAO.insert(task);
                 // 移动到下一个节点
-                processInstanceExecutor.moveToNextNode(instance, currentNode);
+                processExecutor.moveToNextNode(instance, currentNode);
             }
             // 如果当前节点有多个人，剔除自己
             assignees.remove(userId);
@@ -294,7 +294,7 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         ProcessNode processNode = flowProcess.getProcessNode();
         FlowParser.makeParentNode(processNode);
         ProcessNode currentNode = FlowParser.findNodeByKey(processNode, nodeKey);
-        processInstanceExecutor.moveToNextNode(flowInstance, currentNode);
+        processExecutor.moveToNextNode(flowInstance, currentNode);
     }
 
     @Transactional(rollbackFor = Exception.class)

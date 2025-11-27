@@ -21,15 +21,17 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
+ * <b>流程执行器</b>: 节点流转中枢
  * @author ZFJ
  * @date 2025/9/2
  */
-public class ProcessInstanceExecutor {
+public class DefaultProcessExecutor implements ProcessExecutor {
     @Resource
     private FlowTaskService flowTaskService;
     @Resource
     private FlowRuntimeService flowRuntimeService;
 
+    @Override
     public void executeNode(FlowInstance instance, ProcessNode currentNode) {
         Integer type = currentNode.getType();
         if (Objects.equals(type, FlowProcessNodeEnum.Type.START.getCode())) {

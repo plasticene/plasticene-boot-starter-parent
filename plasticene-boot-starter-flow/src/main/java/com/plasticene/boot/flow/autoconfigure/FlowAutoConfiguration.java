@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.autoconfigure;
 
-import com.plasticene.boot.flow.core.executor.ProcessInstanceExecutor;
+import com.plasticene.boot.flow.core.executor.DefaultProcessExecutor;
+import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.provider.DefaultFlowTaskAssigneeProvider;
 import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
 import org.mybatis.spring.annotation.MapperScan;
@@ -23,8 +24,8 @@ public class FlowAutoConfiguration {
     }
 
     @Bean
-    public ProcessInstanceExecutor processInstanceExecutor () {
-        return new ProcessInstanceExecutor();
+    public ProcessExecutor processExecutor () {
+        return new DefaultProcessExecutor();
     }
 
 

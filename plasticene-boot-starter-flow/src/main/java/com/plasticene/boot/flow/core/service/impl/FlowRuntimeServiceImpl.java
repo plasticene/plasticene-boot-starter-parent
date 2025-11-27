@@ -5,6 +5,7 @@ import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.RequestUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
+import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
@@ -12,7 +13,6 @@ import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowProcessStatusEnum;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
-import com.plasticene.boot.flow.core.executor.ProcessInstanceExecutor;
 import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.service.FlowProcessService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
@@ -38,7 +38,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     private FlowProcessService flowProcessService;
     @Resource
     @Lazy
-    private ProcessInstanceExecutor processInstanceExecutor;
+    private ProcessExecutor processExecutor;
     @Resource
     private ApplicationContext applicationContext;
 
@@ -76,7 +76,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
         // 开始流转流程
         FlowParser.makeParentNode(processNode);
-        processInstanceExecutor.executeNode(instance, processNode);
+        processExecutor.executeNode(instance, processNode);
 
         return instance.getId();
     }
