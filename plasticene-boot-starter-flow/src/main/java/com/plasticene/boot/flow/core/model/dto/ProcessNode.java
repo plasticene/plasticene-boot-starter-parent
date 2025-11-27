@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.ToString;
@@ -14,6 +15,8 @@ import java.util.List;
 @Data
 // 解决toString循环问题
 @ToString(exclude = {"parentNode"})
+// 序列化的时候忽略null字段，解决数据库很多null无效字段信息
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ProcessNode {
 
     /**
