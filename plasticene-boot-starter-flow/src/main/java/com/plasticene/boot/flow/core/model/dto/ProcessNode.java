@@ -121,7 +121,7 @@ public class ProcessNode {
     /**
      * 父节点 逻辑字段后端用
      */
-    @Schema(description = "父节点  后端使用，前端不需要传")
+    @Schema(description = "父节点  后端使用，前端不需要传", hidden = true)
     private ProcessNode parentNode;
 }
 
