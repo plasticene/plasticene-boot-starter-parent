@@ -1,5 +1,6 @@
 package com.plasticene.boot.example.flow;
 
+import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.ProcessConditionRule;
 import com.plasticene.boot.flow.core.model.dto.ProcessNode;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 
 /**
@@ -26,6 +28,8 @@ public class FlowTest {
     private FlowProcessService flowProcessService;
     @Resource
     private FlowRuntimeServiceTest flowRuntimeServiceTest;
+    @Resource
+    private ProcessExecutor processExecutor;
 
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -85,6 +89,14 @@ public class FlowTest {
         Future<?> future2 = executorService.submit(() -> flowRuntimeServiceTest.selectInstanceForUpdate(8L));
         future1.get();
         future2.get();
+    }
+
+    @Test
+    public void testCalculateRoute() {
+        FlowProcess flowProcess = flowProcessService.getById(26L);
+        ProcessNode processNode = flowProcess.getProcessNode();
+        List<ProcessNode> route = processExecutor.calculateRoute(processNode, Map.of("day", 8));
+        System.out.println(route);
     }
 
 
