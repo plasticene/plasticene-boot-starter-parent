@@ -16,6 +16,7 @@ import com.plasticene.boot.flow.core.service.FlowTaskService;
 import com.plasticene.boot.flow.core.operator.Operator;
 import jakarta.annotation.Resource;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -72,6 +73,50 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         executeNode(instance, nextNode);
     }
 
+    @Override
+    public List<ProcessNode> calculateRoute(ProcessNode processNode, Map<String, Object> varMap) {
+        List<ProcessNode> routeNodes = new ArrayList<>();
+        calculateRoute(processNode, varMap, routeNodes);
+        return routeNodes;
+    }
+
+    private void calculateRoute(ProcessNode processNode, Map<String, Object> varMap, List<ProcessNode> routeNodes) {
+        if (processNode == null) {
+            return;
+        }
+        Integer type = processNode.getType();
+        // 节点类型为开始节点、结束节点、抄送节点、审批节点时，加入路径
+        if (Objects.equals(type, FlowProcessNodeEnum.Type.START.getCode())
+                || Objects.equals(type, FlowProcessNodeEnum.Type.END.getCode())
+                || Objects.equals(type, FlowProcessNodeEnum.Type.COPY.getCode())
+                || Objects.equals(type, FlowProcessNodeEnum.Type.APPROVE.getCode())) {
+            routeNodes.add(processNode);
+        }
+        // 条件分支
+        if (Objects.equals(type, FlowProcessNodeEnum.Type.CONDITION_BRANCH.getCode())) {
+            List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
+            for (ProcessNodeCondition conditionNode : conditionNodes) {
+                boolean match = handleConditionNode(varMap, conditionNode);
+                if (match) {
+                    // 递归条件节点下的子节点，没有子节点那就return
+                    calculateRoute(conditionNode.getChildNode(), varMap, routeNodes);
+                    break;
+                }
+            }
+        }
+        // 并行分支
+         if (Objects.equals(type, FlowProcessNodeEnum.Type.PARALLEL_BRANCH.getCode())) {
+             List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
+             for (ProcessNodeCondition conditionNode : conditionNodes) {
+                 ProcessNode childNode = conditionNode.getChildNode();
+                 calculateRoute(childNode, varMap, routeNodes);
+             }
+         }
+        calculateRoute(processNode.getChildNode(), varMap, routeNodes);
+    }
+
+
+
 
     /**
      * 处理开始节点
@@ -114,7 +159,8 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         flowTaskService.createBranchTask(instance, currentNode);
         List<ProcessNodeCondition> conditionNodes = currentNode.getConditionNodes();
         for (ProcessNodeCondition conditionNode : conditionNodes) {
-            boolean match = handleConditionNode(instance, conditionNode);
+            Map<String, Object> varMap = instance.getVarMap();
+            boolean match = handleConditionNode(varMap, conditionNode);
             // 条件节点匹配成功
             if (match) {
                 flowTaskService.createConditionNodeTask(instance, conditionNode);
@@ -133,14 +179,13 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         }
     }
 
-    private boolean handleConditionNode(FlowInstance instance, ProcessNodeCondition conditionNode) {
+    private boolean handleConditionNode(Map<String, Object> varMap, ProcessNodeCondition conditionNode) {
         List<ProcessConditionGroup> conditionGroups = conditionNode.getConditionGroups();
         // 没有条件配置直接通过，默认条件节点就是没有条件的
         if (CollUtil.isEmpty(conditionGroups)) {
             return true;
         }
         // 校验条件规则
-        Map<String, Object> varMap = instance.getVarMap();
         Integer matchType = conditionNode.getType();
         boolean andMatch = Objects.equals(matchType, FlowConditionTypeEnum.AND.getCode());
         for (ProcessConditionGroup conditionGroup : conditionGroups) {
@@ -161,6 +206,9 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         List<ProcessConditionRule> conditionRules = group.getConditionRules();
         if (CollUtil.isEmpty(conditionRules)) {
             return true;
+        }
+        if (Objects.isNull(varMap)) {
+            return false;
         }
         for (ProcessConditionRule rule : conditionRules) {
             String field = rule.getField();
