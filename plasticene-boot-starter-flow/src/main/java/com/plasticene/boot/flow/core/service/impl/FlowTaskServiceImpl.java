@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
@@ -38,7 +39,7 @@ import java.util.Objects;
  * @date 2025/9/2
  */
 @Service
-public class FlowTaskServiceImpl implements FlowTaskService {
+public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> implements FlowTaskService {
     @Resource
     private FlowTaskDAO flowTaskDAO;
     @Resource
@@ -344,6 +345,14 @@ public class FlowTaskServiceImpl implements FlowTaskService {
         updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
         updateWrapper.set(FlowTask::getIsDelete, CommonConstant.IS_DEL);
         flowTaskDAO.update(updateWrapper);
+    }
+
+    @Override
+    public List<FlowTask> listTaskByInstanceId(Long instanceId) {
+        PtcLambdaQueryWrapper<FlowTask> queryWrapper = new PtcLambdaQueryWrapper<>();
+        queryWrapper.eq(FlowTask::getInstanceId, instanceId).eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
+        queryWrapper.orderByAsc(FlowTask::getId);
+        return flowTaskDAO.selectList(queryWrapper);
     }
 
     private void completeTask(Long taskId, String comment, FlowTaskStatusEnum statusEnum) {
