@@ -51,7 +51,7 @@ public interface ${table.serviceName} extends ${superServiceClass}<${entity}> {
      * @param id
      * @return ${entityNameVO}
      */
-    ${entityNameVO} detail(Long id)
+    ${entityNameVO} detail(Long id);
 
 
 

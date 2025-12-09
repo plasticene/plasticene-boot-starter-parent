@@ -1,17 +1,13 @@
-package ${package.Entity};
+package ${package.Param};
 
-<#list importEntityFrameworkPackages as pkg>
-    import ${pkg};
-</#list>
-
-<#list importEntityJavaPackages as pkg>
-    import ${pkg};
-</#list>
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import java.time.LocalDateTime;
 
 /**
 * <p>
-    * ${table.comment!}
-    * </p>
+* ${table.comment!}
+* </p>
 *
 * @author ${author}
 * @since ${date}

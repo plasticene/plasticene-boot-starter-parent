@@ -9,6 +9,7 @@ import com.plasticene.boot.mybatis.core.encrypt.AESEncryptService;
 import com.plasticene.boot.mybatis.core.encrypt.Base64EncryptService;
 import com.plasticene.boot.mybatis.core.encrypt.EncryptService;
 import com.plasticene.boot.mybatis.core.enums.Algorithm;
+import com.plasticene.boot.mybatis.core.generator.CodeGenerator;
 import com.plasticene.boot.mybatis.core.handlers.DefaultDBFieldHandler;
 import com.plasticene.boot.mybatis.core.handlers.EncryptTypeHandler;
 import com.plasticene.boot.mybatis.core.handlers.TenantDatabaseHandler;
@@ -72,5 +73,10 @@ public class PlasticeneMybatisAutoConfiguration {
     @ConditionalOnMissingBean(IdGenerator.class)
     public IdGenerator idGenerator() {
         return new IdGenerator(idProperties.getDatacenter(), idProperties.getWorker());
+    }
+
+    @Bean
+    public CodeGenerator codeGenerator() {
+        return new CodeGenerator();
     }
 }

@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import com.plasticene.boot.common.pojo.PageParam;
+import com.plasticene.boot.common.pojo.PageQuery;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.mybatis.core.utils.MybatisUtils;
 import org.apache.ibatis.annotations.Param;
@@ -23,7 +23,7 @@ import java.util.List;
  * @date 2022/7/12 12:03
  */
 public interface BaseMapperX<T> extends BaseMapper<T> {
-    default PageResult<T> selectPage(PageParam pageParam, @Param("ew") Wrapper<T> queryWrapper) {
+    default PageResult<T> selectPage(PageQuery pageParam, @Param("ew") Wrapper<T> queryWrapper) {
         // MyBatis Plus 查询
         IPage<T> mpPage = MybatisUtils.buildPage(pageParam);
         selectPage(mpPage, queryWrapper);

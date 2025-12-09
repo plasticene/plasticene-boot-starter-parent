@@ -14,24 +14,22 @@ import java.util.Objects;
  * @date 2022/7/12 11:44
  */
 @Data
-public class PageParam {
-    private static final Integer PAGE_NO = 1;
-    private static final Integer PAGE_SIZE = 20;
+public class PageQuery {
 
     @NotNull(message = "页码不能为空")
     @Min(value = 1, message = "页码最小值为 1")
-    private Integer pageNo = PAGE_NO;
+    private Integer pageNo = 1;
 
     @NotNull(message = "每页条数不能为空")
     @Min(value = 1, message = "页码最小值为 1")
     @Max(value = 2000, message = "页码最大值为 2000")
-    private Integer pageSize = PAGE_SIZE;
+    private Integer pageSize = 10;
 
-    public PageParam() {
+    public PageQuery() {
 
     }
 
-    public PageParam(Integer pageNo, Integer pageSize) {
+    public PageQuery(Integer pageNo, Integer pageSize) {
         if (Objects.nonNull(pageNo)) {
             this.pageNo = pageNo;
         }

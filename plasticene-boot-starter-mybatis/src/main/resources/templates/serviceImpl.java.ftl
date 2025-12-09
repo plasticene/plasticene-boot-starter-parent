@@ -10,10 +10,15 @@ import ${package.Mapper}.${table.mapperName};
 import ${package.Service}.${table.serviceName};
 </#if>
 import ${superServiceImplClassPackage};
-import org.springframework.stereotype.Service;
 import ${package.Param}.${table.entityName}Param;
 import ${package.Query}.${table.entityName}Query;
 import ${package.VO}.${table.entityName}VO;
+import cn.hutool.core.collection.CollUtil;
+import com.plasticene.boot.common.utils.PtcBeanUtils;
+import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
+import jakarta.annotation.Resource;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Service;
 import com.plasticene.boot.common.pojo.PageResult;
 import java.util.List;
 
@@ -34,7 +39,7 @@ public class ${table.serviceImplName} extends ${superServiceImplClass}<${table.m
     @Override
     public Long create(${table.entityName}Param param) {
         ${table.entityName} ${entityNameLower} = PtcBeanUtils.copy(param, ${table.entityName}.class);
-        ${mapperNameLower}.insert(flowProcess);
+        ${mapperNameLower}.insert(${entityNameLower});
         return ${entityNameLower}.getId();
     }
 
@@ -48,7 +53,7 @@ public class ${table.serviceImplName} extends ${superServiceImplClass}<${table.m
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void delete(List<Long> idList) {
-        if (CollUtils.isEmpty(idList)) {
+        if (CollUtil.isEmpty(idList)) {
             return;
         }
         ${mapperNameLower}.deleteByIds(idList);
@@ -57,7 +62,7 @@ public class ${table.serviceImplName} extends ${superServiceImplClass}<${table.m
     @Override
     public PageResult<${entityNameVO}> page(${table.entityName}Query query) {
         PtcLambdaQueryWrapper<${table.entityName}> queryWrapper = new PtcLambdaQueryWrapper<>();
-        PageResult<${table.entityName}> result = userDAO.selectPage(query, queryWrapper);
+        PageResult<${table.entityName}> result = ${mapperNameLower}.selectPage(query, queryWrapper);
         List<${entityNameVO}> voList = PtcBeanUtils.copyList(result.getList(), ${entityNameVO}.class);
         return new PageResult<>(voList, result.getTotal(), result.getPages());
     }

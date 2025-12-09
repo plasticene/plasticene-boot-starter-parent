@@ -1,12 +1,8 @@
-package ${package.Entity};
+package ${package.VO};
 
-<#list importEntityFrameworkPackages as pkg>
-    import ${pkg};
-</#list>
-
-<#list importEntityJavaPackages as pkg>
-    import ${pkg};
-</#list>
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import java.time.LocalDateTime;
 
 /**
 * <p>

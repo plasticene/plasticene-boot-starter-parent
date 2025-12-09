@@ -1,24 +1,23 @@
-package ${package.Entity};
+package ${package.Query};
 
-<#list importEntityFrameworkPackages as pkg>
-    import ${pkg};
-</#list>
-
-<#list importEntityJavaPackages as pkg>
-    import ${pkg};
-</#list>
+import com.plasticene.boot.common.pojo.PageQuery;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import java.time.LocalDateTime;
 
 /**
 * <p>
-    * ${table.comment!}
-    * </p>
+* ${table.comment!}
+* </p>
 *
 * @author ${author}
 * @since ${date}
 */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @Schema(description = "${table.comment!}")
-public class ${entity}Query {
+public class ${entity}Query extends PageQuery {
 <#-- ----------  BEGIN 字段循环遍历  ---------->
 <#list table.fields as field>
     @Schema(description = "${field.comment!}")

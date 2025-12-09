@@ -7,6 +7,7 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.RequestUserHolder;
 import com.plasticene.boot.example.mybatis.dao.UserDAO;
 import com.plasticene.boot.example.mybatis.entity.User;
+import com.plasticene.boot.mybatis.core.generator.CodeGenerator;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,8 @@ class UserServiceTest {
     private UserService userService;
     @Resource
     private UserDAO userDAO;
+    @Resource
+    private CodeGenerator codeGenerator;
 
     /**
      * 测试连通性
@@ -223,6 +226,12 @@ class UserServiceTest {
             user.setUpdater(user.getId());
         });
         return users;
+    }
+
+    @Test
+    public void testCodeGenerator() {
+        codeGenerator.generate("zfj", List.of("visit_score"), null);
+
     }
 
 

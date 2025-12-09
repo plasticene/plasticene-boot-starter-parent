@@ -3,7 +3,7 @@ package com.plasticene.boot.example.mybatis.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.plasticene.boot.common.pojo.PageParam;
+import com.plasticene.boot.common.pojo.PageQuery;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.example.mybatis.dao.UserDAO;
 import com.plasticene.boot.example.mybatis.entity.User;
@@ -42,7 +42,7 @@ public class UserService extends ServiceImpl<UserDAO, User> {
         if (StringUtils.isNotBlank(name)) {
             queryWrapper.eq(User::getName, name);
         }
-        PageParam param = new PageParam(pageNo, pageSize);
+        PageQuery param = new PageQuery(pageNo, pageSize);
         return userDAO.selectPage(param, queryWrapper);
     }
 

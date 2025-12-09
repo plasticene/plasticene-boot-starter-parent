@@ -1,21 +1,17 @@
-package ${package.Entity};
+package ${package.DTO};
 
-<#list importEntityFrameworkPackages as pkg>
-import ${pkg};
-</#list>
-
-<#list importEntityJavaPackages as pkg>
-import ${pkg};
-</#list>
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import java.time.LocalDateTime;
 
 /**
- * <p>
- * ${table.comment!}
- * </p>
- *
- * @author ${author}
- * @since ${date}
- */
+* <p>
+* ${table.comment!}
+* </p>
+*
+* @author ${author}
+* @since ${date}
+*/
 @Data
 @Schema(description = "${table.comment!}")
 public class ${entity}DTO {

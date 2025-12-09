@@ -3,7 +3,7 @@ package com.plasticene.boot.mybatis.core.utils;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.plasticene.boot.common.pojo.PageParam;
+import com.plasticene.boot.common.pojo.PageQuery;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -21,9 +21,9 @@ public class MybatisUtils {
 
 
 
-    public static <T> Page<T> buildPage(PageParam pageParam) {
+    public static <T> Page<T> buildPage(PageQuery pageQuery) {
         // 页码 + 数量
-        return new Page<>(pageParam.getPageNo(), pageParam.getPageSize());
+        return new Page<>(pageQuery.getPageNo(), pageQuery.getPageSize());
     }
 
     /**
