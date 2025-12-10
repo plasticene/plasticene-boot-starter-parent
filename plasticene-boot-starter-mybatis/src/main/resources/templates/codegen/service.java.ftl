@@ -22,33 +22,33 @@ public interface ${table.serviceName} extends ${superServiceClass}<${entity}> {
 
     /**
      * 创建${table.comment!}
-     * @param param
+     * @param param ${table.comment!}参数
      * @return id
      */
     Long create(${table.entityName}Param param);
 
     /**
      * 更新${table.comment!}
-     * @param param
+     * @param param ${table.comment!}参数
      */
     void update(${table.entityName}Param param);
 
     /**
      * 批量删除${table.comment!}
-     * @param idList
+     * @param idList ${table.comment!}id集合参数
      */
     void delete(List<Long> idList);
 
     /**
      * 分页查询${table.comment!}
-     * @param query
+     * @param query 查询参数
      * @return pageResult
      */
     PageResult<${entityNameVO}> page(${table.entityName}Query query);
 
     /**
      * 查询${table.comment!}
-     * @param id
+     * @param id ${table.comment!}id
      * @return ${entityNameVO}
      */
     ${entityNameVO} detail(Long id);
