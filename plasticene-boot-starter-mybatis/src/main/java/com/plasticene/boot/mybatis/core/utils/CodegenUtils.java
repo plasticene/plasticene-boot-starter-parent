@@ -45,24 +45,24 @@ public class CodegenUtils {
                             .disableSerialVersionUID()
                             .enableLombok(new ClassAnnotationAttributes("@Data","lombok.Data")) // 启用 Lombok
                             .enableTableFieldAnnotation() // 启用字段注解
-                            .javaTemplate("/templates/entity.java") // 设置实体类模板
+                            .javaTemplate("/templates/codegen/entity.java") // 设置实体类模板
                             .superClass(BaseDO.class)
                             .addSuperEntityColumns("create_time", "update_time", "creator", "updater")
                             // 设置mapper接口
                             .mapperBuilder()
-                            .mapperTemplate("/templates/mapper.java") // 设置mapper目标
+                            .mapperTemplate("/templates/codegen/mapper.java") // 设置mapper目标
                             .convertMapperFileName((entityName -> entityName + "DAO")) // 设置mapper接口文件名
                             .enableBaseResultMap()
                             .enableBaseColumnList()
                             .superClass(BaseMapperX.class)
                             // 设置service接口
                             .serviceBuilder()
-                            .serviceTemplate("/templates/service.java") // 设置Service模板
+                            .serviceTemplate("/templates/codegen/service.java") // 设置Service模板
                             .convertServiceFileName((entityName -> entityName + "Service")) // 设置service文件名
-                            .serviceImplTemplate("/templates/serviceImpl.java") // 设置ServiceImpl模板
+                            .serviceImplTemplate("/templates/codegen/serviceImpl.java") // 设置ServiceImpl模板
                             // 设置controller类
                             .controllerBuilder()
-                            .template("/templates/controller.java");
+                            .template("/templates/codegen/controller.java");
                     if (StrUtil.isNotBlank(info.getTablePrefix())) {
                         builder.addTablePrefix(info.getTablePrefix()); // 添加表前缀
                     }
@@ -70,22 +70,22 @@ public class CodegenUtils {
                 .injectionConfig(injectConfig -> {
                     injectConfig.customFile(new CustomFile.Builder()
                             .fileName("DTO.java") // 文件名称
-                            .templatePath("templates/entityDTO.java.ftl") //指定生成模板路径
+                            .templatePath("/templates/codegen/entityDTO.java.ftl") //指定生成模板路径
                             .packageName("model.dto") // 包名,
                             .build());
                     injectConfig.customFile(new CustomFile.Builder()
                             .fileName("VO.java") // 文件名称
-                            .templatePath("templates/entityVO.java.ftl") // 指定生成模板路径
+                            .templatePath("/templates/codegen/entityVO.java.ftl") // 指定生成模板路径
                             .packageName("model.vo") // 包名
                             .build());
                     injectConfig.customFile(new CustomFile.Builder()
                             .fileName("Param.java") // 文件名称
-                            .templatePath("templates/entityParam.java.ftl") // 指定生成模板路径
+                            .templatePath("/templates/codegen/entityParam.java.ftl") // 指定生成模板路径
                             .packageName("model.param") // 包名
                             .build());
                     injectConfig.customFile(new CustomFile.Builder()
                             .fileName("Query.java") // 文件名称
-                            .templatePath("templates/entityQuery.java.ftl") // 指定生成模板路径
+                            .templatePath("/templates/codegen/entityQuery.java.ftl") // 指定生成模板路径
                             .packageName("model.query") // 包名
                             .build());
 

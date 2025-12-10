@@ -62,22 +62,22 @@ public class CodeGeneratorTest {
                 .injectionConfig(injectConfig -> {
                     injectConfig.customFile(new CustomFile.Builder()
                             .fileName("DTO.java") // 文件名称
-                            .templatePath("templates/entityDTO.java.ftl") //指定生成模板路径
+                            .templatePath("templates/codegen/entityDTO.java.ftl") //指定生成模板路径
                             .packageName("model.dto") // 包名,
                             .build());
                     injectConfig.customFile(new CustomFile.Builder()
                             .fileName("VO.java") // 文件名称
-                            .templatePath("templates/entityVO.java.ftl") // 指定生成模板路径
+                            .templatePath("templates/codegen/entityVO.java.ftl") // 指定生成模板路径
                             .packageName("model.vo") // 包名
                             .build());
                     injectConfig.customFile(new CustomFile.Builder()
                             .fileName("Param.java") // 文件名称
-                            .templatePath("templates/entityParam.java.ftl") // 指定生成模板路径
+                            .templatePath("templates/codegen/entityParam.java.ftl") // 指定生成模板路径
                             .packageName("model.param") // 包名
                             .build());
                     injectConfig.customFile(new CustomFile.Builder()
                             .fileName("Query.java") // 文件名称
-                            .templatePath("templates/entityQuery.java.ftl") // 指定生成模板路径
+                            .templatePath("templates/codegen/entityQuery.java.ftl") // 指定生成模板路径
                             .packageName("model.query") // 包名
                             .build());
 
