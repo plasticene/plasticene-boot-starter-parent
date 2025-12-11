@@ -2,6 +2,7 @@ package com.plasticene.boot.common.user;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -51,6 +52,10 @@ public class LoginUser {
      * token令牌
      */
     private String token;
+    /**
+     * token过期时间
+     */
+    private LocalDateTime expireTime;
 
 
 }
