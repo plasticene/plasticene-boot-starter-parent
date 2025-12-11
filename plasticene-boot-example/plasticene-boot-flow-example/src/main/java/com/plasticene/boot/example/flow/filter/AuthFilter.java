@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow.filter;
 
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.RequestUserHolder;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,12 +35,12 @@ public class AuthFilter extends OncePerRequestFilter {
             loginUser.setUsername("admin");
             loginUser.setNickname("哈哈😄");
             loginUser.setGender(0);
-            RequestUserHolder.setLoginUser(loginUser);
+            LoginUserHolder.set(loginUser);
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             log.error("auth error", e);
         } finally {
-            RequestUserHolder.remove();
+            LoginUserHolder.remove();
         }
 
 

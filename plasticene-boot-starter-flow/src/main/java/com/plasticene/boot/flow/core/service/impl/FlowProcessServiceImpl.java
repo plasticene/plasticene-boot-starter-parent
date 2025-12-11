@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.RequestUserHolder;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowProcessDAO;
 import com.plasticene.boot.flow.core.model.dto.ProcessNode;
@@ -42,7 +42,7 @@ public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProc
     @Override
     public Long createFlowProcess(FlowProcessParam param) {
         String code = param.getCode();
-        LoginUser loginUser = RequestUserHolder.getLoginUser();
+        LoginUser loginUser = LoginUserHolder.get();
         Long orgId = loginUser.getOrgId();
         boolean exist = existProcessByCode(orgId, code);
         if (exist) {
@@ -137,7 +137,7 @@ public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProc
     @Override
     public List<CategoryVO> listFlowProcess(String processName) {
         List<CategoryVO> categoryList = categoryService.listCategory();
-        LoginUser loginUser = RequestUserHolder.getLoginUser();
+        LoginUser loginUser = LoginUserHolder.get();
         PtcLambdaQueryWrapper<FlowProcess> queryWrapper = new PtcLambdaQueryWrapper<>();
         queryWrapper.likeIfPresent(FlowProcess::getName, processName);
         queryWrapper.eq(FlowProcess::getOrgId, loginUser.getOrgId());

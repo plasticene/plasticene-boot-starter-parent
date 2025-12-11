@@ -2,7 +2,7 @@ package com.plasticene.boot.mybatis.core.handlers;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.RequestUserHolder;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import org.apache.ibatis.reflection.MetaObject;
 
@@ -33,7 +33,7 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
                 baseDO.setUpdateTime(now);
             }
 
-            LoginUser loginUser = RequestUserHolder.getLoginUser();
+            LoginUser loginUser = LoginUserHolder.get();
             // 当前登录用户不为空，创建人为空，则当前登录用户为创建人
             if (Objects.nonNull(loginUser) && Objects.isNull(baseDO.getCreator())) {
                 baseDO.setCreator(loginUser.getId());
@@ -53,7 +53,7 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
             setFieldValByName("updateTime", LocalDateTime.now(), metaObject);
         }
 
-        LoginUser loginUser = RequestUserHolder.getLoginUser();
+        LoginUser loginUser = LoginUserHolder.get();
         // 当前登录用户不为空，更新人为空，则当前登录用户为更新人
         Object modifier = getFieldValByName("updater", metaObject);
         if (Objects.nonNull(loginUser) && Objects.isNull(modifier)) {

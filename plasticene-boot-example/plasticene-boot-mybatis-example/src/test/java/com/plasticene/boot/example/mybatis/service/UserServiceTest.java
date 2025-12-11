@@ -4,7 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.RequestUserHolder;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.example.mybatis.dao.UserDAO;
 import com.plasticene.boot.example.mybatis.entity.User;
 import com.plasticene.boot.mybatis.core.generator.CodeGenerator;
@@ -117,10 +117,10 @@ class UserServiceTest {
     public void testTenant() {
         LoginUser loginUser = new LoginUser();
         loginUser.setOrgId(6L);
-        RequestUserHolder.setLoginUser(loginUser);
+        LoginUserHolder.set(loginUser);
         PageResult<User> result = userService.listUsers(1, 5, null);
         System.out.println(result);
-        RequestUserHolder.remove();
+        LoginUserHolder.remove();
     }
 
     @Test

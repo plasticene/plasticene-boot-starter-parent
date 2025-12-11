@@ -3,7 +3,7 @@ package com.plasticene.boot.flow.core.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.RequestUserHolder;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.CategoryDAO;
 import com.plasticene.boot.flow.core.entity.Category;
@@ -31,7 +31,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDAO, Category> impl
     @Override
     public Long createCategory(CategoryParam param) {
         Category category = PtcBeanUtils.copy(param, Category.class);
-        LoginUser loginUser = RequestUserHolder.getLoginUser();
+        LoginUser loginUser = LoginUserHolder.get();
         category.setOrgId(loginUser.getOrgId());
         categoryDAO.insert(category);
         return category.getId();
@@ -64,7 +64,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDAO, Category> impl
 
     @Override
     public List<CategoryVO> listCategory() {
-        LoginUser loginUser = RequestUserHolder.getLoginUser();
+        LoginUser loginUser = LoginUserHolder.get();
         PtcLambdaQueryWrapper<Category> queryWrapper = new PtcLambdaQueryWrapper<>();
         queryWrapper.eq(Category::getOrgId, loginUser.getOrgId());
         queryWrapper.orderByAsc(Category::getSeq).orderByDesc(Category::getId);

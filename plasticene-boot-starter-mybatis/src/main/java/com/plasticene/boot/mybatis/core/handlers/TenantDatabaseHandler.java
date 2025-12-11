@@ -2,7 +2,7 @@ package com.plasticene.boot.mybatis.core.handlers;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
-import com.plasticene.boot.common.user.RequestUserHolder;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.mybatis.core.context.TenantContextHolder;
 import com.plasticene.boot.mybatis.core.prop.TenantProperties;
 import net.sf.jsqlparser.expression.Expression;
@@ -42,7 +42,7 @@ public class TenantDatabaseHandler implements TenantLineHandler {
 
     @Override
     public Expression getTenantId() {
-        return new LongValue(RequestUserHolder.getLoginUser().getOrgId());
+        return new LongValue(LoginUserHolder.get().getOrgId());
     }
 
     @Override

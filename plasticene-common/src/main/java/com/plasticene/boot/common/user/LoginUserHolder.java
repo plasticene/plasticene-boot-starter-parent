@@ -7,20 +7,20 @@ import com.alibaba.ttl.TransmittableThreadLocal;
  * @version 1.0
  * @date 2022/12/9 01:16
  */
-public class RequestUserHolder {
+public class LoginUserHolder {
     private static final ThreadLocal<LoginUser> LOGIN_USER_HOLDER = new TransmittableThreadLocal<>();
 
     /**
      * 存储用户信息
      */
-    public static void setLoginUser(LoginUser loginUser) {
+    public static void set(LoginUser loginUser) {
         LOGIN_USER_HOLDER.set(loginUser);
     }
 
     /**
      * 获取用户信息
      */
-    public static LoginUser getLoginUser() {
+    public static LoginUser get() {
         return LOGIN_USER_HOLDER.get();
     }
 

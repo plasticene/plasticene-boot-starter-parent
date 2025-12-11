@@ -74,7 +74,7 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
             }
 
             //todo 完善获取登录用户信息
-//            LoginUser currentUser = RequestUserHolder.getCurrentUser();
+//            LoginUser currentUser = LoginUserHolder.get();
             Long userId = 1l;
             // 当前登录用户不为空，创建人为空，则当前登录用户为创建人
             if (Objects.nonNull(userId) && Objects.isNull(baseDO.getCreator())) {
@@ -95,7 +95,7 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
             setFieldValByName("updateTime", new Date(), metaObject);
         }
 
-//        LoginUser currentUser = RequestUserHolder.getCurrentUser();
+//        LoginUser currentUser = LoginUserHolder.getCurrentUser();
         Long userId = 1l;
         // 当前登录用户不为空，更新人为空，则当前登录用户为更新人
         Object modifier = getFieldValByName("updater", metaObject);

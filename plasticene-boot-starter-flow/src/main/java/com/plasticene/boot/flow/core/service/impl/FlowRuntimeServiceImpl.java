@@ -3,7 +3,7 @@ package com.plasticene.boot.flow.core.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.RequestUserHolder;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.ProcessNode;
@@ -66,7 +66,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         instance.setStatus(FlowInstanceStatusEnum.RUNNING.getCode());
         instance.setCurrentNodeKey(processNode.getKey());
         instance.setCurrentNodeName(processNode.getName());
-        LoginUser loginUser = RequestUserHolder.getLoginUser();
+        LoginUser loginUser = LoginUserHolder.get();
         instance.setUserId(loginUser.getId());
         flowInstanceDAO.insert(instance);
 
