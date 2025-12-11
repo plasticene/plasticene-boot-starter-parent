@@ -2,9 +2,11 @@ package com.plasticene.boot.example.mybatis;
 
 import com.baomidou.mybatisplus.generator.FastAutoGenerator;
 import com.baomidou.mybatisplus.generator.config.builder.CustomFile;
+import com.baomidou.mybatisplus.generator.config.rules.DbColumnType;
 import com.baomidou.mybatisplus.generator.engine.FreemarkerTemplateEngine;
 import com.baomidou.mybatisplus.generator.model.ClassAnnotationAttributes;
 import com.plasticene.boot.mybatis.core.mapper.BaseMapperX;
+import org.apache.ibatis.type.JdbcType;
 
 
 /**
@@ -19,6 +21,14 @@ public class CodeGeneratorTest {
         FastAutoGenerator.create("jdbc:mysql://127.0.0.1:3306/ptc_flow?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true",
                         "root",
                         "root")
+                .dataSourceConfig(builder ->
+                        builder.typeConvertHandler((globalConfig, typeRegistry, metaInfo) -> {
+                            if (JdbcType.TINYINT == metaInfo.getJdbcType()) {
+                                return DbColumnType.INTEGER;
+                            }
+                            return typeRegistry.getColumnType(metaInfo);
+                        })
+                )
                 .globalConfig(builder -> {  // 全局配置
                     builder.author("ZFJ") // 设置作者
                             .commentDate("yyyy-MM-dd")  // 设置日期

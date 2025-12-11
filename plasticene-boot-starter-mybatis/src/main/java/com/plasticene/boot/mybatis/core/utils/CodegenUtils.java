@@ -5,11 +5,13 @@ import com.baomidou.mybatisplus.generator.FastAutoGenerator;
 import com.baomidou.mybatisplus.generator.config.DataSourceConfig;
 import com.baomidou.mybatisplus.generator.config.OutputFile;
 import com.baomidou.mybatisplus.generator.config.builder.CustomFile;
+import com.baomidou.mybatisplus.generator.config.rules.DbColumnType;
 import com.baomidou.mybatisplus.generator.engine.FreemarkerTemplateEngine;
 import com.baomidou.mybatisplus.generator.model.ClassAnnotationAttributes;
 import com.plasticene.boot.mybatis.core.generator.GeneratorInfo;
 import com.plasticene.boot.mybatis.core.mapper.BaseMapperX;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
+import org.apache.ibatis.type.JdbcType;
 
 import java.util.Collections;
 
@@ -22,6 +24,14 @@ public class CodegenUtils {
 
     public static void generate(GeneratorInfo info) {
         FastAutoGenerator.create(new DataSourceConfig.Builder(info.getDataSource()))
+                .dataSourceConfig(builder ->
+                        builder.typeConvertHandler((globalConfig, typeRegistry, metaInfo) -> {
+                            if (JdbcType.TINYINT == metaInfo.getJdbcType()) {
+                                return DbColumnType.INTEGER;
+                            }
+                            return typeRegistry.getColumnType(metaInfo);
+                        })
+                )
                 // 全局配置
                 .globalConfig(builder -> {
                     builder.author(info.getAuthor()) // 设置作者
