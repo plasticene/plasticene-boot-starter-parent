@@ -2,13 +2,13 @@ package com.plasticene.boot.example.flow.filter;
 
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
+import com.plasticene.boot.web.core.filter.BaseFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.util.List;
 
@@ -19,7 +19,7 @@ import java.util.List;
 
 @Component
 @Slf4j
-public class AuthFilter extends OncePerRequestFilter {
+public class AuthFilter extends BaseFilter {
     @Override
     protected void doFilterInternal(@NotNull HttpServletRequest request,
                                     @NotNull HttpServletResponse response,
