@@ -30,21 +30,36 @@ public abstract class BaseFilter extends OncePerRequestFilter {
     /**
      * 每个子类可以自定义自己的排除路径
      */
-    protected List<String> getExcludePath() {
+    protected List<String> getExcludePathList() {
         return Collections.emptyList();
     }
 
     /**
-     * 判断是否需要跳过
+     * 判断是否需要跳过<br>
+     * 校验子类自定义的排除路径时，考虑到请求遵从restful风格，需要分两种情况：不加请求方式路径或加上请求方法路径<br>
+     * 1. 不加请求方式路径：/api/user<br>
+     * 2. 加请求方式路径：POST/api/user
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        // 合并公共路径和子类自定义路径
-        List<String> allExcludePaths = new ArrayList<>(COMMON_EXCLUDE_PATHS);
-        allExcludePaths.addAll(getExcludePath());
-        return allExcludePaths.stream()
-                .anyMatch(excludePath -> matchesPath(path, excludePath));
+
+        // 校验默认排除路径
+        for (String excludePath : COMMON_EXCLUDE_PATHS) {
+            if (matchesPath(path, excludePath)) {
+                return true;
+            }
+        }
+        String method = request.getMethod();
+        String methodPath = method + path;
+        List<String> excludePathList = getExcludePathList();
+        // 校验子类自定义的排除路径
+        for (String excludePath : excludePathList) {
+            if (matchesPath(path, excludePath) || matchesPath(methodPath, excludePath)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
