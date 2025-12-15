@@ -3,7 +3,6 @@ package com.plasticene.boot.web.core.filter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
