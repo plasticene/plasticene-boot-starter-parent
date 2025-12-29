@@ -31,36 +31,36 @@ public class ${table.controllerName} {
     @Resource
     private ${table.serviceName} ${serviceNameLower};
 
-    @PostMapping
     @Operation(summary = "创建${table.comment!}")
+    @PostMapping
     public ResponseVO<Long> create(@RequestBody @Validated ${table.entityName}Param param) {
         Long id = ${serviceNameLower}.create(param);
         return ResponseVO.success(id);
     }
 
-    @PutMapping
     @Operation(summary = "修改${table.comment!}")
+    @PutMapping
     public ResponseVO<Void> update(@RequestBody @Validated ${table.entityName}Param param) {
         ${serviceNameLower}.update(param);
         return ResponseVO.success();
     }
 
-    @DeleteMapping
     @Operation(summary = "批量删除${table.comment!}")
+    @DeleteMapping
     public ResponseVO<Void> delete(@RequestBody List<Long> idList) {
         ${serviceNameLower}.delete(idList);
         return ResponseVO.success();
     }
 
-    @GetMapping("/page")
     @Operation(summary = "分页查询${table.comment!}")
+    @GetMapping("/page")
     public ResponseVO<PageResult<${table.entityName}VO>> page(@Validated ${table.entityName}Query query) {
         PageResult<${table.entityName}VO> pageResult = ${serviceNameLower}.page(query);
         return ResponseVO.success(pageResult);
     }
 
-    @GetMapping("/{id}")
     @Operation(summary = "获取${table.comment!}详情")
+    @GetMapping("/{id}")
     public ResponseVO<${table.entityName}VO> detail(@PathVariable("id") Long id) {
         ${table.entityName}VO vo = ${serviceNameLower}.detail(id);
         return ResponseVO.success(vo);
