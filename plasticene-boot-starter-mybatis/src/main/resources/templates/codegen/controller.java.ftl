@@ -16,9 +16,8 @@ import java.util.List;
 
 
 /**
- * <p>
- * ${table.comment!}
- * </p>
+ *
+ * <p> ${table.comment!} </p>
  *
  * @author ${author}
  * @since ${date}

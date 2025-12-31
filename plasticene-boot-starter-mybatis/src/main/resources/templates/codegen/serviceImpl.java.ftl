@@ -23,13 +23,13 @@ import com.plasticene.boot.common.pojo.PageResult;
 import java.util.List;
 
 /**
- * <p>
- * ${table.comment!}
- * </p>
+ *
+ * <p> ${table.comment!} </p>
  *
  * @author ${author}
  * @since ${date}
  */
+
 @Service
 public class ${table.serviceImplName} extends ${superServiceImplClass}<${table.mapperName}, ${entity}><#if generateService> implements ${table.serviceName}</#if> {
     @Resource

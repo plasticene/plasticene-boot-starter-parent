@@ -49,9 +49,9 @@ public class LoginUser {
      */
     private String mobile;
     /**
-     * token令牌
+     * 登录token令牌
      */
-    private String token;
+    private String accessToken;
     /**
      * token过期时间
      */

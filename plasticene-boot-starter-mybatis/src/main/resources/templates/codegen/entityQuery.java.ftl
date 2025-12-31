@@ -7,13 +7,13 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
-* <p>
-* ${table.comment!}
-* </p>
-*
-* @author ${author}
-* @since ${date}
-*/
+ *
+ * <p> ${table.comment!} </p>
+ *
+ * @author ${author}
+ * @since ${date}
+ */
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "${table.comment!}")

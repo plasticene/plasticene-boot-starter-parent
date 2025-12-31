@@ -5,13 +5,13 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
-* <p>
-* ${table.comment!}
-* </p>
-*
-* @author ${author}
-* @since ${date}
-*/
+ *
+ * <p> ${table.comment!} </p>
+ *
+ * @author ${author}
+ * @since ${date}
+ */
+
 @Data
 @Schema(description = "${table.comment!}")
 public class ${entity}Param {

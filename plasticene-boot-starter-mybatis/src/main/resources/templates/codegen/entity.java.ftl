@@ -10,13 +10,13 @@ import ${pkg};
 </#list>
 
 /**
- * <p>
- * ${table.comment!}
- * </p>
+ *
+ * <p> ${table.comment!} </p>
  *
  * @author ${author}
  * @since ${date}
  */
+
 @EqualsAndHashCode(callSuper = true)
 <#list entityClassAnnotations as an>
 ${an.displayName}
@@ -45,9 +45,7 @@ public class ${entity} {
 
     <#if field.comment!?length gt 0>
         <#if entityFieldUseJavaDoc>
-    /**
-     * ${field.comment}
-     */
+    /** ${field.comment} */
         </#if>
     </#if>
     <#list field.annotationAttributesList as an>

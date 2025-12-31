@@ -11,13 +11,13 @@ import com.plasticene.boot.common.pojo.PageResult;
 import java.util.List;
 
 /**
- * <p>
- * ${table.comment!}
- * </p>
+ *
+ * <p> ${table.comment!} </p>
  *
  * @author ${author}
  * @since ${date}
  */
+
 public interface ${table.serviceName} extends ${superServiceClass}<${entity}> {
 
     /**

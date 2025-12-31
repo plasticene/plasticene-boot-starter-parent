@@ -11,12 +11,13 @@ import ${pkg};
 </#if>
 
 /**
- * <p>
- * ${table.comment!}
+ *
+ * <p> ${table.comment!} </p>
  *
  * @author ${author}
  * @since ${date}
  */
+
 <#if mapperAnnotationClass??>
 @${mapperAnnotationClass.simpleName}
 </#if>
