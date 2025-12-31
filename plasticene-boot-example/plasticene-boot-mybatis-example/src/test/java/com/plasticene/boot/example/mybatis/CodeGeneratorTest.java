@@ -18,7 +18,7 @@ public class CodeGeneratorTest {
 
     public static void main(String[] args) {
         // 使用 FastAutoGenerator 快速配置代码生成器
-        FastAutoGenerator.create("jdbc:mysql://127.0.0.1:3306/ptc_flow?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true",
+        FastAutoGenerator.create("jdbc:mysql://127.0.0.1:3306/db_test?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true",
                         "root",
                         "root")
                 .dataSourceConfig(builder ->
@@ -37,7 +37,7 @@ public class CodeGeneratorTest {
                             .disableOpenDir(); // 不打开路径
                 })
                 .packageConfig(builder -> {
-                    builder.parent("com.shepherd.example") // 设置父包名
+                    builder.parent("com.shepherd.demo01") // 设置父包名
                             .entity("entity") // 设置entity实体类包名
                             .mapper("dao") // 设置Mapper接口包名
                             .service("service") // 设置Service接口包名
@@ -45,7 +45,7 @@ public class CodeGeneratorTest {
                             .xml("mappers"); // 设置 MapperXML文件包名
                 })
                 .strategyConfig(builder -> {
-                    builder.addInclude("flow_process") // 设置需要生成的表名
+                    builder.addInclude("tb_user") // 设置需要生成的表名
                             .addTablePrefix("tb_") // 添加表前缀
                             // 设置实体类
                             .entityBuilder()
