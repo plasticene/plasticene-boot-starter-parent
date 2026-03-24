@@ -31,12 +31,20 @@ public class FlowProcessVO {
     private Long formId;
     @Schema(description = "流程模型配置")
     private ProcessNode processNode;
+    @Schema(description = "发起类型 0：全员  1：指定人员")
+    private Integer startType;
     @Schema(description = "可发起用户")
     private List<Long> startUserIds;
+    @Schema(description = "可发起用户名称")
+    private List<String> startUserNames;
     @Schema(description = "可发起部门")
     private List<Long> startDeptIds;
+    @Schema(description = "可发起部门名称")
+    private List<String> startDeptNames;
     @Schema(description = "可发起角色")
     private List<Long> startRoleIds;
+    @Schema(description = "可发起角色名称")
+    private List<String> startRoleNames;
     @Schema(description = "管理员")
     private List<Long> managerUserIds;
     @Schema(description = "发布版本 从1开始")

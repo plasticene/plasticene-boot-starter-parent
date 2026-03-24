@@ -223,7 +223,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void createConditionNodeTask(FlowInstance instance, ProcessNodeCondition conditionNode) {
+    public void createConditionNodeTask(FlowInstance instance, ProcessNode conditionNode) {
         FlowTask task = new FlowTask();
         task.setOrgId(instance.getOrgId());
         task.setInstanceId(instance.getId());

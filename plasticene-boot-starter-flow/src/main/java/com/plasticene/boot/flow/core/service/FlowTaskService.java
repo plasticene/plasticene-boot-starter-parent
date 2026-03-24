@@ -43,7 +43,7 @@ public interface FlowTaskService extends IService<FlowTask> {
     /**
      * 创建条件节点任务
      */
-    void createConditionNodeTask(FlowInstance instance, ProcessNodeCondition conditionNode);
+    void createConditionNodeTask(FlowInstance instance, ProcessNode conditionNode);
 
     /**
      * 审批任务

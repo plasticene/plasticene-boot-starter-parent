@@ -94,8 +94,9 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         }
         // 条件分支
         if (Objects.equals(type, FlowProcessNodeEnum.Type.CONDITION_BRANCH.getCode())) {
-            List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
-            for (ProcessNodeCondition conditionNode : conditionNodes) {
+            // 分支下的条件节点
+            List<ProcessNode> conditionNodes = processNode.getConditionNodes();
+            for (ProcessNode conditionNode : conditionNodes) {
                 boolean match = handleConditionNode(varMap, conditionNode);
                 if (match) {
                     // 递归条件节点下的子节点，没有子节点那就return
@@ -106,8 +107,8 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         }
         // 并行分支
          if (Objects.equals(type, FlowProcessNodeEnum.Type.PARALLEL_BRANCH.getCode())) {
-             List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
-             for (ProcessNodeCondition conditionNode : conditionNodes) {
+             List<ProcessNode> conditionNodes = processNode.getConditionNodes();
+             for (ProcessNode conditionNode : conditionNodes) {
                  ProcessNode childNode = conditionNode.getChildNode();
                  calculateRoute(childNode, varMap, routeNodes);
              }
@@ -157,8 +158,8 @@ public class DefaultProcessExecutor implements ProcessExecutor {
 
     private void handleConditionBranch(FlowInstance instance, ProcessNode currentNode) {
         flowTaskService.createBranchTask(instance, currentNode);
-        List<ProcessNodeCondition> conditionNodes = currentNode.getConditionNodes();
-        for (ProcessNodeCondition conditionNode : conditionNodes) {
+        List<ProcessNode> conditionNodes = currentNode.getConditionNodes();
+        for (ProcessNode conditionNode : conditionNodes) {
             Map<String, Object> varMap = instance.getVarMap();
             boolean match = handleConditionNode(varMap, conditionNode);
             // 条件节点匹配成功
@@ -179,14 +180,19 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         }
     }
 
-    private boolean handleConditionNode(Map<String, Object> varMap, ProcessNodeCondition conditionNode) {
-        List<ProcessConditionGroup> conditionGroups = conditionNode.getConditionGroups();
-        // 没有条件配置直接通过，默认条件节点就是没有条件的
+    private boolean handleConditionNode(Map<String, Object> varMap, ProcessNode conditionNode) {
+        // 条件节点的条件配置
+        ProcessNodeCondition condition = conditionNode.getCondition();
+        if (condition == null) {
+            // 没有条件配置直接通过，默认条件节点就是没有条件的
+            return true;
+        }
+        List<ProcessConditionGroup> conditionGroups = condition.getConditionGroups();
         if (CollUtil.isEmpty(conditionGroups)) {
             return true;
         }
         // 校验条件规则
-        Integer matchType = conditionNode.getType();
+        Integer matchType = condition.getType();
         boolean andMatch = Objects.equals(matchType, FlowConditionTypeEnum.AND.getCode());
         for (ProcessConditionGroup conditionGroup : conditionGroups) {
             Boolean result = matchConditionGroup(varMap, conditionGroup);
@@ -231,11 +237,11 @@ public class DefaultProcessExecutor implements ProcessExecutor {
     private void handleParallelBranch(FlowInstance instance, ProcessNode currentNode) {
         flowTaskService.createBranchTask(instance, currentNode);
         // 并行分支下的条件节点是不配置条件的，直接进入条件节点的下一个节点
-        List<ProcessNodeCondition> conditionNodes = currentNode.getConditionNodes();
-        for (ProcessNodeCondition conditionNode : conditionNodes) {
+        List<ProcessNode> conditionNodes = currentNode.getConditionNodes();
+        for (ProcessNode conditionNode : conditionNodes) {
             Integer status = instance.getStatus();
             if (!Objects.equals(status, FlowInstanceStatusEnum.RUNNING.getCode())) {
-                // 实例状态不是运行中，则结束 eg:第一个分支自动拒绝了，后续分支就没必要执行了
+                // 实例状态不是运行中，则结束   eg:第一个分支自动拒绝了，后续分支就没必要执行了
                 break;
             }
             // 条件节点是否有子节点
@@ -244,7 +250,7 @@ public class DefaultProcessExecutor implements ProcessExecutor {
                 // 有，流转到条件节点的子节点
                 executeNode(instance, childNode);
             } else {
-                // 没有子节点，那就回退到当前条件分支，执行条件分支节点的子节点
+                // 没有子节点，那就回退到当前条件分支，执行条件分支的其他子节点
                 moveToNextNode(instance, currentNode);
             }
         }

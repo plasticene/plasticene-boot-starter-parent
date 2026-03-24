@@ -32,6 +32,12 @@ public class ProcessNode {
     private String name;
 
     /**
+     * 节点展示内容
+     */
+    @Schema(description = "节点展示内容", example = "指定成员: 张三")
+    private String showText;
+
+    /**
      * 节点类型
      * -1：结束节点   0：发起人   1：审批人   2：抄送人   3：条件节点   4：条件分支 <br>
      * 关联枚举类{@link com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum.Type}
@@ -116,12 +122,19 @@ public class ProcessNode {
      * 条件节点
      */
     @Schema(description = "条件节点集合")
-    private List<ProcessNodeCondition> conditionNodes;
+    private List<ProcessNode> conditionNodes;
+
+    /**
+     * 条件节点的条件规则配置
+     */
+    @Schema(description = "条件节点的条件规则配置")
+    private ProcessNodeCondition condition;
 
     /**
      * 父节点 逻辑字段后端用
      */
     @Schema(description = "父节点  后端使用，前端不需要传", hidden = true)
     private ProcessNode parentNode;
+
 }
 

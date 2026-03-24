@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.model.param.FlowProcessParam;
 import com.plasticene.boot.flow.core.model.vo.CategoryVO;
+import com.plasticene.boot.flow.core.model.vo.FlowProcessVO;
 import org.springframework.lang.Nullable;
 
 import java.util.List;
@@ -49,6 +50,14 @@ public interface FlowProcessService extends IService<FlowProcess> {
      * @return 流程列表
      */
     List<CategoryVO> listFlowProcess(@Nullable String processName);
+
+
+    /**
+     * 获取流程详情
+     * @param processId 流程id
+     * @return 流程详情
+     */
+    FlowProcessVO detail(Long processId);
 
 
 

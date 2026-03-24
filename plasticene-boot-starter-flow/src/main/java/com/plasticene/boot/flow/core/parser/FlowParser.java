@@ -48,7 +48,7 @@ public class FlowParser {
         // 递归处理子节点
         makeParentNode(childNode);
         // 递归处理条件节点
-        List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
+        List<ProcessNode> conditionNodes = processNode.getConditionNodes();
         if (CollUtil.isNotEmpty(conditionNodes)) {
             conditionNodes.forEach(conditionNode -> {
                 ProcessNode conditionChildNode = conditionNode.getChildNode();
@@ -78,9 +78,9 @@ public class FlowParser {
             return true;
         }
         // 递归检查条件节点
-        List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
+        List<ProcessNode> conditionNodes = processNode.getConditionNodes();
         if (CollUtil.isNotEmpty(conditionNodes)) {
-            for (ProcessNodeCondition conditionNode : conditionNodes) {
+            for (ProcessNode conditionNode : conditionNodes) {
                 if (validateProcessNode(conditionNode.getChildNode())) {
                     return true;
                 }
@@ -113,9 +113,9 @@ public class FlowParser {
             }
         }
         // 递归查找条件结点
-        List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
+        List<ProcessNode> conditionNodes = processNode.getConditionNodes();
         if (CollUtil.isNotEmpty(conditionNodes)) {
-            for (ProcessNodeCondition conditionNode : conditionNodes) {
+            for (ProcessNode conditionNode : conditionNodes) {
                 ProcessNode node = findNodeByKey(conditionNode.getChildNode(), nodeKey);
                 if (node != null) {
                     return node;
@@ -182,11 +182,15 @@ public class FlowParser {
                 .collect(Collectors.toSet());
 
         // 处理条件节点
-        List<ProcessNodeCondition> conditionNodes = processNode.getConditionNodes();
+        List<ProcessNode> conditionNodes = processNode.getConditionNodes();
         if (CollUtil.isNotEmpty(conditionNodes)) {
-            for (ProcessNodeCondition conditionNode : conditionNodes) {
+            for (ProcessNode conditionNode : conditionNodes) {
+                ProcessNodeCondition condition = conditionNode.getCondition();
+                if (condition == null) {
+                    continue;
+                }
                 // 收集规则
-                List<ProcessConditionRule> rules = Optional.ofNullable(conditionNode.getConditionGroups())
+                List<ProcessConditionRule> rules = Optional.ofNullable(condition.getConditionGroups())
                         .orElse(Collections.emptyList())
                         .stream()
                         .filter(Objects::nonNull)

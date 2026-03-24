@@ -6,6 +6,7 @@ import com.plasticene.boot.flow.core.model.param.FlowInstanceParam;
 import com.plasticene.boot.flow.core.model.param.FlowProcessParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.vo.CategoryVO;
+import com.plasticene.boot.flow.core.model.vo.FlowProcessVO;
 import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.flow.core.service.FlowProcessService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
@@ -36,8 +37,6 @@ public class FlowController {
     private FlowRuntimeService flowRuntimeService;
     @Resource
     private FlowTaskService flowTaskService;
-    @Resource
-    private CategoryService categoryService;
 
 
     @Operation(summary = "创建流程模型")
@@ -75,6 +74,13 @@ public class FlowController {
         return ResponseVO.success(voList);
     }
 
+    @Operation(summary = "流程详情")
+    @GetMapping("/process/{processId}")
+    public ResponseVO<FlowProcessVO> detail(@PathVariable("processId") Long processId) {
+        FlowProcessVO vo = flowProcessService.detail(processId);
+        return ResponseVO.success(vo);
+    }
+
     @Operation(summary = "基于流程模型发起实例")
     @PostMapping("/instance/start")
     public ResponseVO<Long> startFlowInstance(@RequestBody @Validated FlowInstanceParam param) {
@@ -99,32 +105,4 @@ public class FlowController {
         return ResponseVO.success();
     }
 
-    @Operation(summary = "新增分组")
-    @PostMapping("/category")
-    public ResponseVO<Long> createCategory(@RequestBody CategoryParam param) {
-        Long id = categoryService.createCategory(param);
-        return ResponseVO.success(id);
-    }
-
-    @Operation(summary = "更新分组")
-    @PutMapping("/category")
-    public ResponseVO<Void> updateCategory(@RequestBody @Validated(Update.class) CategoryParam param) {
-        categoryService.updateCategory(param);
-        return ResponseVO.success();
-    }
-
-    @Operation(summary = "分组排序")
-    @PostMapping("/category/sort")
-    public ResponseVO<Void> sortCategory(CategoryParam param) {
-        List<Long> ids = param.getIds();
-        categoryService.sortCategory(ids);
-        return ResponseVO.success();
-    }
-
-    @Operation(summary = "分组列表")
-    @GetMapping("/category")
-    public ResponseVO<List<CategoryVO>> listCategory() {
-        List<CategoryVO> voList = categoryService.listCategory();
-        return ResponseVO.success(voList);
-    }
 }

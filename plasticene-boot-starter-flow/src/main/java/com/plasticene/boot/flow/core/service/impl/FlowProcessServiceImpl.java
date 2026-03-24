@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
  * @author ZFJ
  * @date 2025/9/2
  */
+
 @Service
 public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProcess> implements FlowProcessService {
     @Resource
@@ -57,8 +58,8 @@ public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProc
     @Transactional(rollbackFor = Exception.class)
     @Override
     public Long updateFlowProcess(FlowProcessParam param) {
-        Long processId = param.getProcessId();
-        FlowProcess flowProcess = flowProcessDAO.selectById(processId);
+        Long id = param.getId();
+        FlowProcess flowProcess = flowProcessDAO.selectById(id);
         Integer status = flowProcess.getStatus();
         // 当前流程为历史版本，不能修改，流程实例可能已经使用该版本流程模型
         if (Objects.equals(status, FlowProcessStatusEnum.HISTORY.getCode())) {
@@ -67,9 +68,9 @@ public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProc
         // 当前流程草稿状态，可以随便改
         if (Objects.equals(status, FlowProcessStatusEnum.DRAFT.getCode())) {
             FlowProcess updateProcess = PtcBeanUtils.copy(param, FlowProcess.class);
-            updateProcess.setId(processId);
+            updateProcess.setId(id);
             flowProcessDAO.updateById(updateProcess);
-            return processId;
+            return id;
         }
         // 当前流程已发布状态，此时当前流程不动，基于原流程和传入的模型参数插入一条新的草稿流程
         // 防止多人同时基于已发布的流程编辑，产生一个流程多条草稿情况，先删除
@@ -123,7 +124,7 @@ public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProc
     @Override
     public void releaseFlowProcess(FlowProcessParam param) {
         Long releaseProcessId;
-        if (Objects.isNull(param.getProcessId())) {
+        if (Objects.isNull(param.getId())) {
             // 当前流程模型没有保存过
             releaseProcessId = createFlowProcess(param);
         } else {
@@ -140,12 +141,23 @@ public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProc
         LoginUser loginUser = LoginUserHolder.get();
         PtcLambdaQueryWrapper<FlowProcess> queryWrapper = new PtcLambdaQueryWrapper<>();
         queryWrapper.likeIfPresent(FlowProcess::getName, processName);
-        queryWrapper.eq(FlowProcess::getOrgId, loginUser.getOrgId());
+        queryWrapper.eq(FlowProcess::getOrgId, loginUser.getOrgId()).eq(FlowProcess::getIsDelete, CommonConstant.IS_NOT_DEL);
         queryWrapper.in(FlowProcess::getStatus, List.of(FlowProcessStatusEnum.DRAFT.getCode(),
                 FlowProcessStatusEnum.RELEASE.getCode()));
         queryWrapper.orderByDesc(FlowProcess::getId);
         List<FlowProcess> list = flowProcessDAO.selectList(queryWrapper);
         List<FlowProcessVO> processList = PtcBeanUtils.copyList(list, FlowProcessVO.class);
+        processList.forEach(vo -> {
+            if (vo.getId() % 2 == 0) {
+                vo.setStartUserNames(List.of("张三", "李四"));
+                vo.setStartDeptNames(List.of("研发", "设计"));
+                vo.setStartRoleNames(List.of("管理员", "小组长"));
+            } else {
+                vo.setStartUserNames(List.of("王五"));
+                vo.setStartDeptNames(List.of("测试"));
+                vo.setStartRoleNames(List.of("超管"));
+            }
+        });
         // 有搜索，返回命中的分组及其流程
         if (StrUtil.isNotBlank(processName)) {
             if (CollUtil.isEmpty(processList)) {
@@ -166,6 +178,12 @@ public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProc
             category.setProcessList(voList);
         });
         return categoryList;
+    }
+
+    @Override
+    public FlowProcessVO detail(Long processId) {
+        FlowProcess flowProcess = this.getById(processId);
+        return PtcBeanUtils.copy(flowProcess, FlowProcessVO.class);
     }
 
     boolean existProcessByCode(Long orgId, String code) {

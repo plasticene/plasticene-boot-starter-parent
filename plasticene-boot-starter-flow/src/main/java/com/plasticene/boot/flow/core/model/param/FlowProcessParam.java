@@ -43,6 +43,9 @@ public class FlowProcessParam {
     private Long formId;
     @Schema(description = "流程模型节点配置")
     private ProcessNode processNode;
+
+    @Schema(description = "发起方式 0：全员 1：指定人员  2：指定部门  3：指定角色")
+    private Integer startUserType;
     @Schema(description = "可发起用户")
     private List<Long> startUserIds;
     @Schema(description = "可发起部门")
@@ -55,5 +58,5 @@ public class FlowProcessParam {
 
     @Schema(description = "流程id")
     @NotNull(message = "流程id不能为空", groups = Update.class)
-    private Long processId;
+    private Long id;
 }

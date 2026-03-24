@@ -62,6 +62,10 @@ public class FlowProcess extends BaseDO {
     private ProcessNode processNode;
 
     /**
+     * 流程可发起人类型   0：全员   1：指定人员
+     */
+    private Integer startUserType;
+    /**
      * 可发起用户
      */
     @TableField(typeHandler = LongListTypeHandler.class)
@@ -96,5 +100,10 @@ public class FlowProcess extends BaseDO {
      * 发布时间
      */
     private LocalDateTime releaseTime;
+
+    /**
+     * 是否删除 0：否  1：是
+     */
+    private Integer isDelete;
 
 }

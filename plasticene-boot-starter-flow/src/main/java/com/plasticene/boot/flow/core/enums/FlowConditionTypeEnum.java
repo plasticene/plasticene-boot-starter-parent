@@ -8,8 +8,8 @@ import lombok.Getter;
  */
 @Getter
 public enum FlowConditionTypeEnum {
-    AND(1, "AND"),
-    OR(2, "OR"),
+    AND(0, "AND"),
+    OR(1, "OR"),
     ;
 
     private final Integer code;
