@@ -2,12 +2,14 @@ package com.plasticene.boot.flow.core.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.CategoryDAO;
 import com.plasticene.boot.flow.core.entity.Category;
 import com.plasticene.boot.flow.core.model.param.CategoryParam;
+import com.plasticene.boot.flow.core.model.query.CategoryQuery;
 import com.plasticene.boot.flow.core.model.vo.CategoryVO;
 import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
@@ -70,5 +72,25 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDAO, Category> impl
         queryWrapper.orderByAsc(Category::getSeq).orderByDesc(Category::getId);
         List<Category> categoryList = categoryDAO.selectList(queryWrapper);
         return PtcBeanUtils.copyList(categoryList, CategoryVO.class);
+    }
+
+    @Override
+    public PageResult<CategoryVO> page(CategoryQuery query) {
+        PtcLambdaQueryWrapper<Category> queryWrapper = new PtcLambdaQueryWrapper<>();
+        queryWrapper.eq(Category::getOrgId, LoginUserHolder.get().getOrgId());
+        queryWrapper.likeIfPresent(Category::getName, query.getName());
+        queryWrapper.orderByAsc(Category::getSeq).orderByDesc(Category::getId);
+        PageResult<Category> result = categoryDAO.selectPage(query, queryWrapper);
+        List<CategoryVO> voList = PtcBeanUtils.copyList(result.getList(), CategoryVO.class);
+        return new PageResult<>(voList, result.getTotal(), result.getPages());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void delete(List<Long> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            return;
+        }
+        categoryDAO.deleteByIds(ids);
     }
 }
