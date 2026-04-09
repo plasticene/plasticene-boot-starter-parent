@@ -78,8 +78,8 @@ public class ApiLogPrintAspect {
 
         Object result = joinPoint.proceed();
 
-        log.info("Response result:  {}", JsonUtils.toJsonString(result));
-        log.info("time cost:  {}", System.currentTimeMillis() - start);
+        log.info("Response Result:  {}", JsonUtils.toJsonString(result));
+        log.info("Time Cost: [{}]ms", System.currentTimeMillis() - start);
         return result;
     }
 

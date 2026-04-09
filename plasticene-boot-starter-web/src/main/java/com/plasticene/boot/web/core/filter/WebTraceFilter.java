@@ -31,6 +31,7 @@ public class WebTraceFilter extends BaseFilter {
             } else {
                 MDCTraceUtils.putTrace(traceId);
             }
+            response.setHeader(MDCTraceUtils.KEY_TRACE_ID, MDCTraceUtils.getTraceId());
             filterChain.doFilter(request, response);
         } finally {
             MDCTraceUtils.removeTrace();

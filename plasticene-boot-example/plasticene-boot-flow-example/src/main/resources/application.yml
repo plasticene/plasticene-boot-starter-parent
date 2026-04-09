@@ -11,10 +11,12 @@ spring:
     username: root
     password: root
     url: jdbc:mysql://127.0.0.1:3306/ptc_flow?&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&allowMultiQueries=true
+  profiles:
+    active: dev
 #  main:
 #    allow-circular-references: true
 
 
-logging:
-  level:
-    com.plasticene.boot.flow.core.dao: debug
+#logging:
+#  level:
+#    com.plasticene.boot.flow.core.dao: debug
