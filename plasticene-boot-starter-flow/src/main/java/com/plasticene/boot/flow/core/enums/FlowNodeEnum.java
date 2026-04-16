@@ -2,11 +2,13 @@ package com.plasticene.boot.flow.core.enums;
 
 import lombok.Getter;
 
+import java.util.stream.Stream;
+
 /**
  * @author ZFJ
  * @date 2025/9/2
  */
-public class FlowProcessNodeEnum {
+public class FlowNodeEnum {
 
     @Getter
     public enum Type {
@@ -28,6 +30,11 @@ public class FlowProcessNodeEnum {
         Type(Integer code, String name) {
             this.code = code;
             this.name = name;
+        }
+        public static Type getType(Integer code) {
+            return Stream.of(values()).filter(type -> type.getCode().equals(code))
+                    .findFirst()
+                    .orElse(null);
         }
     }
 

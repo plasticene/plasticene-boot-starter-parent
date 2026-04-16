@@ -1,6 +1,6 @@
 package com.plasticene.boot.flow.core.event;
 
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
 import lombok.Getter;
@@ -33,7 +33,7 @@ public class InstanceEvent extends ApplicationEvent {
     /**
      * 当前节点信息
      */
-    private ProcessNode currentNode;
+    private FlowNode currentNode;
 
     /**
      * 事件类型

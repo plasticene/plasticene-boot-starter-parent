@@ -1,7 +1,7 @@
 package com.plasticene.boot.flow.core.executor;
 
 import com.plasticene.boot.flow.core.entity.FlowInstance;
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 
 import java.util.List;
 import java.util.Map;
@@ -17,20 +17,20 @@ public interface ProcessExecutor {
      * @param instance 当前流程实例
      * @param currentNode 当前节点
      */
-    void executeNode(FlowInstance instance, ProcessNode currentNode);
+    void executeNode(FlowInstance instance, FlowNode currentNode);
 
     /**
      * 流转到下一个节点
      * @param instance 当前流程实例
      * @param currentNode 当前节点
      */
-    void moveToNextNode(FlowInstance instance, ProcessNode currentNode);
+    void moveToNextNode(FlowInstance instance, FlowNode currentNode);
 
     /**
      * 根据变量推测流程节点流转路径
-     * @param processNode 当前节点
+     * @param flowNode 当前节点
      * @param varMap 流程变量
      * @return 流程节点流转路径
      */
-    List<ProcessNode> calculateRoute(ProcessNode processNode, Map<String, Object> varMap);
+    List<FlowNode> calculateRoute(FlowNode flowNode, Map<String, Object> varMap);
 }

@@ -230,7 +230,7 @@ class UserServiceTest {
 
     @Test
     public void testCodeGenerator() {
-        codeGenerator.generate("zfj", List.of("visit_score"), null);
+        codeGenerator.generate("ZFJ", List.of("flow_model"), null);
 
     }
 

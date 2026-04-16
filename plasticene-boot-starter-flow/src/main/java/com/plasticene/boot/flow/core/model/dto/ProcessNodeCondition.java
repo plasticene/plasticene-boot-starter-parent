@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -12,6 +13,7 @@ import java.util.List;
  */
 
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ProcessNodeCondition {
 
     /**
@@ -25,6 +27,9 @@ public class ProcessNodeCondition {
      */
     @Schema(description = "条件组集合")
     private List<ProcessConditionGroup> conditionGroups;
+
+    @Schema(description = "是否默认条件")
+    private Boolean isDefault;
 
 
 }

@@ -8,6 +8,7 @@ import com.plasticene.boot.flow.core.model.query.CategoryQuery;
 import com.plasticene.boot.flow.core.model.vo.CategoryVO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author ZFJ
@@ -26,5 +27,7 @@ public interface CategoryService extends IService<Category> {
     PageResult<CategoryVO> page(CategoryQuery query);
 
     void delete(List<Long> ids);
+
+    Map<String, String> getCategoryMap();
 
 }

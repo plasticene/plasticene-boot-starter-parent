@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.plasticene.boot.flow.core.dao.FlowDefinitionDAO">
+
+
+    <select id="getMaxVersion" resultType="java.lang.Integer">
+        SELECT max(version) FROM `flow_definition` WHERE model_id = #{modelId}
+    </select>
+</mapper>

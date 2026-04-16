@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author ZFJ
@@ -92,5 +94,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDAO, Category> impl
             return;
         }
         categoryDAO.deleteByIds(ids);
+    }
+
+    @Override
+    public Map<String, String> getCategoryMap() {
+        PtcLambdaQueryWrapper<Category> queryWrapper = new PtcLambdaQueryWrapper<>();
+        queryWrapper.eq(Category::getOrgId, LoginUserHolder.get().getOrgId());
+        List<Category> categoryList = categoryDAO.selectList(queryWrapper);
+        return categoryList.stream().collect(Collectors.toMap(Category::getCode, Category::getName));
     }
 }

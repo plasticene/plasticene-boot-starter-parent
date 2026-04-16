@@ -4,7 +4,7 @@ import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowInstanceParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.parser.FlowParser;
@@ -87,15 +87,15 @@ public class FlowEngineImpl implements FlowEngine {
     }
 
     @Override
-    public List<ProcessNode> calculateRoute(Long processId, Map<String, Object> varMap) {
+    public List<FlowNode> calculateRoute(Long processId, Map<String, Object> varMap) {
         FlowProcess process = flowProcessService.getById(processId);
         if (process == null) {
             return List.of();
         }
-        ProcessNode processNode = process.getProcessNode();
+        FlowNode flowNode = process.getFlowNode();
         // 补充父子节点关系，使用已有解析工具
-        FlowParser.makeParentNode(processNode);
-        return processExecutor.calculateRoute(processNode, varMap);
+        FlowParser.makeParentNode(flowNode);
+        return processExecutor.calculateRoute(flowNode, varMap);
     }
 }
 

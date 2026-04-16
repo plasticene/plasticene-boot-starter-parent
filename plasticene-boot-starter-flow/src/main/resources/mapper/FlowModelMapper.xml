@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.plasticene.boot.flow.core.dao.FlowModelDAO">
+
+    <resultMap id="modelResultMap" type="com.plasticene.boot.flow.core.entity.FlowModel">
+        <result column="model_node" jdbcType="VARCHAR" property="modelNode"
+                javaType="com.plasticene.boot.flow.core.model.dto.FlowNode"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="active_model" jdbcType="VARCHAR" property="activeModel"
+                javaType="com.plasticene.boot.flow.core.model.dto.FlowNode"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="start_user_ids" jdbcType="VARCHAR" property="startUserIds"
+                javaType="java.util.List"
+                typeHandler="com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler"/>
+        <result column="start_dept_ids" jdbcType="VARCHAR" property="startDeptIds"
+                javaType="java.util.List"
+                typeHandler="com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler"/>
+        <result column="start_role_ids" jdbcType="VARCHAR" property="startRoleIds"
+                javaType="java.util.List"
+                typeHandler="com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler"/>
+        <result column="manager_user_ids" jdbcType="VARCHAR" property="managerUserIds"
+                javaType="java.util.List"
+                typeHandler="com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler"/>
+    </resultMap>
+
+
+    <select id="selectFlowModelForUpdate" resultMap="modelResultMap">
+        SELECT * FROM `flow_model` WHERE id = #{id} FOR UPDATE
+    </select>
+</mapper>

@@ -9,7 +9,7 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowProcessDAO;
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.enums.FlowProcessStatusEnum;
 import com.plasticene.boot.flow.core.model.param.FlowProcessParam;
@@ -92,8 +92,8 @@ public class FlowProcessServiceImpl extends ServiceImpl<FlowProcessDAO, FlowProc
             throw new BizException("只有草稿状态的才能发布");
         }
         // 校验流程模型合法性
-        ProcessNode processNode = flowProcess.getProcessNode();
-        boolean valid = FlowParser.validateProcessNode(processNode);
+        FlowNode flowNode = flowProcess.getFlowNode();
+        boolean valid = FlowParser.validateProcessNode(flowNode);
         if (!valid) {
             throw new BizException("流程模型至少要有一个审批节点");
         }

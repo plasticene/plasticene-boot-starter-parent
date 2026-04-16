@@ -1,6 +1,6 @@
 package com.plasticene.boot.flow.core.provider;
 
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 
 import java.util.List;
 
@@ -10,7 +10,7 @@ import java.util.List;
  */
 public interface FlowTaskAssigneeProvider {
 
-    List<Long> getAssignees(ProcessNode currentNode);
+    List<Long> getAssignees(FlowNode currentNode);
 
     Long getLeader(Long userId);
 

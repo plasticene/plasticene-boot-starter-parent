@@ -1,7 +1,7 @@
 package com.plasticene.boot.flow.core.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,7 +59,7 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @param instanceId 实例id
      * @param currentNode 当前节点
      */
-    void updateInstanceCurrentNode(Long instanceId, ProcessNode currentNode);
+    void updateInstanceCurrentNode(Long instanceId, FlowNode currentNode);
 
     /**
      * 结束流程实例
@@ -67,6 +67,6 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @param currentNode 当前节点
      * @param status 实例状态
      */
-    void endInstance(FlowInstance instance, ProcessNode currentNode, FlowInstanceStatusEnum status);
+    void endInstance(FlowInstance instance, FlowNode currentNode, FlowInstanceStatusEnum status);
 
 }

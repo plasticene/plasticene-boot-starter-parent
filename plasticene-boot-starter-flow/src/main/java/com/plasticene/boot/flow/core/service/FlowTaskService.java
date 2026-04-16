@@ -2,8 +2,7 @@ package com.plasticene.boot.flow.core.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.flow.core.entity.FlowTask;
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
-import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 
@@ -18,32 +17,32 @@ public interface FlowTaskService extends IService<FlowTask> {
     /**
      * 创建开始节点任务
      */
-    void createStartTask(FlowInstance instance, ProcessNode currentNode);
+    void createStartTask(FlowInstance instance, FlowNode currentNode);
 
     /**
      * 创建审批节点任务
      */
-    void createApproveTask(FlowInstance instance, ProcessNode currentNode);
+    void createApproveTask(FlowInstance instance, FlowNode currentNode);
 
     /**
      * 创建抄送节点任务
      */
-    void createCopyTask(FlowInstance instance, ProcessNode currentNode);
+    void createCopyTask(FlowInstance instance, FlowNode currentNode);
 
     /**
      * 创建结束节点任务
      */
-    void createEndTask(FlowInstance instance, ProcessNode currentNode);
+    void createEndTask(FlowInstance instance, FlowNode currentNode);
 
     /**
      * 创建分支任务
      */
-    void createBranchTask(FlowInstance instance, ProcessNode currentNode);
+    void createBranchTask(FlowInstance instance, FlowNode currentNode);
 
     /**
      * 创建条件节点任务
      */
-    void createConditionNodeTask(FlowInstance instance, ProcessNode conditionNode);
+    void createConditionNodeTask(FlowInstance instance, FlowNode conditionNode);
 
     /**
      * 审批任务

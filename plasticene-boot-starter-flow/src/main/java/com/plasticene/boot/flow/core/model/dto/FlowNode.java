@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.ToString;
@@ -17,7 +18,7 @@ import java.util.List;
 @ToString(exclude = {"parentNode"})
 // 序列化的时候忽略null字段，解决数据库很多null无效字段信息
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ProcessNode {
+public class FlowNode {
 
     /**
      * 节点key
@@ -40,7 +41,7 @@ public class ProcessNode {
     /**
      * 节点类型
      * -1：结束节点   0：发起人   1：审批人   2：抄送人   3：条件节点   4：条件分支 <br>
-     * 关联枚举类{@link com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum.Type}
+     * 关联枚举类{@link FlowNodeEnum.Type}
      */
     @Schema(description = "节点类型 -1：结束节点 0：发起人 1：审批人 2：抄送人 3：条件节点 4：条件分支")
     private Integer type;
@@ -73,7 +74,7 @@ public class ProcessNode {
     /**
      * 当审批人与提交人同一人时处理方式
      * 0：自己审批  1：自动跳过 2：转给直属上级审批  3：转给部门 负责人审批 <br>
-     * {@link com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum.SelfApprove}
+     * {@link FlowNodeEnum.SelfApprove}
      */
     @Schema(description = "当审批人与提交人同一人时处理方式 0：自己审批  1：自动跳过 2：转给直属上级审批  3：转给部门负责人审批 ")
     private Integer selfApprove;
@@ -81,7 +82,7 @@ public class ProcessNode {
     /**
      * 当审批人为空时处理方式
      * 0：自动通过  1：自动拒绝 2：指定人员审批  3：转给流程管理员<br>
-     * {@link com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum.AssigneeEmpty}
+     * {@link FlowNodeEnum.AssigneeEmpty}
      */
     @Schema(description = "当审批人为空时处理方式 0：自动通过  1：自动拒绝 2：指定人员审批  3：转给流程管理员")
     private Integer assigneeEmpty;
@@ -116,13 +117,13 @@ public class ProcessNode {
      * 子节点
      */
     @Schema(description = "子节点")
-    private ProcessNode childNode;
+    private FlowNode childNode;
 
     /**
      * 条件节点
      */
     @Schema(description = "条件节点集合")
-    private List<ProcessNode> conditionNodes;
+    private List<FlowNode> conditionNodes;
 
     /**
      * 条件节点的条件规则配置
@@ -134,7 +135,7 @@ public class ProcessNode {
      * 父节点 逻辑字段后端用
      */
     @Schema(description = "父节点  后端使用，前端不需要传", hidden = true)
-    private ProcessNode parentNode;
+    private FlowNode parentNode;
 
 }
 

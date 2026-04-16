@@ -1,7 +1,7 @@
 package com.plasticene.boot.flow.core.provider;
 
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
-import com.plasticene.boot.flow.core.enums.FlowProcessNodeEnum;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,10 +13,10 @@ import java.util.Objects;
  */
 public class DefaultFlowTaskAssigneeProvider implements FlowTaskAssigneeProvider {
     @Override
-    public List<Long> getAssignees(ProcessNode currentNode) {
+    public List<Long> getAssignees(FlowNode currentNode) {
         Integer assigneeType = currentNode.getAssigneeType();
         List<Long> assigneeList = currentNode.getAssigneeList();
-        if (Objects.equals(assigneeType, FlowProcessNodeEnum.AssigneeType.USER.getCode())) {
+        if (Objects.equals(assigneeType, FlowNodeEnum.AssigneeType.USER.getCode())) {
             return assigneeList;
         }
 

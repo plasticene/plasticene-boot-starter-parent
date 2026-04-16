@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import lombok.Data;
@@ -59,7 +59,7 @@ public class FlowProcess extends BaseDO {
      * 流程模型配置
      */
     @TableField(typeHandler = JacksonTypeHandler.class)
-    private ProcessNode processNode;
+    private FlowNode flowNode;
 
     /**
      * 流程可发起人类型   0：全员   1：指定人员

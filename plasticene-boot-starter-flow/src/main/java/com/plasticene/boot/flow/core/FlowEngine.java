@@ -3,7 +3,7 @@ package com.plasticene.boot.flow.core;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.entity.FlowTask;
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowInstanceParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 
@@ -111,6 +111,6 @@ public interface FlowEngine {
      * @param varMap    条件变量
      * @return 将要经过的节点列表（按执行顺序）
      */
-    List<ProcessNode> calculateRoute(Long processId, Map<String, Object> varMap);
+    List<FlowNode> calculateRoute(Long processId, Map<String, Object> varMap);
 
 }

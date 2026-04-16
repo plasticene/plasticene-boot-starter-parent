@@ -6,7 +6,7 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
-import com.plasticene.boot.flow.core.model.dto.ProcessNode;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
@@ -55,7 +55,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
             throw new BizException("当前类型不是发布状态");
         }
         // 发布状态的流程是合法的，可以直接使用，这里不需要再校验合法性
-        ProcessNode processNode = process.getProcessNode();
+        FlowNode flowNode = process.getFlowNode();
         FlowInstance instance = new FlowInstance();
         instance.setProcessId(processId);
         instance.setBusinessId(businessId);
@@ -64,19 +64,19 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         instance.setOrgId(process.getOrgId());
         instance.setStartTime(LocalDateTime.now());
         instance.setStatus(FlowInstanceStatusEnum.RUNNING.getCode());
-        instance.setCurrentNodeKey(processNode.getKey());
-        instance.setCurrentNodeName(processNode.getName());
+        instance.setCurrentNodeKey(flowNode.getKey());
+        instance.setCurrentNodeName(flowNode.getName());
         LoginUser loginUser = LoginUserHolder.get();
         instance.setUserId(loginUser.getId());
         flowInstanceDAO.insert(instance);
 
         // 发布流程实例开始事件
-        InstanceEvent instanceEvent = buildInstanceEvent(instance, processNode, FlowInstanceEventTypeEnum.START);
+        InstanceEvent instanceEvent = buildInstanceEvent(instance, flowNode, FlowInstanceEventTypeEnum.START);
         applicationContext.publishEvent(instanceEvent);
 
         // 开始流转流程
-        FlowParser.makeParentNode(processNode);
-        processExecutor.executeNode(instance, processNode);
+        FlowParser.makeParentNode(flowNode);
+        processExecutor.executeNode(instance, flowNode);
 
         return instance.getId();
     }
@@ -88,7 +88,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void updateInstanceCurrentNode(Long instanceId, ProcessNode currentNode) {
+    public void updateInstanceCurrentNode(Long instanceId, FlowNode currentNode) {
         FlowInstance instance = new FlowInstance();
         instance.setId(instanceId);
         instance.setCurrentNodeKey(currentNode.getKey());
@@ -98,7 +98,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void endInstance(FlowInstance instance, ProcessNode currentNode, FlowInstanceStatusEnum status) {
+    public void endInstance(FlowInstance instance, FlowNode currentNode, FlowInstanceStatusEnum status) {
         // 更新按照规范只更新必须的字段
         FlowInstance updateInstance = new FlowInstance();
         updateInstance.setId(instance.getId());
@@ -115,7 +115,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
     }
 
-    private InstanceEvent buildInstanceEvent(FlowInstance instance, ProcessNode currentNode,
+    private InstanceEvent buildInstanceEvent(FlowInstance instance, FlowNode currentNode,
                                              FlowInstanceEventTypeEnum eventType) {
         InstanceEvent instanceEvent = new InstanceEvent(this);
         instanceEvent.setInstance(instance);

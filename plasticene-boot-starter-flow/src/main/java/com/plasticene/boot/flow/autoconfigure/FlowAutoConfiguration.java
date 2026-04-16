@@ -3,8 +3,13 @@ package com.plasticene.boot.flow.autoconfigure;
 import com.plasticene.boot.flow.core.executor.DefaultProcessExecutor;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.provider.DefaultFlowTaskAssigneeProvider;
+import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
+import com.plasticene.boot.flow.core.validator.ApproveNodeValidator;
+import com.plasticene.boot.flow.core.validator.ConditionNodeValidator;
+import com.plasticene.boot.flow.core.validator.NodeValidator;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +24,7 @@ import org.springframework.context.annotation.Configuration;
 public class FlowAutoConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean(FlowTaskAssigneeProvider.class)
     public FlowTaskAssigneeProvider flowTaskAssigneeProvider () {
         return new DefaultFlowTaskAssigneeProvider();
     }
@@ -26,6 +32,25 @@ public class FlowAutoConfiguration {
     @Bean
     public ProcessExecutor processExecutor () {
         return new DefaultProcessExecutor();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(FlowOrganizationProvider.class)
+    public FlowOrganizationProvider flowOrganizationProvider () {
+        return new FlowOrganizationProvider() {};
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "approveNodeValidator")
+    public NodeValidator approveNodeValidator () {
+        return new ApproveNodeValidator();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "conditionNodeValidator")
+    public NodeValidator conditionNodeValidator () {
+        return new ConditionNodeValidator();
+
     }
 
 
