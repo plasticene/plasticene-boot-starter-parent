@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class CodeGenerator {
     @Resource
-    private DataSource datasource;
+    private DataSource dataSource;
     @Resource
     private ApplicationContext applicationContext;
 
@@ -31,7 +31,7 @@ public class CodeGenerator {
      */
     public void generate(@NotNull String author, @NotNull List<String> tables, String tablePrefix) {
         GeneratorInfo info = new GeneratorInfo();
-        info.setDataSource(datasource);
+        info.setDataSource(dataSource);
         info.setBasePackage(getMainPackagePath());
         info.setAuthor(author);
         info.setTables(tables);

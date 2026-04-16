@@ -5,8 +5,14 @@ import com.baomidou.mybatisplus.generator.config.builder.CustomFile;
 import com.baomidou.mybatisplus.generator.config.rules.DbColumnType;
 import com.baomidou.mybatisplus.generator.engine.FreemarkerTemplateEngine;
 import com.baomidou.mybatisplus.generator.model.ClassAnnotationAttributes;
+import com.plasticene.boot.mybatis.core.generator.GeneratorInfo;
 import com.plasticene.boot.mybatis.core.mapper.BaseMapperX;
+import com.plasticene.boot.mybatis.core.utils.CodegenUtils;
 import org.apache.ibatis.type.JdbcType;
+import org.springframework.boot.jdbc.DataSourceBuilder;
+
+import javax.sql.DataSource;
+import java.util.List;
 
 
 /**
@@ -16,7 +22,7 @@ import org.apache.ibatis.type.JdbcType;
  */
 public class CodeGeneratorTest {
 
-    public static void main(String[] args) {
+    public static void main1(String[] args) {
         // 使用 FastAutoGenerator 快速配置代码生成器
         FastAutoGenerator.create("jdbc:mysql://127.0.0.1:3306/db_test?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true",
                         "root",
@@ -94,5 +100,21 @@ public class CodeGeneratorTest {
                 })
                 .templateEngine(new FreemarkerTemplateEngine()) // 使用 Freemarker 模板引擎
                 .execute(); // 执行生成
+    }
+
+    public static void main(String[] args) {
+        DataSource dataSource = DataSourceBuilder.create()
+                .url("jdbc:mysql://10.10.0.18:3306/ptc_flow?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true")
+                .username("root")
+                .password("root")
+                .driverClassName("com.mysql.cj.jdbc.Driver")
+                .build();
+        GeneratorInfo info = new GeneratorInfo();
+        info.setDataSource(dataSource);
+        info.setBasePackage("com.plasticene.boot.flow.core");
+        info.setAuthor("ZFJ");
+        info.setTables(List.of("flow_model"));
+        CodegenUtils.generate(info);
+
     }
 }

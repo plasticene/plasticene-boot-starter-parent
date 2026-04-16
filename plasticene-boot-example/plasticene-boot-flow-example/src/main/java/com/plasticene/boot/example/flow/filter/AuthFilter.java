@@ -28,7 +28,7 @@ public class AuthFilter extends BaseFilter {
 
         try {
             LoginUser loginUser = new LoginUser();
-            loginUser.setId(6L);
+            loginUser.setId(8L);
             loginUser.setOrgId(3L);
             loginUser.setDeptId(10L);
             loginUser.setRoleIds(List.of(4L, 5L));
