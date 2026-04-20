@@ -1,12 +1,19 @@
 package com.plasticene.boot.example.flow.provider;
 
+import cn.hutool.core.util.StrUtil;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -16,6 +23,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
+    private static final String TOKEN_KEY = "accessToken";
     @Override
     public Map<Long, String> getUserMap() {
         // 1. 创建 RestClient
@@ -24,7 +32,7 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
         // 2. 调用接口并解析
         Result<List<User>> response = restClient.get()
                 .uri("http://localhost:9000/api/user/list")
-                .header("accessToken", "da6a35ab48d942e9a56c0c15cc452d50")
+                .header("accessToken", getRequestToken())
                 .retrieve()
                 .body(new ParameterizedTypeReference<Result<List<User>>>() {});
 
@@ -44,7 +52,7 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
         // 2. 调用接口并解析
         Result<List<Dept>> response = restClient.get()
                 .uri("http://localhost:9000/api/dept/list")
-                .header("accessToken", "da6a35ab48d942e9a56c0c15cc452d50")
+                .header("accessToken", getRequestToken())
                 .retrieve()
                 .body(new ParameterizedTypeReference<Result<List<Dept>>>() {});
 
@@ -64,7 +72,7 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
         // 2. 调用接口并解析
         Result<List<Role>> response = restClient.get()
                 .uri("http://localhost:9000/api/role/list")
-                .header("accessToken", "da6a35ab48d942e9a56c0c15cc452d50")
+                .header("accessToken", getRequestToken())
                 .retrieve()
                 .body(new ParameterizedTypeReference<Result<List<Role>>>() {});
 
@@ -85,4 +93,31 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
 
     // 通用返回包装类
     public record Result<T>(int code, String msg, T data) {}
+
+    private String getRequestToken() {
+        ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        assert requestAttributes != null;
+        HttpServletRequest request = requestAttributes.getRequest();
+        // 从header中查找
+        String token = request.getHeader(TOKEN_KEY);
+        if (StrUtil.isNotBlank(token)) {
+            return token;
+        }
+        // header中没有，从parameter请求参数中获取
+        token = request.getParameter(TOKEN_KEY);
+        if (StrUtil.isNotBlank(token)) {
+            return token;
+        }
+        // header和parameter中没有，从cookie中获取
+        Cookie[] cookies = request.getCookies();
+        if (Objects.nonNull(cookies)) {
+            for (Cookie cookie : cookies) {
+                if (Objects.equals(cookie.getName(), TOKEN_KEY)) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        return token;
+    }
 }

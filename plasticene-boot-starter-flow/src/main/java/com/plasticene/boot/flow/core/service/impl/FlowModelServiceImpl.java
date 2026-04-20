@@ -85,7 +85,8 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         queryWrapper.select(FlowModel::getId, FlowModel::getName, FlowModel::getCode, FlowModel::getCategory,
                 FlowModel::getStatus, FlowModel::getStartUserType, FlowModel::getStartUserIds,
                 FlowModel::getStartRoleIds, FlowModel::getStartDeptIds, FlowModel::getManagerUserIds,
-                FlowModel::getRemark);
+                FlowModel::getRemark, FlowModel::getActiveDefinitionId, FlowModel::getActiveVersion,
+                FlowModel::getPublishTime, FlowModel::getUpdateTime);
         queryWrapper.orderByDesc(FlowModel::getId);
         PageResult<FlowModel> result = flowModelDAO.selectPage(query, queryWrapper);
         List<FlowModelVO> voList = PtcBeanUtils.copyList(result.getList(), FlowModelVO.class);
@@ -122,10 +123,11 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         FlowModelStatisticsVO vo = new FlowModelStatisticsVO();
         vo.setTotal((long) modelList.size());
         vo.setPublished(modelList.stream()
-                .filter(model -> model.getStatus().equals(FlowModelEnums.Status.PUBLISHED.getCode()))
+                .filter(model -> Objects.equals(model.getStatus(),FlowModelEnums.Status.PUBLISHED.getCode())
+                || Objects.equals(model.getStatus(),FlowModelEnums.Status.DISABLED.getCode()))
                 .count());
         vo.setStop(modelList.stream()
-                .filter(model -> model.getStatus().equals(FlowModelEnums.Status.DISABLED.getCode()))
+                .filter(model -> Objects.equals(model.getStatus(), FlowModelEnums.Status.DISABLED.getCode()))
                 .count());
         vo.setRunning(vo.getPublished() - vo.getStop());
         return vo;

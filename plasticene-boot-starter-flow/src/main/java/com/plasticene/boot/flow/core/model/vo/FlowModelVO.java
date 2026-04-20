@@ -43,6 +43,8 @@ public class FlowModelVO {
     private Long activeDefinitionId;
     @Schema(description = "当前发布版本")
     private Integer activeVersion;
+    @Schema(description = "发布时间")
+    private LocalDateTime publishTime;
     @Schema(description = "可发起人类型  0：全员   1：指定人员   2：指定部门    3：指定角色")
     private Integer startUserType;
     @Schema(description = "可发起用户")
@@ -63,4 +65,6 @@ public class FlowModelVO {
     private List<String> managerUserNames;
     @Schema(description = "说明")
     private String remark;
+    @Schema(description = "更新时间")
+    private LocalDateTime updateTime;
 }
