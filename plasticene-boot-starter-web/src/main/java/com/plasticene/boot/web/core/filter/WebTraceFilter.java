@@ -22,7 +22,8 @@ public class WebTraceFilter extends BaseFilter {
 
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response,
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws IOException, ServletException {
         try {
             String traceId = request.getHeader(MDCTraceUtils.TRACE_ID_HEADER);
