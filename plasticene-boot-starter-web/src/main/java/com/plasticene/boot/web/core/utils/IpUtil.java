@@ -15,7 +15,13 @@ public class IpUtil {
     private static final String UNKNOWN = "unknown";
 
     public static String getIpAddress() {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        assert attributes != null;
+        HttpServletRequest request = attributes.getRequest();
+        return getIpAddress(request);
+    }
+
+    public static String getIpAddress(HttpServletRequest request) {
         String ip = request.getHeader("x-forwarded-for");
         if (StringUtils.isBlank(ip) || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("Proxy-Client-IP");
