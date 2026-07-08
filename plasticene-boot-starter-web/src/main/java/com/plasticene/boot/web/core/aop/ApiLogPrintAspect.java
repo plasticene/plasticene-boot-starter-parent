@@ -1,11 +1,12 @@
 package com.plasticene.boot.web.core.aop;
 
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSON;
 import com.plasticene.boot.common.constant.OrderConstant;
-import com.plasticene.boot.common.utils.JsonUtils;
 import com.plasticene.boot.web.core.anno.ApiLog;
 import com.plasticene.boot.web.core.model.RequestInfo;
 import com.plasticene.boot.web.core.prop.ApiLogProperties;
+import com.plasticene.boot.web.core.utils.IpUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,8 +26,18 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
 import java.util.Objects;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author fjzheng
@@ -68,17 +79,17 @@ public class ApiLogPrintAspect {
         long start = System.currentTimeMillis();
         HttpServletRequest request = getRequest();
         RequestInfo requestInfo = new RequestInfo();
-        requestInfo.setIp(request.getRemoteAddr());
-        requestInfo.setUrl(request.getRequestURL().toString());
+        requestInfo.setIp(IpUtil.getIpAddress(request));
+        requestInfo.setUrl(request.getRequestURI());
         requestInfo.setHttpMethod(request.getMethod());
         requestInfo.setClassMethod(String.format("%s.%s", joinPoint.getSignature().getDeclaringTypeName(),
                 joinPoint.getSignature().getName()));
-        requestInfo.setRequestParams(getRequestParams(joinPoint, request));
-        log.info("Request Info : {}", JsonUtils.toJsonString(requestInfo));
+        requestInfo.setRequestParams(formatLogParam(getRequestParams(joinPoint, request)));
+        log.info("Request Info : {}", JSON.toJSONString(requestInfo));
 
         Object result = joinPoint.proceed();
 
-        log.info("Response Result:  {}", JsonUtils.toJsonString(result));
+        log.info("Response Result:  {}", JSON.toJSONString(result));
         log.info("Time Cost: [{}]ms", System.currentTimeMillis() - start);
         return result;
     }
@@ -104,11 +115,7 @@ public class ApiLogPrintAspect {
                         break;
                     }
                 }
-                if (object instanceof MultipartFile multipartFile) {
-                    params = MessageFormat.format("文件名: {0}, 大小: {1}", multipartFile.getOriginalFilename(), multipartFile.getSize());
-                } else {
-                    params = object;
-                }
+                params = object;
                 // 方法为get时，当接口参数为路径参数，那么此时queryString为null
             } else if ("GET".equals(method) && StrUtil.isNotBlank(queryString)) {
                 params = URLDecoder.decode(queryString, StandardCharsets.UTF_8);
@@ -120,8 +127,8 @@ public class ApiLogPrintAspect {
 
     private HttpServletRequest getRequest() {
         ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        HttpServletRequest request = requestAttributes.getRequest();
-        return request;
+        assert requestAttributes != null;
+        return requestAttributes.getRequest();
     }
 
     private ApiLog getApiLog(JoinPoint joinPoint) {
@@ -133,5 +140,106 @@ public class ApiLogPrintAspect {
         }
         return apiLog;
     }
+
+    private Object formatLogParam(Object object) {
+        return toLogValue(object, new IdentityHashMap<>());
+    }
+
+    private static Object toLogValue(Object object, IdentityHashMap<Object, Boolean> visiting) {
+        if (object == null || isSimpleValue(object.getClass())) {
+            return object;
+        }
+        if (object instanceof MultipartFile) {
+            return formatMultipartFile((MultipartFile) object);
+        }
+        if (visiting.containsKey(object)) {
+            return String.valueOf(object);
+        }
+        visiting.put(object, Boolean.TRUE);
+        try {
+            if (object.getClass().isArray()) {
+                return formatArray(object, visiting);
+            }
+            if (object instanceof Iterable) {
+                return formatIterable((Iterable<?>) object, visiting);
+            }
+            if (object instanceof Map) {
+                return formatMap((Map<?, ?>) object, visiting);
+            }
+            if (object.getClass().getName().startsWith("java.")) {
+                return String.valueOf(object);
+            }
+            return formatBean(object, visiting);
+        } finally {
+            visiting.remove(object);
+        }
+    }
+
+    private static Map<String, Object> formatMultipartFile(MultipartFile multipartFile) {
+        Map<String, Object> fileInfo = new LinkedHashMap<>();
+        fileInfo.put("name", multipartFile.getName());
+        fileInfo.put("originalFilename", multipartFile.getOriginalFilename());
+        fileInfo.put("size", multipartFile.getSize());
+        fileInfo.put("contentType", multipartFile.getContentType());
+        return fileInfo;
+    }
+
+    private static List<Object> formatArray(Object array, IdentityHashMap<Object, Boolean> visiting) {
+        int length = Array.getLength(array);
+        List<Object> values = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            values.add(toLogValue(Array.get(array, i), visiting));
+        }
+        return values;
+    }
+
+    private static List<Object> formatIterable(Iterable<?> iterable, IdentityHashMap<Object, Boolean> visiting) {
+        List<Object> values = new ArrayList<>();
+        for (Object value : iterable) {
+            values.add(toLogValue(value, visiting));
+        }
+        return values;
+    }
+
+    private static Map<String, Object> formatMap(Map<?, ?> map, IdentityHashMap<Object, Boolean> visiting) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            values.put(String.valueOf(entry.getKey()), toLogValue(entry.getValue(), visiting));
+        }
+        return values;
+    }
+
+    private static Map<String, Object> formatBean(Object bean, IdentityHashMap<Object, Boolean> visiting) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        Class<?> clazz = bean.getClass();
+        while (clazz != null && clazz != Object.class) {
+            for (Field field : clazz.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) || Modifier.isTransient(field.getModifiers())) {
+                    continue;
+                }
+                try {
+                    field.setAccessible(true);
+                    values.put(field.getName(), toLogValue(field.get(bean), visiting));
+                } catch (Exception ignored) {
+                    values.put(field.getName(), "[unreadable]");
+                }
+            }
+            clazz = clazz.getSuperclass();
+        }
+        return values;
+    }
+
+    private static boolean isSimpleValue(Class<?> clazz) {
+        return clazz.isPrimitive()
+                || CharSequence.class.isAssignableFrom(clazz)
+                || Number.class.isAssignableFrom(clazz)
+                || Boolean.class == clazz
+                || Character.class == clazz
+                || Date.class.isAssignableFrom(clazz)
+                || BigDecimal.class.isAssignableFrom(clazz)
+                || BigInteger.class.isAssignableFrom(clazz)
+                || clazz.isEnum();
+    }
+
 
 }
