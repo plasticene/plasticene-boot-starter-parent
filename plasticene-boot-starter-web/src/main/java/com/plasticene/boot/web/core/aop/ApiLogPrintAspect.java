@@ -3,6 +3,7 @@ package com.plasticene.boot.web.core.aop;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
 import com.plasticene.boot.common.constant.OrderConstant;
+import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.web.core.anno.ApiLog;
 import com.plasticene.boot.web.core.model.RequestInfo;
 import com.plasticene.boot.web.core.prop.ApiLogProperties;
@@ -22,22 +23,13 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+import java.util.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author fjzheng
@@ -88,40 +80,44 @@ public class ApiLogPrintAspect {
         log.info("Request Info : {}", JSON.toJSONString(requestInfo));
 
         Object result = joinPoint.proceed();
-
-        log.info("Response Result:  {}", JSON.toJSONString(result));
+        Object res = result;
+        if (!(result instanceof ResponseVO)) {
+            res = ResponseVO.success(result);
+        }
+        log.info("Response Result:  {}", JSON.toJSONString(res));
         log.info("Time Cost: [{}]ms", System.currentTimeMillis() - start);
         return result;
     }
 
-    private Object getRequestParams(ProceedingJoinPoint joinPoint, HttpServletRequest request) throws UnsupportedEncodingException {
+    private Object getRequestParams(ProceedingJoinPoint joinPoint, HttpServletRequest request) {
         Object[] args = joinPoint.getArgs();
-        Object params = null;
-        String queryString = request.getQueryString();
-        String method = request.getMethod();
-        if (args.length > 0) {
-             // 有body的接口类型，这时候要排除HttpServletRequest request, HttpServletResponse response作为接口方法参数
-            if ("POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method)) {
-                int length = args.length;
-                int index = 0;
-                Object object = null;
-                while (index < length) {
-                    Object o = args[index];
-                    index++;
-                    if (o instanceof HttpServletRequest || o instanceof HttpServletResponse) {
-                        continue;
-                    } else {
-                        object = o;
-                        break;
-                    }
-                }
-                params = object;
-                // 方法为get时，当接口参数为路径参数，那么此时queryString为null
-            } else if ("GET".equals(method) && StrUtil.isNotBlank(queryString)) {
-                params = URLDecoder.decode(queryString, StandardCharsets.UTF_8);
+        if (args == null || args.length == 0) {
+            return null;
+        }
+        // 获取方法参数名
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        String[] parameterNames = signature.getParameterNames();
+
+        Map<String, Object> paramsMap = new HashMap<>();
+        for (int i = 0; i < args.length; i++) {
+            Object arg = args[i];
+
+            // 过滤掉无法或无需序列化的对象
+            if (arg instanceof HttpServletRequest || arg instanceof HttpServletResponse || arg instanceof MultipartFile) {
+                continue;
+            }
+
+            // 如果是 POST 且只有一个自定义对象参数 (如 @RequestBody User dto)，直接返回该对象即可，不用包一层 Map
+            if (args.length == 1 && !StrUtil.equals("GET", request.getMethod())) {
+                return arg;
+            }
+
+            if (parameterNames != null && i < parameterNames.length) {
+                paramsMap.put(parameterNames[i], arg);
             }
         }
-        return params;
+
+        return paramsMap.isEmpty() ? null : paramsMap;
     }
 
 

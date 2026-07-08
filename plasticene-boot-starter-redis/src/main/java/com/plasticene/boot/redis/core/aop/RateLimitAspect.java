@@ -35,8 +35,6 @@ public class RateLimitAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(RateLimitAspect.class);
 
-    private static final String UNKNOWN = "unknown";
-
     @Resource
     private StringRedisTemplate stringRedisTemplate;
     @Resource
