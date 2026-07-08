@@ -101,16 +101,15 @@ public class RateLimitAspect {
      */
     public String buildLuaScript() {
         return """
-                local c
-                c = redis.call('get',KEYS[1])
-                if c and tonumber(c) > tonumber(ARGV[1]) then
-                return c;
+                local current = redis.call('INCR', KEYS[1])
+                if tonumber(current) == 1 then
+                    redis.call('EXPIRE', KEYS[1], tonumber(ARGV[2]))
                 end
-                c = redis.call('incr',KEYS[1])
-                if tonumber(c) == 1 then
-                redis.call('expire',KEYS[1],ARGV[2])
+                if tonumber(current) > tonumber(ARGV[1]) then
+                    return 0
+                else
+                    return 1
                 end
-                return c;
                 """;
     }
 
