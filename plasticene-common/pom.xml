@@ -44,18 +44,6 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- screw 生成数据库文档  -->
-        <dependency>
-            <groupId>cn.smallbun.screw</groupId>
-            <artifactId>screw-core</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-lang</groupId>
-                    <artifactId>commons-lang</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
