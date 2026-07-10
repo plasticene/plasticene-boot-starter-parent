@@ -86,7 +86,7 @@ public class ApiSecurityAspect {
                 } else {
                     requestBodyWrapper = new RequestBodyWrapper(request);
                 }
-                String body = requestBodyWrapper.getBody();
+                byte[] body = requestBodyWrapper.getBody();
                 apiSecurityParam = JSONObject.parseObject(body, ApiSecurityParam.class);
                 // 通过RSA私钥解密获取到aes秘钥
                 String aesKey = RSAUtil.decryptByPrivateKey(apiSecurityParam.getKey(), apiSecurityProperties.getRsaPrivateKey());
