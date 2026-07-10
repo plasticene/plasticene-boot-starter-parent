@@ -12,7 +12,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 
 /**
  * @author fjzheng
@@ -34,7 +33,7 @@ public class RequestBodyWrapper extends HttpServletRequestWrapper {
      * 重写getInputStream， 从body中获取请求参数
      */
     @Override
-    public ServletInputStream getInputStream() throws IOException {
+    public ServletInputStream getInputStream() {
         final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(body);
         return
                 new ServletInputStream() {
@@ -54,7 +53,7 @@ public class RequestBodyWrapper extends HttpServletRequestWrapper {
                     }
 
                     @Override
-                    public int read() throws IOException {
+                    public int read() {
                         return byteArrayInputStream.read();
                     }
                 };

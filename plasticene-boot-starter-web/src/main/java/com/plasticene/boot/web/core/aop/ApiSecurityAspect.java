@@ -126,7 +126,7 @@ public class ApiSecurityAspect {
         }
 
         String timestamp = apiSecurityParam.getTimestamp();
-        Long t;
+        long t;
         if (StringUtils.isBlank(timestamp)) {
             timestamp = request.getHeader("X-Timestamp");
         }
@@ -134,7 +134,7 @@ public class ApiSecurityAspect {
             throw new BizException("时间戳不能为空");
         } else {
             try {
-                t = Long.valueOf(timestamp);
+                t = Long.parseLong(timestamp);
             } catch (Exception e) {
                 throw new BizException("非法的时间戳");
             }
@@ -165,6 +165,7 @@ public class ApiSecurityAspect {
 
     private HttpServletRequest getRequest() {
         ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        assert requestAttributes != null;
         return requestAttributes.getRequest();
     }
 
