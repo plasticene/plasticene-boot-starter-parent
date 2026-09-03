@@ -8,13 +8,22 @@ spring:
     name: plasticene-boot-flow-example
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: root
-    url: jdbc:mysql://10.10.0.10:3306/ptc_flow?&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&allowMultiQueries=true
+    username: ${FLOW_DB_USERNAME:root}
+    password: ${FLOW_DB_PASSWORD:root}
+    url: ${FLOW_DB_URL:jdbc:mysql://localhost:3306/ptc_flow?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF8&useSSL=false&allowPublicKeyRetrieval=true}
   profiles:
     active: dev
 #  main:
 #    allow-circular-references: true
+
+ptc:
+  flow:
+    database:
+      schema-action: ${FLOW_SCHEMA_ACTION:update}
+
+demo:
+  flow:
+    run: false
 
 
 #logging:

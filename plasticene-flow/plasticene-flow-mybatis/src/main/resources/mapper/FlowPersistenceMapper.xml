@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.plasticene.boot.flow.mybatis.mapper.FlowPersistenceMapper">
+
+    <insert id="insertModel" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO flow_model
+            (org_id, code, name, status, form_id, model_node, active_model,
+             active_definition_id, active_version, publish_time, start_user_type,
+             start_user_ids, start_dept_ids, start_role_ids, manager_user_ids, is_delete,
+             create_time, update_time)
+        VALUES
+            (#{tenantId}, #{code}, #{name}, #{status}, #{formDefinitionId}, #{modelJson}, NULL,
+             #{activeDefinitionId}, #{activeVersion}, #{publishedAt}, 0,
+             '', '', '', '', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    </insert>
+
+    <update id="updateModel">
+        UPDATE flow_model
+        SET code = #{code}, name = #{name}, status = #{status}, form_id = #{formDefinitionId},
+            model_node = #{modelJson},
+            active_model = CASE
+                WHEN (active_definition_id IS NULL AND #{activeDefinitionId} IS NOT NULL)
+                    OR active_definition_id &lt;&gt; #{activeDefinitionId}
+                THEN #{modelJson}
+                ELSE active_model
+            END,
+            active_definition_id = #{activeDefinitionId},
+            active_version = #{activeVersion}, publish_time = #{publishedAt}, update_time = CURRENT_TIMESTAMP
+        WHERE org_id = #{tenantId} AND id = #{id}
+    </update>
+
+    <select id="selectModel" resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$ModelDO">
+        SELECT id, org_id AS tenant_id, code, name, status, form_id AS form_definition_id,
+               model_node AS model_json, active_definition_id, active_version, publish_time AS published_at
+        FROM flow_model
+        WHERE org_id = #{tenantId} AND id = #{id} AND is_delete = 0
+    </select>
+
+    <select id="selectModelForUpdate" resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$ModelDO">
+        SELECT id, org_id AS tenant_id, code, name, status, form_id AS form_definition_id,
+               model_node AS model_json, active_definition_id, active_version, publish_time AS published_at
+        FROM flow_model
+        WHERE org_id = #{tenantId} AND id = #{id} AND is_delete = 0
+        FOR UPDATE
+    </select>
+
+    <select id="selectModelByCode" resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$ModelDO">
+        SELECT id, org_id AS tenant_id, code, name, status, form_id AS form_definition_id,
+               model_node AS model_json, active_definition_id, active_version, publish_time AS published_at
+        FROM flow_model
+        WHERE org_id = #{tenantId} AND code = #{code} AND is_delete = 0
+    </select>
+
+    <select id="selectModels" resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$ModelDO">
+        SELECT id, org_id AS tenant_id, code, name, status, form_id AS form_definition_id,
+               model_node AS model_json, active_definition_id, active_version, publish_time AS published_at
+        FROM flow_model
+        WHERE org_id = #{tenantId} AND is_delete = 0
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectMaxDefinitionVersion" resultType="int">
+        SELECT COALESCE(MAX(version), 0)
+        FROM flow_definition
+        WHERE org_id = #{tenantId} AND model_id = #{modelId} AND is_delete = 0
+    </select>
+
+    <insert id="insertDefinition" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO flow_definition
+            (org_id, model_id, code, name, version, form_id, model_node, start_user_type,
+             start_user_ids, start_dept_ids, start_role_ids, manager_user_ids, is_delete,
+             create_time, update_time)
+        VALUES
+            (#{tenantId}, #{modelId}, #{code}, #{name}, #{version}, #{formDefinitionId},
+             #{definitionJson}, 0, '', '', '', '', 0, #{publishedAt}, #{publishedAt})
+    </insert>
+
+    <select id="selectDefinition" resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$DefinitionDO">
+        SELECT id, org_id AS tenant_id, model_id, code, name, version, form_id AS form_definition_id,
+               model_node AS definition_json, create_time AS published_at
+        FROM flow_definition
+        WHERE org_id = #{tenantId} AND id = #{id} AND is_delete = 0
+    </select>
+
+    <select id="selectDefinitions"
+            resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$DefinitionDO">
+        SELECT id, org_id AS tenant_id, model_id, code, name, version, form_id AS form_definition_id,
+               model_node AS definition_json, create_time AS published_at
+        FROM flow_definition
+        WHERE org_id = #{tenantId} AND model_id = #{modelId} AND is_delete = 0
+        ORDER BY version DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <insert id="insertFormDefinition" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO form (org_id, name, status, remark, conf, fields, create_time, update_time)
+        VALUES (#{tenantId}, #{name}, 1, #{code}, #{schemaJson}, '[]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    </insert>
+
+    <update id="updateFormDefinition">
+        UPDATE form
+        SET name = #{name}, remark = #{code}, conf = #{schemaJson}, update_time = CURRENT_TIMESTAMP
+        WHERE org_id = #{tenantId} AND id = #{id}
+    </update>
+
+    <select id="selectFormDefinition"
+            resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$FormDefinitionDO">
+        SELECT id, org_id AS tenant_id, remark AS code, name, 1 AS version, conf AS schema_json
+        FROM form
+        WHERE org_id = #{tenantId} AND id = #{id}
+    </select>
+
+    <insert id="insertFormInstance" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO flow_form_instance
+            (org_id, definition_id, form_id, business_id, data_json, create_time)
+        VALUES
+            (#{tenantId}, #{definitionId}, #{formDefinitionId}, #{businessKey}, #{dataJson}, #{createdAt})
+    </insert>
+
+    <select id="selectFormInstance"
+            resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$FormInstanceDO">
+        SELECT id, org_id AS tenant_id, definition_id, form_id AS form_definition_id,
+               business_id AS business_key, data_json, create_time AS created_at
+        FROM flow_form_instance
+        WHERE org_id = #{tenantId} AND id = #{id}
+    </select>
+
+    <insert id="insertInstance" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO flow_instance
+            (org_id, process_id, user_id, business_id, status, current_node_key,
+             current_node_name, form, var_map, start_time, end_time, create_time, update_time)
+        VALUES
+            (#{tenantId}, #{definitionId}, #{requesterId}, #{businessKey}, #{status}, #{currentNodeKey},
+             #{currentNodeKey}, #{formInstanceId}, #{variablesJson}, #{startedAt}, #{endedAt},
+             #{startedAt}, #{startedAt})
+    </insert>
+
+    <update id="updateInstance">
+        UPDATE flow_instance
+        SET status = #{status}, current_node_key = #{currentNodeKey}, current_node_name = #{currentNodeKey},
+            form = #{formInstanceId}, var_map = #{variablesJson}, end_time = #{endedAt},
+            update_time = CURRENT_TIMESTAMP
+        WHERE org_id = #{tenantId} AND id = #{id}
+    </update>
+
+    <select id="selectInstance" resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$InstanceDO">
+        SELECT id, org_id AS tenant_id, process_id AS definition_id, user_id AS requester_id,
+               business_id AS business_key, status, current_node_key, form AS form_instance_id,
+               var_map AS variables_json, start_time AS started_at, end_time AS ended_at
+        FROM flow_instance
+        WHERE org_id = #{tenantId} AND id = #{id}
+    </select>
+
+    <select id="selectInstanceForUpdate"
+            resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$InstanceDO">
+        SELECT id, org_id AS tenant_id, process_id AS definition_id, user_id AS requester_id,
+               business_id AS business_key, status, current_node_key, form AS form_instance_id,
+               var_map AS variables_json, start_time AS started_at, end_time AS ended_at
+        FROM flow_instance
+        WHERE org_id = #{tenantId} AND id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="selectInstancesByRequester"
+            resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$InstanceDO">
+        SELECT id, org_id AS tenant_id, process_id AS definition_id, user_id AS requester_id,
+               business_id AS business_key, status, current_node_key, form AS form_instance_id,
+               var_map AS variables_json, start_time AS started_at, end_time AS ended_at
+        FROM flow_instance
+        WHERE org_id = #{tenantId} AND user_id = #{requesterId}
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <insert id="insertTask" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO flow_task
+            (org_id, instance_id, node_key, node_name, node_type, assignee, assignee_list,
+             approve_type, approve_mode, status, is_delete, require_comment, comment,
+             completed_branch, start_time, end_time, create_time, update_time)
+        VALUES
+            (#{tenantId}, #{instanceId}, #{nodeKey}, #{nodeName}, 1, #{assigneeId}, #{approvalOrderJson},
+             0, #{approvalMode}, #{status}, 0, #{requireComment}, #{comment},
+             0, #{startedAt}, #{endedAt}, #{startedAt}, #{startedAt})
+    </insert>
+
+    <select id="selectTask" resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$TaskDO">
+        SELECT id, org_id AS tenant_id, instance_id, node_key, node_name, assignee AS assignee_id,
+               assignee_list AS approval_order_json, 0 AS order_index, approve_mode AS approval_mode,
+               status, require_comment, comment, start_time AS started_at, end_time AS ended_at
+        FROM flow_task
+        WHERE org_id = #{tenantId} AND id = #{id}
+    </select>
+
+    <select id="selectTasksByAssignee"
+            resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$TaskDO">
+        SELECT id, org_id AS tenant_id, instance_id, node_key, node_name, assignee AS assignee_id,
+               assignee_list AS approval_order_json, 0 AS order_index, approve_mode AS approval_mode,
+               status, require_comment, comment, start_time AS started_at, end_time AS ended_at
+        FROM flow_task
+        WHERE org_id = #{tenantId} AND assignee = #{assigneeId}
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectTasksByInstance"
+            resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$TaskDO">
+        SELECT id, org_id AS tenant_id, instance_id, node_key, node_name, assignee AS assignee_id,
+               assignee_list AS approval_order_json, 0 AS order_index, approve_mode AS approval_mode,
+               status, require_comment, comment, start_time AS started_at, end_time AS ended_at
+        FROM flow_task
+        WHERE org_id = #{tenantId} AND instance_id = #{instanceId}
+        ORDER BY id
+    </select>
+
+    <update id="completeTask">
+        UPDATE flow_task
+        SET status = #{status}, comment = #{comment}, end_time = #{endedAt}, update_time = CURRENT_TIMESTAMP
+        WHERE org_id = #{tenantId} AND id = #{id} AND status = 0
+    </update>
+
+    <update id="transferTask">
+        UPDATE flow_task
+        SET assignee = #{task.assigneeId}, comment = #{task.comment}, update_time = CURRENT_TIMESTAMP
+        WHERE org_id = #{task.tenantId} AND id = #{task.id}
+          AND assignee = #{previousAssigneeId} AND status = 0
+    </update>
+
+    <select id="selectRunningTasks" resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$TaskDO">
+        SELECT id, org_id AS tenant_id, instance_id, node_key, node_name, assignee AS assignee_id,
+               assignee_list AS approval_order_json, 0 AS order_index, approve_mode AS approval_mode,
+               status, require_comment, comment, start_time AS started_at, end_time AS ended_at
+        FROM flow_task
+        WHERE org_id = #{tenantId} AND instance_id = #{instanceId}
+          AND node_key = #{nodeKey} AND status = 0
+        ORDER BY id
+    </select>
+
+    <update id="cancelRunningTasks">
+        UPDATE flow_task
+        SET status = 4, is_delete = 1, update_time = CURRENT_TIMESTAMP
+        WHERE org_id = #{tenantId} AND instance_id = #{instanceId}
+          AND node_key = #{nodeKey} AND status = 0
+    </update>
+
+    <update id="cancelAllRunningTasks">
+        UPDATE flow_task
+        SET status = 4, is_delete = 1, update_time = CURRENT_TIMESTAMP
+        WHERE org_id = #{tenantId} AND instance_id = #{instanceId} AND status = 0
+    </update>
+
+    <select id="selectCommand" resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$CommandDO">
+        SELECT id, tenant_id, request_id, command_type, result_id, status, created_at, completed_at
+        FROM flow_command
+        WHERE tenant_id = #{tenantId} AND request_id = #{requestId} AND command_type = #{commandType}
+    </select>
+
+    <insert id="insertCommand" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO flow_command
+            (tenant_id, request_id, command_type, result_id, status, created_at, completed_at)
+        VALUES
+            (#{tenantId}, #{requestId}, #{commandType}, #{resultId}, #{status}, #{createdAt}, #{completedAt})
+    </insert>
+
+    <update id="completeCommand">
+        UPDATE flow_command
+        SET result_id = #{resultId}, status = 'COMPLETED', completed_at = #{completedAt}
+        WHERE tenant_id = #{tenantId} AND request_id = #{requestId} AND command_type = #{commandType}
+    </update>
+
+    <insert id="insertEvent" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO flow_outbox_event
+            (event_id, tenant_id, event_type, instance_id, payload_json, status, attempts, occurred_at,
+             next_attempt_at, published_at, last_error)
+        VALUES
+            (#{eventId}, #{tenantId}, #{eventType}, #{instanceId}, #{payloadJson}, #{status}, #{attempts},
+             #{occurredAt}, #{nextAttemptAt}, #{publishedAt}, #{lastError})
+    </insert>
+
+    <select id="selectDeliverableEvents"
+            resultType="com.plasticene.boot.flow.mybatis.data.FlowDataObjects$EventDO">
+        SELECT id, event_id, tenant_id, event_type, instance_id, payload_json, status, attempts,
+               occurred_at, next_attempt_at, published_at, last_error
+        FROM flow_outbox_event
+        WHERE attempts &lt; #{maxAttempts}
+          AND ((status IN ('PENDING', 'FAILED') AND (next_attempt_at IS NULL OR next_attempt_at &lt;= #{now}))
+            OR (status = 'PROCESSING' AND next_attempt_at &lt;= #{now}))
+        ORDER BY occurred_at, id
+        LIMIT #{limit}
+    </select>
+
+    <update id="claimEvent">
+        UPDATE flow_outbox_event
+        SET status = 'PROCESSING', attempts = attempts + 1, next_attempt_at = #{lockUntil}
+        WHERE id = #{id} AND attempts = #{attempts} AND status IN ('PENDING', 'FAILED', 'PROCESSING')
+    </update>
+
+    <update id="markEventPublished">
+        UPDATE flow_outbox_event
+        SET status = 'PUBLISHED', published_at = #{publishedAt}, last_error = NULL, next_attempt_at = NULL
+        WHERE id = #{id} AND status = 'PROCESSING'
+    </update>
+
+    <update id="markEventFailed">
+        UPDATE flow_outbox_event
+        SET status = 'FAILED', last_error = #{lastError}, next_attempt_at = #{nextAttemptAt}
+        WHERE id = #{id} AND status = 'PROCESSING'
+    </update>
+</mapper>

@@ -20,7 +20,7 @@
         <module>plasticene-boot-starter-data-scope</module>
         <module>plasticene-boot-starter-excel</module>
 <!--        <module>plasticene-boot-example</module>-->
-        <module>plasticene-boot-starter-flow</module>
+        <module>plasticene-flow</module>
         <module>plasticene-boot-starter-delay-queue</module>
     </modules>
 
@@ -161,6 +161,16 @@
             <dependency>
                 <groupId>com.plasticene.boot</groupId>
                 <artifactId>plasticene-boot-starter-flow</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-flow-core</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-flow-mybatis</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
