@@ -98,21 +98,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Override
     public FlowModelVO detail(Long id) {
         FlowModel flowModel = flowModelDAO.selectById(id);
-        FlowModelVO vo = PtcBeanUtils.copy(flowModel, FlowModelVO.class);
-        Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
-        vo.setManagerUserNames(vo.getManagerUserIds().stream().map(userMap::get).toList());
-        if (CollUtil.isNotEmpty(flowModel.getStartUserIds())) {
-            vo.setStartUserNames(vo.getStartUserIds().stream().map(userMap::get).toList());
-        }
-        if (CollUtil.isNotEmpty(flowModel.getStartDeptIds())) {
-            Map<Long, String> deptMap = flowOrganizationProvider.getDeptMap();
-            vo.setStartDeptNames(flowModel.getStartDeptIds().stream().map(deptMap::get).toList());
-        }
-        if (CollUtil.isNotEmpty(flowModel.getStartRoleIds())) {
-            Map<Long, String> roleMap = flowOrganizationProvider.getRoleMap();
-            vo.setStartRoleNames(flowModel.getStartRoleIds().stream().map(roleMap::get).toList());
-        }
-        return vo;
+        return PtcBeanUtils.copy(flowModel, FlowModelVO.class);
     }
 
     @Override

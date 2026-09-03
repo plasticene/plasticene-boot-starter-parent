@@ -171,4 +171,12 @@ public class TestController {
        throw new BizException("id={0}和name={1}压根不存在", 23, "张三");
     }
 
+    @Operation(summary = "测试put接口上传文件")
+    @PostMapping("/upload/file")
+    public Long testUploadFile(UserParam param) {
+        log.info("param: {}", param);
+        log.info("files size: {}", param.getFiles() == null ? 0 : param.getFiles().size());
+        return param.getId();
+    }
+
 }

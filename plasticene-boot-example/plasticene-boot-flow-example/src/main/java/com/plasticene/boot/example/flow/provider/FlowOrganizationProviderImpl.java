@@ -7,10 +7,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -119,5 +120,15 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
             }
         }
         return token;
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException {
+        RestTemplate restTemplate = new RestTemplate();
+        String urlPattern = "https://ylink-uat.geniusafc.com/admin/voice-recognize/real-recognize/{id}";
+        String id = "b2a823de-59f4-4f4e-a1d6-3da3a7ff18d2";
+
+        // 假设接口返回的是 String，也可以替换为具体的 DTO 对象类（如 ResultDto.class）
+        String response = restTemplate.getForObject(urlPattern, String.class, id);
+        System.out.println("响应内容：" + response);
     }
 }

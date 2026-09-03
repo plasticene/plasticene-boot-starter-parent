@@ -6,8 +6,10 @@ import com.plasticene.boot.web.core.validator.EnumValue;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author fjzheng
@@ -28,5 +30,7 @@ public class UserParam {
     @Schema(description = "用户出生日期")
     @CombineNotNull(message = "女生出生日期不能为空", condition = "#this.gender == 1")
     private Date birthday;
+    @Schema(description = "用户上传文件")
+    private List<MultipartFile> files;
 
 }
