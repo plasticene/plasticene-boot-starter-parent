@@ -179,11 +179,10 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         queryWrapper.eq(FlowModel::getOrgId, LoginUserHolder.get().getOrgId())
                 .eqIfPresent(FlowModel::getCategory, query.getCategory())
                 .eqIfPresent(FlowModel::getStatus, query.getStatus())
-                .and(StrUtil.isNotBlank(query.getKeyword()), wrapper -> {
-                    wrapper.like(FlowModel::getName, query.getKeyword())
-                            .or()
-                            .like(FlowModel::getCode, query.getKeyword());
-                });
+                .and(StrUtil.isNotBlank(query.getKeyword()),
+                        wrapper -> wrapper.like(FlowModel::getName, query.getKeyword())
+                        .or()
+                        .like(FlowModel::getCode, query.getKeyword()));
         return queryWrapper;
     }
 }

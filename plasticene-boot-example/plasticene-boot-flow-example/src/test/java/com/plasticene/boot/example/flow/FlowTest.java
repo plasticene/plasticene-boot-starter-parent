@@ -1,11 +1,13 @@
 package com.plasticene.boot.example.flow;
 
+import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.ProcessConditionRule;
 import com.plasticene.boot.flow.core.factory.OperatorFactory;
 import com.plasticene.boot.flow.core.operator.Operator;
 import com.plasticene.boot.flow.core.parser.FlowParser;
+import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -23,7 +25,7 @@ import java.util.concurrent.*;
 @Slf4j
 public class FlowTest {
     @Resource
-    private FlowProcessService flowProcessService;
+    private FlowDefinitionService flowDefinitionService;
     @Resource
     private FlowRuntimeServiceTest flowRuntimeServiceTest;
     @Resource
@@ -34,24 +36,24 @@ public class FlowTest {
 
     @Test
     public void testParseValidateProcessNode() {
-        FlowProcess flowProcess = flowProcessService.getById(3L);
-        FlowNode flowNode = flowProcess.getFlowNode();
+        FlowDefinition flowDefinition = flowDefinitionService.getById(3L);
+        FlowNode flowNode = flowDefinition.getModelNode();
         Boolean b = FlowParser.validateProcessNode(flowNode);
         System.out.println(b);
     }
 
     @Test
     public void testFindNodeByKey() {
-        FlowProcess flowProcess = flowProcessService.getById(3L);
-        FlowNode flowNode = flowProcess.getFlowNode();
+        FlowDefinition flowDefinition = flowDefinitionService.getById(3L);
+        FlowNode flowNode = flowDefinition.getModelNode();
         FlowNode node = FlowParser.findNodeByKey(flowNode, "node-012");
         System.out.println(node);
     }
 
     @Test
     public void testFindNextNode() {
-        FlowProcess flowProcess = flowProcessService.getById(3L);
-        FlowNode flowNode = flowProcess.getFlowNode();
+        FlowDefinition flowDefinition = flowDefinitionService.getById(3L);
+        FlowNode flowNode = flowDefinition.getModelNode();
         FlowNode node = FlowParser.findNodeByKey(flowNode, "node-012");
         FlowNode nextNode = FlowParser.findExecutionNextNode(node);
         System.out.println(nextNode);
@@ -59,8 +61,8 @@ public class FlowTest {
 
     @Test
     public void testGetAllProcessConditionRule() {
-        FlowProcess flowProcess = flowProcessService.getById(4L);
-        FlowNode flowNode = flowProcess.getFlowNode();
+        FlowDefinition flowDefinition = flowDefinitionService.getById(4L);
+        FlowNode flowNode = flowDefinition.getModelNode();
         List<ProcessConditionRule> rules = FlowParser.getAllProcessConditionRules(flowNode);
         System.out.println(rules);
 
@@ -91,8 +93,8 @@ public class FlowTest {
 
     @Test
     public void testCalculateRoute() {
-        FlowProcess flowProcess = flowProcessService.getById(26L);
-        FlowNode flowNode = flowProcess.getFlowNode();
+        FlowDefinition flowDefinition = flowDefinitionService.getById(26L);
+        FlowNode flowNode = flowDefinition.getModelNode();
         List<FlowNode> route = processExecutor.calculateRoute(flowNode, Map.of("day", 8));
         System.out.println(route);
     }
