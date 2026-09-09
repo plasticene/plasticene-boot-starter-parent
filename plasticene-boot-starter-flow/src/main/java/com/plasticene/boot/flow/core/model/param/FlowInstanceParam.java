@@ -15,7 +15,7 @@ public class FlowInstanceParam {
 
     @Schema(description = "流程模型id")
     @NotNull(message = "流程id不能为空")
-    private Long processId;
+    private Long definitionId;
     @Schema(description = "业务id")
     private Long businessId;
     @Schema(description = "变量值")

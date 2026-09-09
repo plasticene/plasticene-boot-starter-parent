@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.controller;
 
+import com.plasticene.boot.flow.core.model.param.FlowModelEnableParam;
 import com.plasticene.boot.flow.core.model.vo.FlowModelStatisticsVO;
 import com.plasticene.boot.flow.core.service.FlowModelService;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
@@ -76,7 +77,7 @@ public class FlowModelController {
 
     @Operation(summary = "开关工作流-流程模型")
     @PutMapping("/enable")
-    public ResponseVO<Void> enable(@RequestBody FlowModelParam param) {
+    public ResponseVO<Void> enable(@RequestBody @Validated FlowModelEnableParam param) {
         flowModelService.enable(param);
         return ResponseVO.success();
     }

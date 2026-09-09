@@ -5,22 +5,23 @@ import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
+import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
-import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowProcessStatusEnum;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
 import com.plasticene.boot.flow.core.parser.FlowParser;
-import com.plasticene.boot.flow.core.service.FlowProcessService;
+import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import jakarta.annotation.Resource;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -35,33 +36,27 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Resource
     private FlowInstanceDAO flowInstanceDAO;
     @Resource
-    private FlowProcessService flowProcessService;
-    @Resource
     @Lazy
     private ProcessExecutor processExecutor;
     @Resource
     private ApplicationContext applicationContext;
+    @Resource
+    private FlowDefinitionService flowDefinitionService;
 
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public long startFlowInstanceById(Long processId, Long businessId, Map<String, Object> varMap) {
-        FlowProcess process = flowProcessService.getById(processId);
-        if (process == null) {
-            throw new BizException("流程模型不存在");
-        }
-        Integer status = process.getStatus();
-        if (!Objects.equals(status, FlowProcessStatusEnum.RELEASE.getCode())) {
-            throw new BizException("当前类型不是发布状态");
-        }
-        // 发布状态的流程是合法的，可以直接使用，这里不需要再校验合法性
-        FlowNode flowNode = process.getFlowNode();
+    public long startFlowInstanceById(Long definitionId, Long businessId, Map<String, Object> varMap) {
+        FlowDefinition flowDefinition = flowDefinitionService.getById(definitionId);
+        Assert.notNull(flowDefinition, "当前发布流程模型不存在");
+        // 发布了的流程模型是合法的，可以直接使用，这里不需要再校验合法性，发布的时候已经校验过合法性了
+        FlowNode flowNode = flowDefinition.getModelNode();
         FlowInstance instance = new FlowInstance();
-        instance.setProcessId(processId);
+        instance.setDefinitionId(definitionId);
         instance.setBusinessId(businessId);
         instance.setVarMap(varMap);
-        instance.setCategory(process.getCategory());
-        instance.setOrgId(process.getOrgId());
+        instance.setCategory(flowDefinition.getCategory());
+        instance.setOrgId(flowDefinition.getOrgId());
         instance.setStartTime(LocalDateTime.now());
         instance.setStatus(FlowInstanceStatusEnum.RUNNING.getCode());
         instance.setCurrentNodeKey(flowNode.getKey());

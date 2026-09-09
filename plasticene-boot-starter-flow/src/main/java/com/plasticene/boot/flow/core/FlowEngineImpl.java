@@ -1,14 +1,14 @@
 package com.plasticene.boot.flow.core;
 
+import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
-import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowInstanceParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.parser.FlowParser;
-import com.plasticene.boot.flow.core.service.FlowProcessService;
+import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import jakarta.annotation.Resource;
@@ -34,31 +34,31 @@ public class FlowEngineImpl implements FlowEngine {
     @Resource
     private FlowTaskService flowTaskService;
     @Resource
-    private FlowProcessService flowProcessService;
+    private FlowDefinitionService flowDefinitionService;
     @Resource
     private ProcessExecutor processExecutor;
 
     @Override
-    public Long startInstance(Long processId) {
-        return flowRuntimeService.startFlowInstanceById(processId);
+    public Long startInstance(Long definitionId) {
+        return flowRuntimeService.startFlowInstanceById(definitionId);
     }
 
     @Override
-    public Long startInstance(Long processId, Long businessId) {
-        return flowRuntimeService.startFlowInstanceById(processId, businessId);
+    public Long startInstance(Long definitionId, Long businessId) {
+        return flowRuntimeService.startFlowInstanceById(definitionId, businessId);
     }
 
     @Override
-    public Long startInstance(Long processId, Long businessId, Map<String, Object> varMap) {
-        return flowRuntimeService.startFlowInstanceById(processId, businessId, varMap);
+    public Long startInstance(Long definitionId, Long businessId, Map<String, Object> varMap) {
+        return flowRuntimeService.startFlowInstanceById(definitionId, businessId, varMap);
     }
 
     @Override
     public Long startInstance(FlowInstanceParam param) {
-        Long processId = param.getProcessId();
+        Long definitionId = param.getDefinitionId();
         Long businessId = param.getBusinessId();
         Map<String, Object> varMap = param.getVarMap();
-        return flowRuntimeService.startFlowInstanceById(processId, businessId, varMap);
+        return flowRuntimeService.startFlowInstanceById(definitionId, businessId, varMap);
     }
 
     @Override
@@ -82,17 +82,17 @@ public class FlowEngineImpl implements FlowEngine {
     }
 
     @Override
-    public FlowProcess getProcess(Long processId) {
-        return flowProcessService.getById(processId);
+    public FlowDefinition getDefinition(Long definitionId) {
+        return flowDefinitionService.getById(definitionId);
     }
 
     @Override
-    public List<FlowNode> calculateRoute(Long processId, Map<String, Object> varMap) {
-        FlowProcess process = flowProcessService.getById(processId);
+    public List<FlowNode> calculateRoute(Long definitionId, Map<String, Object> varMap) {
+        FlowDefinition process = flowDefinitionService.getById(definitionId);
         if (process == null) {
             return List.of();
         }
-        FlowNode flowNode = process.getFlowNode();
+        FlowNode flowNode = process.getModelNode();
         // 补充父子节点关系，使用已有解析工具
         FlowParser.makeParentNode(flowNode);
         return processExecutor.calculateRoute(flowNode, varMap);

@@ -103,4 +103,8 @@ public class FlowModel extends BaseDO {
     /** 是否删除 0：否  1：是 */
     @TableField("is_delete")
     private Integer isDelete;
+
+    /** 是否编辑过 0：否  1：是 */
+    @TableField("is_edited")
+    private Integer isEdited;
 }

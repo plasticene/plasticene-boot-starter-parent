@@ -8,10 +8,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
+import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
-import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
@@ -19,7 +19,7 @@ import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
-import com.plasticene.boot.flow.core.service.FlowProcessService;
+import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
@@ -49,7 +49,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     @Lazy
     private ProcessExecutor processExecutor;
     @Resource
-    private FlowProcessService flowProcessService;
+    private FlowDefinitionService flowDefinitionService;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -131,8 +131,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         }
         // 转给管理员审批
         if (Objects.equals(assigneeEmpty, FlowNodeEnum.AssigneeEmpty.TO_MANAGER.getCode())) {
-            FlowProcess process = flowProcessService.getById(instance.getProcessId());
-            assignees.addAll(process.getManagerUserIds());
+            FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+            assignees.addAll(definition.getManagerUserIds());
         }
     }
 
@@ -290,8 +290,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         }
 
         // 根据流程模型查找当前节点并流转下一个节点
-        FlowProcess flowProcess = flowProcessService.getById(flowInstance.getProcessId());
-        FlowNode flowNode = flowProcess.getFlowNode();
+        FlowDefinition flowDefinition = flowDefinitionService.getById(flowInstance.getDefinitionId());
+        FlowNode flowNode = flowDefinition.getModelNode();
         FlowParser.makeParentNode(flowNode);
         FlowNode currentNode = FlowParser.findNodeByKey(flowNode, nodeKey);
         processExecutor.moveToNextNode(flowInstance, currentNode);
@@ -319,8 +319,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         delInstanceRunningTask(instanceId);
 
         // 终止流程实例
-        FlowProcess flowProcess = flowProcessService.getById(instance.getProcessId());
-        FlowNode flowNode = flowProcess.getFlowNode();
+        FlowDefinition flowDefinition = flowDefinitionService.getById(instance.getDefinitionId());
+        FlowNode flowNode = flowDefinition.getModelNode();
         FlowParser.makeParentNode(flowNode);
         FlowNode currentNode = FlowParser.findNodeByKey(flowNode, nodeKey);
         flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);

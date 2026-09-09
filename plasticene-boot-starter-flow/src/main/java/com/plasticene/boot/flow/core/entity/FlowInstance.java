@@ -31,9 +31,9 @@ public class FlowInstance extends BaseDO {
      */
     private Long userId;
     /**
-     * 流程模型id
+     * 流程模型发布id
      */
-    private Long processId;
+    private Long definitionId;
     /**
      * 状态 0：审批中  1：审批通过  2：审批拒绝
      */

@@ -15,34 +15,34 @@ import java.util.Map;
 public interface FlowRuntimeService extends IService<FlowInstance> {
 
     /**
-     * 根据流程模型id发起一次流程实例
-     * @param processId 流程模型id
+     * 根据流程模型发布id发起一次流程实例
+     * @param definitionId 流程模型发布id
      * @return 实例id
      */
     @Transactional(rollbackFor = Exception.class)
-    default long startFlowInstanceById(Long processId) {
-        return startFlowInstanceById(processId, null, null);
+    default long startFlowInstanceById(Long definitionId) {
+        return startFlowInstanceById(definitionId, null, null);
     }
 
     /**
-     * 根据流程模型id发起一次流程实例
-     * @param processId 流程模型id
+     * 根据流程模型发布id发起一次流程实例
+     * @param definitionId 流程模型发布id
      * @param businessId 申请业务id
      * @return 实例id
      */
     @Transactional(rollbackFor = Exception.class)
-    default long startFlowInstanceById(Long processId, Long businessId) {
-        return startFlowInstanceById(processId, businessId, null);
+    default long startFlowInstanceById(Long definitionId, Long businessId) {
+        return startFlowInstanceById(definitionId, businessId, null);
     }
 
     /**
-     * 根据流程模型id发起一次流程实例
-     * @param processId 流程模型id
+     * 根据流程模型发布id发起一次流程实例
+     * @param definitionId 流程模型发布id
      * @param businessId  申请业务id
      * @param varMap 变量map
      * @return 实例id
      */
-    long startFlowInstanceById(Long processId, Long businessId, Map<String, Object> varMap);
+    long startFlowInstanceById(Long definitionId, Long businessId, Map<String, Object> varMap);
 
     /**
      * 对实例加行锁，保证并发情况下数据准确性

@@ -3,14 +3,16 @@ package com.plasticene.boot.flow.core.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.plasticene.boot.common.constant.CommonConstant;
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.enums.FlowModelEnums;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.flow.core.model.param.FlowModelEnableParam;
 import com.plasticene.boot.flow.core.model.vo.FlowModelStatisticsVO;
-import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowModelService;
@@ -46,8 +48,6 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Resource
     private FlowModelDAO flowModelDAO;
     @Resource
-    private FlowOrganizationProvider flowOrganizationProvider;
-    @Resource
     private CategoryService categoryService;
     @Resource
     private FlowNodeValidator flowNodeValidator;
@@ -59,6 +59,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     public Long create(FlowModelParam param) {
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
         flowModel.setOrgId(LoginUserHolder.get().getOrgId());
+        flowModel.setIsEdited(CommonConstant.IS_ON);
         flowModelDAO.insert(flowModel);
         return flowModel.getId();
     }
@@ -67,6 +68,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Override
     public void update(FlowModelParam param) {
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
+        flowModel.setIsEdited(CommonConstant.IS_ON);
         flowModelDAO.updateById(flowModel);
     }
 
@@ -86,7 +88,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
                 FlowModel::getStatus, FlowModel::getStartUserType, FlowModel::getStartUserIds,
                 FlowModel::getStartRoleIds, FlowModel::getStartDeptIds, FlowModel::getManagerUserIds,
                 FlowModel::getRemark, FlowModel::getActiveDefinitionId, FlowModel::getActiveVersion,
-                FlowModel::getPublishTime, FlowModel::getUpdateTime);
+                FlowModel::getPublishTime, FlowModel::getUpdateTime, FlowModel::getIsEdited);
         queryWrapper.orderByDesc(FlowModel::getId);
         PageResult<FlowModel> result = flowModelDAO.selectPage(query, queryWrapper);
         List<FlowModelVO> voList = PtcBeanUtils.copyList(result.getList(), FlowModelVO.class);
@@ -121,15 +123,22 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void enable(FlowModelParam param) {
+    public void enable(FlowModelEnableParam param) {
         Long id = param.getId();
         Integer status = param.getStatus();
+        FlowModel flowModel = this.getById(id);
+        Assert.notNull(flowModel, "流程模型不存在");
+        if (Objects.equals(flowModel.getStatus(), FlowModelEnums.Status.DRAFT.getCode())) {
+            throw new BizException("流程模型当前状态为草稿，不能进行开关操作");
+        }
         LambdaUpdateWrapper<FlowModel> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.set(FlowModel::getStatus, status);
         updateWrapper.eq(FlowModel::getId, id);
+        // 关闭→开启
         if (Objects.equals(status, FlowModelEnums.Status.PUBLISHED.getCode())) {
             updateWrapper.eq(FlowModel::getStatus, FlowModelEnums.Status.DISABLED.getCode());
         }
+        // 开启→关闭
         if (Objects.equals(status, FlowModelEnums.Status.DISABLED.getCode())) {
             updateWrapper.eq(FlowModel::getStatus, FlowModelEnums.Status.PUBLISHED.getCode());
         }
@@ -153,13 +162,14 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         flowDefinition.setVersion(maxVersion + 1);
         flowDefinitionService.save(flowDefinition);
 
-        // 更新model模型状态
+        // 4.更新model模型状态
         FlowModel updateModel = new FlowModel();
         updateModel.setId(id);
         updateModel.setStatus(FlowModelEnums.Status.PUBLISHED.getCode());
         updateModel.setActiveModel(modelNode);
         updateModel.setActiveDefinitionId(flowDefinition.getId());
         updateModel.setActiveVersion(flowDefinition.getVersion());
+        updateModel.setIsEdited(CommonConstant.IS_OFF);
         updateModel.setPublishTime(LocalDateTime.now());
         flowModelDAO.updateById(updateModel);
     }

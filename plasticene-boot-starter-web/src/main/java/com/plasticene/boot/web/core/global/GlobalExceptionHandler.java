@@ -43,6 +43,9 @@ public class GlobalExceptionHandler {
                 }
                 return ResponseVO.failure(bizException.getCode(), bizException.getMessage());
             }
+            case IllegalArgumentException ex -> {
+                return ResponseVO.failure(ResponseCodeEnum.BAD_REQUEST.getCode(), ex.getMessage());
+            }
             case MethodArgumentNotValidException methodArgumentNotValidException -> {
                 // 参数检验异常
                 Map<String, String> map = new HashMap<>();

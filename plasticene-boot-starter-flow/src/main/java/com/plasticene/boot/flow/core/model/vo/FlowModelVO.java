@@ -67,4 +67,6 @@ public class FlowModelVO {
     private String remark;
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
+    @Schema(description = "是否编辑过 0：否 1：是")
+    private Integer isEdited;
 }

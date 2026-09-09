@@ -1,7 +1,7 @@
 package com.plasticene.boot.flow.core;
 
+import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
-import com.plasticene.boot.flow.core.entity.FlowProcess;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowInstanceParam;
@@ -31,31 +31,31 @@ import java.util.Map;
 public interface FlowEngine {
 
     /**
-     * 基于流程模型 id 发起一次流程实例（无业务 id、无变量）
+     * 基于流程模型发布id 发起一次流程实例（无业务 id、无变量）
      *
-     * @param processId 流程模型 id
+     * @param definitionId 流程模型发布id
      * @return 实例 id
      */
-    Long startInstance(Long processId);
+    Long startInstance(Long definitionId);
 
     /**
-     * 基于流程模型 id 发起一次流程实例（带业务 id）
+     * 基于流程模型发布id 发起一次流程实例（带业务 id）
      *
-     * @param processId  流程模型 id
+     * @param definitionId  流程模型发布id
      * @param businessId 业务 id
      * @return 实例 id
      */
-    Long startInstance(Long processId, Long businessId);
+    Long startInstance(Long definitionId, Long businessId);
 
     /**
-     * 基于流程模型 id 发起一次流程实例（带业务 id & 变量）
+     * 基于流程模型发布id 发起一次流程实例（带业务 id & 变量）
      *
-     * @param processId  流程模型 id
+     * @param definitionId  流程模型发布id
      * @param businessId 业务 id
      * @param varMap     变量 map
      * @return 实例 id
      */
-    Long startInstance(Long processId, Long businessId, Map<String, Object> varMap);
+    Long startInstance(Long definitionId, Long businessId, Map<String, Object> varMap);
 
     /**
      * 基于参数对象发起实例（便于不同调用方按需扩展字段）
@@ -98,19 +98,19 @@ public interface FlowEngine {
     /**
      * 查询流程模型
      *
-     * @param processId 流程模型 id
+     * @param definitionId 流程模型发布id
      * @return 流程模型
      */
-    FlowProcess getProcess(Long processId);
+    FlowDefinition getDefinition(Long definitionId);
 
     /**
      * 预计算某个流程在给定变量下的“理论流转路径”
      * <p>常用于：在发起前给前端展示“将经过哪些节点、谁会审批”。</p>
      *
-     * @param processId 流程模型 id
+     * @param definitionId 流程模型发布id
      * @param varMap    条件变量
      * @return 将要经过的节点列表（按执行顺序）
      */
-    List<FlowNode> calculateRoute(Long processId, Map<String, Object> varMap);
+    List<FlowNode> calculateRoute(Long definitionId, Map<String, Object> varMap);
 
 }

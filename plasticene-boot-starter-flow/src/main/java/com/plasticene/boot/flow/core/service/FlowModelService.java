@@ -2,6 +2,7 @@ package com.plasticene.boot.flow.core.service;
 
 import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.plasticene.boot.flow.core.model.param.FlowModelEnableParam;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
 import com.plasticene.boot.flow.core.model.query.FlowModelQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowModelStatisticsVO;
@@ -63,7 +64,7 @@ public interface FlowModelService extends IService<FlowModel> {
      * 开关流程模型， 启用/禁用，发布状态就是启用状态，只有发布之后才能禁用
      * @param param 模型参数
      */
-    void enable(FlowModelParam param);
+    void enable(FlowModelEnableParam param);
 
     /**
      * 发布流程模型
