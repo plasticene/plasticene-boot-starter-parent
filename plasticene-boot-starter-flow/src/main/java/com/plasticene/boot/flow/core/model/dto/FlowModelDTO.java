@@ -2,8 +2,9 @@ package com.plasticene.boot.flow.core.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import java.time.LocalDateTime;
+
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -28,8 +29,8 @@ public class FlowModelDTO {
     private String category;
     @Schema(description = "流程状态  0：草稿  1：发布  -1：停用")
     private Integer status;
-    @Schema(description = "流程表单id")
-    private Long formId;
+    @Schema(description = "流程表单配置快照")
+    private Map<String, Object> formConfig;
     @Schema(description = "设计态-流程模型节点配置")
     private String draftModel;
     @Schema(description = "运行态-流程模型节点配置")

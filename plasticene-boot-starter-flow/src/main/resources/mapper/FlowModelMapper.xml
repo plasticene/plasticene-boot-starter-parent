@@ -3,6 +3,9 @@
 <mapper namespace="com.plasticene.boot.flow.core.dao.FlowModelDAO">
 
     <resultMap id="modelResultMap" type="com.plasticene.boot.flow.core.entity.FlowModel">
+        <result column="form_config" jdbcType="VARCHAR" property="formConfig"
+                javaType="java.util.Map"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
         <result column="model_node" jdbcType="VARCHAR" property="modelNode"
                 javaType="com.plasticene.boot.flow.core.model.dto.FlowNode"
                 typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>

@@ -4,8 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author ZFJ
@@ -33,8 +31,6 @@ public class CategoryVO {
     private LocalDateTime createTime;
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
-    @Schema(description = "分组下流程")
-    private List<FlowProcessVO> processList = new ArrayList<>();
 
 
 }

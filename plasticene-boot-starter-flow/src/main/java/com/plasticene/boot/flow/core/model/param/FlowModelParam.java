@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -43,8 +44,8 @@ public class FlowModelParam {
     private String category;
     @Schema(description = "流程状态  0：草稿  1：发布  -1：停用")
     private Integer status;
-    @Schema(description = "流程表单id")
-    private Long formId;
+    @Schema(description = "流程表单配置快照")
+    private Map<String, Object> formConfig;
     @Schema(description = "流程模型配置")
     private FlowNode modelNode;
     @Schema(description = "可发起人类型  0：全员   1：指定人员   2：指定部门    3：指定角色")

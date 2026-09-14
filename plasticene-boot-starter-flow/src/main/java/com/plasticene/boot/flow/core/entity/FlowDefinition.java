@@ -12,6 +12,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 流程定义表：流程模型发布记录表
@@ -47,9 +48,9 @@ public class FlowDefinition extends BaseDO {
     @TableField("category")
     private String category;
 
-    /** 流程表单id */
-    @TableField("form_id")
-    private Long formId;
+    /** 流程表单配置快照 */
+    @TableField(value = "form_config", typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> formConfig;
 
     /** 设计态-流程模型节点配置 */
     @TableField(value = "model_node", typeHandler = JacksonTypeHandler.class)

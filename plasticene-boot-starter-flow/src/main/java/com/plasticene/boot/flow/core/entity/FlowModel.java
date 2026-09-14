@@ -13,6 +13,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -52,9 +53,9 @@ public class FlowModel extends BaseDO {
     @TableField("status")
     private Integer status;
 
-    /** 流程表单id */
-    @TableField("form_id")
-    private Long formId;
+    /** 流程表单配置快照 */
+    @TableField(value = "form_config", typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> formConfig;
 
     /** 设计态-流程模型节点配置 */
     @TableField(value = "model_node", typeHandler = JacksonTypeHandler.class)
