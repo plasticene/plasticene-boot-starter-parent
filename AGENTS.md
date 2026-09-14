@@ -26,7 +26,7 @@
 - 新增依赖时，版本统一放在根 `pom.xml` 的 properties/dependencyManagement 中；子模块只声明实际需要的依赖，避免扩大传递依赖。
 - 修改 MyBatis DAO、实体或查询结构时，同步检查对应的 `src/main/resources/mapper/*.xml`。
 - 修改代码生成器时，同步检查 `plasticene-boot-starter-mybatis/src/main/resources/templates/codegen/` 下的模板。
-- 在任意模块的 `src` 目录下新增目录后，必须执行 `git add <新增目录路径>`，将该目录中的新增文件加入暂存区；Git 不跟踪空目录，因此新增目录必须包含应提交的文件。
+- 在任意模块中新增文件后，必须执行 `git add <新增文件路径>`，将新增文件加入暂存区；新增目录应通过其中需要提交的文件一并加入，Git 不跟踪空目录。
 - `src` 目录下新增 Java 文件时，必须在顶级类、接口、枚举或记录声明前添加包含功能说明、作者和创建日期的 Javadoc。作者固定为 `ZFJ`，`@since` 使用创建当天日期，格式为 `yyyy-MM-dd`；功能说明应按文件实际职责填写。例如：
 
   ```java
