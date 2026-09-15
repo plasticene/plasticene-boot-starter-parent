@@ -11,6 +11,7 @@ import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -87,4 +88,8 @@ public class FlowDefinition extends BaseDO {
     /** 是否删除 0：否  1：是 */
     @TableField("is_delete")
     private Integer isDelete;
+
+    /** 发布时间 */
+    @TableField("publish_time")
+    private LocalDateTime publishTime;
 }

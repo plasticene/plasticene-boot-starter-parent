@@ -76,11 +76,19 @@ public class DefaultProcessExecutor implements ProcessExecutor {
     @Override
     public List<FlowNode> calculateRoute(FlowNode flowNode, Map<String, Object> varMap) {
         List<FlowNode> routeNodes = new ArrayList<>();
-        calculateRoute(flowNode, varMap, routeNodes);
+        calculateRoute(flowNode, varMap, routeNodes, false);
         return routeNodes;
     }
 
-    private void calculateRoute(FlowNode flowNode, Map<String, Object> varMap, List<FlowNode> routeNodes) {
+    @Override
+    public List<FlowNode> calculateRouteTrace(FlowNode flowNode, Map<String, Object> varMap) {
+        List<FlowNode> routeNodes = new ArrayList<>();
+        calculateRoute(flowNode, varMap, routeNodes, true);
+        return routeNodes;
+    }
+
+    private void calculateRoute(FlowNode flowNode, Map<String, Object> varMap,
+                                List<FlowNode> routeNodes, boolean includeRoutingNodes) {
         if (flowNode == null) {
             return;
         }
@@ -94,26 +102,38 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         }
         // 条件分支
         if (Objects.equals(type, FlowNodeEnum.Type.CONDITION_BRANCH.getCode())) {
+            if (includeRoutingNodes) {
+                routeNodes.add(flowNode);
+            }
             // 分支下的条件节点
             List<FlowNode> conditionNodes = flowNode.getConditionNodes();
             for (FlowNode conditionNode : conditionNodes) {
                 boolean match = handleConditionNode(varMap, conditionNode);
                 if (match) {
+                    if (includeRoutingNodes) {
+                        routeNodes.add(conditionNode);
+                    }
                     // 递归条件节点下的子节点，没有子节点那就return
-                    calculateRoute(conditionNode.getChildNode(), varMap, routeNodes);
+                    calculateRoute(conditionNode.getChildNode(), varMap, routeNodes, includeRoutingNodes);
                     break;
                 }
             }
         }
         // 并行分支
-         if (Objects.equals(type, FlowNodeEnum.Type.PARALLEL_BRANCH.getCode())) {
-             List<FlowNode> conditionNodes = flowNode.getConditionNodes();
-             for (FlowNode conditionNode : conditionNodes) {
-                 FlowNode childNode = conditionNode.getChildNode();
-                 calculateRoute(childNode, varMap, routeNodes);
-             }
-         }
-        calculateRoute(flowNode.getChildNode(), varMap, routeNodes);
+        if (Objects.equals(type, FlowNodeEnum.Type.PARALLEL_BRANCH.getCode())) {
+            if (includeRoutingNodes) {
+                routeNodes.add(flowNode);
+            }
+            List<FlowNode> conditionNodes = flowNode.getConditionNodes();
+            for (FlowNode conditionNode : conditionNodes) {
+                if (includeRoutingNodes) {
+                    routeNodes.add(conditionNode);
+                }
+                FlowNode childNode = conditionNode.getChildNode();
+                calculateRoute(childNode, varMap, routeNodes, includeRoutingNodes);
+            }
+        }
+        calculateRoute(flowNode.getChildNode(), varMap, routeNodes, includeRoutingNodes);
     }
 
 

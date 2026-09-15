@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.service.impl;
 
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
@@ -11,6 +12,7 @@ import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
+import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
 import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
@@ -19,9 +21,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.Assert;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,14 +46,16 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Transactional(rollbackFor = Exception.class)
     @Override
     public long startFlowInstanceById(Long definitionId, Long businessId, Map<String, Object> varMap) {
-        FlowDefinition flowDefinition = flowDefinitionService.getById(definitionId);
-        Assert.notNull(flowDefinition, "当前发布流程模型不存在");
+        FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId);
         // 发布了的流程模型是合法的，可以直接使用，这里不需要再校验合法性，发布的时候已经校验过合法性了
         FlowNode flowNode = flowDefinition.getModelNode();
         FlowInstance instance = new FlowInstance();
         instance.setDefinitionId(definitionId);
         instance.setBusinessId(businessId);
         instance.setVarMap(varMap);
+        if (flowDefinition.getFormConfig() != null) {
+            instance.setForm(JSONUtil.toJsonStr(flowDefinition.getFormConfig()));
+        }
         instance.setCategory(flowDefinition.getCategory());
         instance.setOrgId(flowDefinition.getOrgId());
         instance.setStartTime(LocalDateTime.now());
@@ -71,6 +75,17 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         processExecutor.executeNode(instance, flowNode);
 
         return instance.getId();
+    }
+
+    @Override
+    public List<FlowRouteNodeVO> calculateRoute(Long definitionId, Map<String, Object> varMap) {
+        FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId);
+        FlowNode flowNode = flowDefinition.getModelNode();
+        FlowParser.makeParentNode(flowNode);
+        Map<String, Object> variables = varMap == null ? Map.of() : varMap;
+        return processExecutor.calculateRouteTrace(flowNode, variables).stream()
+                .map(this::toRouteNodeVO)
+                .toList();
     }
 
     @Override
@@ -116,5 +131,15 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         instanceEvent.setCategory(instance.getCategory());
         instanceEvent.setEventType(eventType);
         return instanceEvent;
+    }
+
+    private FlowRouteNodeVO toRouteNodeVO(FlowNode flowNode) {
+        FlowRouteNodeVO vo = new FlowRouteNodeVO();
+        vo.setKey(flowNode.getKey());
+        vo.setName(flowNode.getName());
+        vo.setType(flowNode.getType());
+        vo.setShowText(flowNode.getShowText());
+        vo.setApproveMode(flowNode.getApproveMode());
+        return vo;
     }
 }

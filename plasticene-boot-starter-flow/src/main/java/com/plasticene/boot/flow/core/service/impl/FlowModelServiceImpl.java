@@ -31,9 +31,7 @@ import com.plasticene.boot.common.pojo.PageResult;
 import org.springframework.util.Assert;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  *
@@ -158,6 +156,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         FlowDefinition flowDefinition = PtcBeanUtils.copy(flowModel, FlowDefinition.class);
         flowDefinition.setId(null);
         flowDefinition.setModelId(id);
+        flowDefinition.setCreateTime(LocalDateTime.now());
+        flowDefinition.setUpdateTime(LocalDateTime.now());
+        flowDefinition.setPublishTime(LocalDateTime.now());
         int maxVersion = flowDefinitionService.getMaxVersion(id);
         flowDefinition.setVersion(maxVersion + 1);
         flowDefinitionService.save(flowDefinition);

@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
+import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.List;
 
 /**
  * @author ZFJ
@@ -43,6 +45,14 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @return 实例id
      */
     long startFlowInstanceById(Long definitionId, Long businessId, Map<String, Object> varMap);
+
+    /**
+     * 计算当前用户可发起流程的预计路径
+     * @param definitionId 流程发布id
+     * @param varMap 表单变量
+     * @return 预计路径节点
+     */
+    List<FlowRouteNodeVO> calculateRoute(Long definitionId, Map<String, Object> varMap);
 
     /**
      * 对实例加行锁，保证并发情况下数据准确性

@@ -2,6 +2,8 @@ package com.plasticene.boot.flow.core.controller;
 
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.flow.core.model.param.FlowInstanceParam;
+import com.plasticene.boot.flow.core.model.param.FlowRouteParam;
+import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,5 +36,11 @@ public class FlowInstanceController {
         Map<String, Object> varMap = param.getVarMap();
         long instanceId = flowRuntimeService.startFlowInstanceById(definitionId, businessId, varMap);
         return ResponseVO.success(instanceId);
+    }
+
+    @Operation(summary = "计算流程预计审批路径")
+    @PostMapping("/route")
+    public ResponseVO<List<FlowRouteNodeVO>> calculateRoute(@RequestBody @Validated FlowRouteParam param) {
+        return ResponseVO.success(flowRuntimeService.calculateRoute(param.getDefinitionId(), param.getVarMap()));
     }
 }

@@ -5,8 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.flow.core.model.param.FlowModelEnableParam;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
 import com.plasticene.boot.flow.core.model.query.FlowModelQuery;
-import com.plasticene.boot.flow.core.model.vo.FlowModelStatisticsVO;
-import com.plasticene.boot.flow.core.model.vo.FlowModelVO;
+import com.plasticene.boot.flow.core.model.vo.*;
 import com.plasticene.boot.common.pojo.PageResult;
 import java.util.List;
 
@@ -59,7 +58,6 @@ public interface FlowModelService extends IService<FlowModel> {
      */
     FlowModelStatisticsVO statistics(FlowModelQuery query);
 
-
     /**
      * 开关流程模型， 启用/禁用，发布状态就是启用状态，只有发布之后才能禁用
      * @param param 模型参数
@@ -75,4 +73,3 @@ public interface FlowModelService extends IService<FlowModel> {
 
 
 }
-

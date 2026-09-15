@@ -33,4 +33,14 @@ public interface ProcessExecutor {
      * @return 流程节点流转路径
      */
     List<FlowNode> calculateRoute(FlowNode flowNode, Map<String, Object> varMap);
+
+    /**
+     * 根据变量推测完整流程路径，包含命中的网关和分支节点
+     * @param flowNode 当前节点
+     * @param varMap 流程变量
+     * @return 包含路由节点的流程路径
+     */
+    default List<FlowNode> calculateRouteTrace(FlowNode flowNode, Map<String, Object> varMap) {
+        return calculateRoute(flowNode, varMap);
+    }
 }

@@ -1,11 +1,11 @@
 package com.plasticene.boot.flow.core.controller;
 
 import com.plasticene.boot.flow.core.model.param.FlowModelEnableParam;
-import com.plasticene.boot.flow.core.model.vo.FlowModelStatisticsVO;
+import com.plasticene.boot.flow.core.model.vo.*;
+import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowModelService;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
 import com.plasticene.boot.flow.core.model.query.FlowModelQuery;
-import com.plasticene.boot.flow.core.model.vo.FlowModelVO;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.web.core.validator.Insert;
@@ -32,6 +32,8 @@ public class FlowModelController {
 
     @Resource
     private FlowModelService flowModelService;
+    @Resource
+    private FlowDefinitionService flowDefinitionService;
 
     @Operation(summary = "创建工作流-流程模型")
     @PostMapping
@@ -73,6 +75,18 @@ public class FlowModelController {
     public ResponseVO<FlowModelStatisticsVO> statistics(FlowModelQuery query) {
         FlowModelStatisticsVO vo = flowModelService.statistics(query);
         return ResponseVO.success(vo);
+    }
+
+    @Operation(summary = "获取当前用户可发起的流程目录")
+    @GetMapping("/start/catalog")
+    public ResponseVO<FlowStartCatalogVO> getStartableCatalog() {
+        return ResponseVO.success(flowDefinitionService.getStartableCatalog());
+    }
+
+    @Operation(summary = "获取工作流-流程定义详情")
+    @GetMapping("/definition/{definitionId}")
+    public ResponseVO<FlowDefinitionVO> getFlowDefinition(@PathVariable("definitionId") Long definitionId) {
+        return ResponseVO.success(flowDefinitionService.getFlowDefinition(definitionId));
     }
 
     @Operation(summary = "开关工作流-流程模型")
