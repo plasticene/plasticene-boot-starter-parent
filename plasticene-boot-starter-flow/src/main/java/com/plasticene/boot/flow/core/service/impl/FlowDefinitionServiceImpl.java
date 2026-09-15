@@ -78,15 +78,15 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
 
         // 构造可发起的流程模型分类
         Map<String, String> categoryMap = categoryService.getCategoryMap();
-        List<FlowStartableModelVO> modelVOList = models.stream()
+        List<FlowStartableModelVO> voList = models.stream()
                 .map(model -> toStartableModelVO(model, categoryMap))
                 .toList();
-        Map<Long, FlowStartableModelVO> modelVOMap = modelVOList.stream()
+        Map<Long, FlowStartableModelVO> modelMap = voList.stream()
                 .collect(Collectors.toMap(FlowStartableModelVO::getModelId, Function.identity()));
 
-        Set<Long> recentModelIds = findRecentModelIds(loginUser, modelVOMap);
+        Set<Long> recentModelIds = findRecentModelIds(loginUser, modelMap);
         FlowStartCatalogVO catalogVO = new FlowStartCatalogVO();
-        catalogVO.setModels(modelVOList);
+        catalogVO.setModels(voList);
         catalogVO.setRecentModelIds(List.copyOf(recentModelIds));
         return catalogVO;
     }
@@ -128,8 +128,8 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         return definition;
     }
 
-    private Set<Long> findRecentModelIds(LoginUser loginUser, Map<Long, FlowStartableModelVO> modelVOMap) {
-        if (modelVOMap.isEmpty()) {
+    private Set<Long> findRecentModelIds(LoginUser loginUser, Map<Long, FlowStartableModelVO> modelMap) {
+        if (modelMap.isEmpty()) {
             return Set.of();
         }
         PtcLambdaQueryWrapper<FlowInstance> instanceQuery = new PtcLambdaQueryWrapper<>();
@@ -157,7 +157,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         Map<Long, LocalDateTime> lastStartTimeMap = new HashMap<>();
         for (FlowInstance instance : instances) {
             Long modelId = definitionModelMap.get(instance.getDefinitionId());
-            if (modelId == null || !modelVOMap.containsKey(modelId)) {
+            if (modelId == null || !modelMap.containsKey(modelId)) {
                 continue;
             }
             lastStartTimeMap.putIfAbsent(modelId, instance.getStartTime());
@@ -166,7 +166,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
                 break;
             }
         }
-        lastStartTimeMap.forEach((modelId, startTime) -> modelVOMap.get(modelId).setLastStartTime(startTime));
+        lastStartTimeMap.forEach((modelId, startTime) -> modelMap.get(modelId).setLastStartTime(startTime));
         return recentModelIds;
     }
 
