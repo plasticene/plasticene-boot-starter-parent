@@ -1,9 +1,13 @@
 package com.plasticene.boot.flow.core.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
+import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
+import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
+import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +57,26 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @return 预计路径节点
      */
     List<FlowRouteNodeVO> calculateRoute(Long definitionId, Map<String, Object> varMap);
+
+    /**
+     * 分页查询流程实例
+     * @param query 查询参数
+     * @return 流程实例分页结果
+     */
+    PageResult<FlowInstanceVO> page(FlowInstanceQuery query);
+
+    /**
+     * 获取流程实例详情
+     * @param instanceId 实例id
+     * @return 流程实例详情
+     */
+    FlowInstanceDetailVO getInstanceDetail(Long instanceId);
+
+    /**
+     * 取消发起的流程实例
+     * @param instanceId 实例id
+     */
+    void cancelInstance(Long instanceId);
 
     /**
      * 对实例加行锁，保证并发情况下数据准确性

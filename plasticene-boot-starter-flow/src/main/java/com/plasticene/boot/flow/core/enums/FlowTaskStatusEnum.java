@@ -10,7 +10,8 @@ import lombok.Getter;
 public enum FlowTaskStatusEnum {
     RUNNING(0, "处理中"),
     COMPLETE(1, "已完成"),
-    REJECT(2, "拒绝");
+    REJECT(2, "拒绝"),
+    CANCEL(3, "已取消");
 
     private final Integer code;
     private final String name;

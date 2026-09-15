@@ -10,7 +10,8 @@ import lombok.Getter;
 public enum FlowInstanceStatusEnum {
     RUNNING(0, "审批中"),
     APPROVE(1, "审批通过"),
-    REJECT(2, "审批拒绝")
+    REJECT(2, "审批拒绝"),
+    CANCEL(3, "已取消")
 
     ;
 

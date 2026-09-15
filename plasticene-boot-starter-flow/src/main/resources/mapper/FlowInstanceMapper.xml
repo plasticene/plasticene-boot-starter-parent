@@ -11,4 +11,43 @@
     <select id="selectInstanceForUpdate" resultMap="instanceResultMap">
         SELECT * FROM `flow_instance` WHERE id = #{instanceId} FOR UPDATE
     </select>
+
+    <select id="pageInstance" resultType="com.plasticene.boot.flow.core.model.vo.FlowInstanceVO">
+        SELECT fi.id,
+               fi.definition_id,
+               fi.business_id,
+               fd.name,
+               fd.code,
+               fi.category,
+               fi.current_node_key,
+               fi.current_node_name,
+               fi.status,
+               fi.start_time,
+               fi.end_time
+        FROM flow_instance fi
+        INNER JOIN flow_definition fd ON fd.id = fi.definition_id
+        <where>
+            fi.org_id = #{query.orgId}
+            <if test="query.userId != null">
+                AND fi.user_id= #{query.userId}
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (fd.name LIKE CONCAT('%', #{query.keyword}, '%')
+                OR fd.code LIKE CONCAT('%', #{query.keyword}, '%'))
+            </if>
+            <if test="query.category != null and query.category != ''">
+                AND fi.category = #{query.category}
+            </if>
+            <if test="query.status != null">
+                AND fi.status = #{query.status}
+            </if>
+            <if test="query.startTimeBegin != null">
+                AND fi.start_time <![CDATA[>=]]> #{query.startTimeBegin}
+            </if>
+            <if test="query.startTimeEnd != null">
+                AND fi.start_time <![CDATA[<=]]> #{query.startTimeEnd}
+            </if>
+        </where>
+        ORDER BY fi.start_time DESC, fi.id DESC
+    </select>
 </mapper>

@@ -249,6 +249,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         String nodeKey = flowTask.getNodeKey();
         Integer approveMode = flowTask.getApproveMode();
         FlowInstance flowInstance = flowRuntimeService.selectInstanceForUpdate(instanceId);
+        validateRunningInstance(flowInstance);
         // 完成任务
         completeTask(taskId, comment, FlowTaskStatusEnum.COMPLETE);
         // 会签
@@ -310,6 +311,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         Long instanceId = flowTask.getInstanceId();
         String nodeKey = flowTask.getNodeKey();
         FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(instanceId);
+        validateRunningInstance(instance);
         // 再次查询任务
         flowTask = flowTaskDAO.selectById(taskId);
         if (Objects.equals(flowTask.getIsDelete(), CommonConstant.IS_DEL)) {
@@ -347,12 +349,26 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     }
 
     @Override
+    public void cancelInstanceRunningTask(Long instanceId) {
+        FlowTask task = new FlowTask();
+        task.setStatus(FlowTaskStatusEnum.CANCEL.getCode());
+        task.setEndTime(LocalDateTime.now());
+        task.setComment("发起人取消流程");
+        LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(FlowTask::getInstanceId, instanceId);
+        updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
+        updateWrapper.eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
+        flowTaskDAO.update(task, updateWrapper);
+    }
+
+    @Override
     public List<FlowTask> listTaskByInstanceId(Long instanceId) {
         PtcLambdaQueryWrapper<FlowTask> queryWrapper = new PtcLambdaQueryWrapper<>();
         queryWrapper.eq(FlowTask::getInstanceId, instanceId).eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
         queryWrapper.orderByAsc(FlowTask::getId);
         return flowTaskDAO.selectList(queryWrapper);
     }
+
 
     private void completeTask(Long taskId, String comment, FlowTaskStatusEnum statusEnum) {
         FlowTask task = new FlowTask();
@@ -362,6 +378,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         task.setEndTime(LocalDateTime.now());
         LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(FlowTask::getId, taskId).eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
+        updateWrapper.eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
         int update = flowTaskDAO.update(task, updateWrapper);
         if (update != 1) {
             throw new BizException("任务已经处理过，请勿重复处理");
@@ -379,6 +396,12 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         queryWrapper.eq(FlowTask::getInstanceId, instanceId);
         queryWrapper.eq(FlowTask::getNodeKey, nodeKey);
         return flowTaskDAO.selectList(queryWrapper);
+    }
+
+    private void validateRunningInstance(FlowInstance instance) {
+        if (instance == null || !Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())) {
+            throw new BizException("流程实例已结束，不能继续审批");
+        }
     }
 
     private FlowTask buildFlowTask(FlowInstance instance, FlowNode currentNode) {

@@ -35,7 +35,7 @@ public class FlowInstance extends BaseDO {
      */
     private Long definitionId;
     /**
-     * 状态 0：审批中  1：审批通过  2：审批拒绝
+     * 状态 0：审批中  1：审批通过  2：审批拒绝  3：已取消
      */
     private Integer status;
     /**
@@ -58,11 +58,6 @@ public class FlowInstance extends BaseDO {
      * 业务id
      */
     private Long businessId;
-
-    /**
-     * 表单配置
-     */
-    private String form;
 
     /**
      * 参数变量值

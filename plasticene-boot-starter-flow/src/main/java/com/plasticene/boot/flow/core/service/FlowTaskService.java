@@ -69,6 +69,12 @@ public interface FlowTaskService extends IService<FlowTask> {
     void delInstanceRunningTask(Long instanceId);
 
     /**
+     * 取消流程实例下正在执行中的任务
+     * @param instanceId 实例id
+     */
+    void cancelInstanceRunningTask(Long instanceId);
+
+    /**
      * 获取流程实例下所有任务.
      * @param instanceId 实例id
      * @return 任务列表

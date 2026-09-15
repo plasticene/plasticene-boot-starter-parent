@@ -55,7 +55,7 @@ public class FlowTask extends BaseDO {
      */
     private Integer approveMode;
     /**
-     * 状态 0：处理中  1：已完成  2：拒绝
+     * 状态 0：处理中  1：已完成  2：拒绝  3：已取消
      */
     private Integer status;
     /**
