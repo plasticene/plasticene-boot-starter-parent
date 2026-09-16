@@ -2,6 +2,58 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.plasticene.boot.flow.core.dao.FlowTaskDAO">
 
+    <select id="pageTask" resultType="com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO">
+        SELECT ft.id AS task_id,
+               ft.instance_id,
+               fi.definition_id,
+               fi.business_id,
+               fd.name AS process_name,
+               fd.code AS process_code,
+               fi.category,
+               ft.node_key,
+               ft.node_name,
+               fi.user_id AS start_user_id,
+               fi.start_time AS instance_start_time,
+               ft.start_time AS task_start_time,
+               ft.end_time AS task_end_time,
+               ft.status,
+               ft.comment,
+               ft.require_comment
+        FROM flow_task ft
+        INNER JOIN flow_instance fi ON fi.id = ft.instance_id AND fi.org_id = ft.org_id
+        INNER JOIN flow_definition fd ON fd.id = fi.definition_id AND fd.org_id = ft.org_id
+        <where>
+            ft.org_id = #{query.orgId}
+            AND ft.assignee = #{query.assignee}
+            AND ft.is_delete = 0
+            <!-- FlowNodeEnum.Type.APPROVE -->
+            AND ft.node_type = 1
+            AND ft.status IN
+            <foreach collection="query.statuses" item="status" open="(" separator="," close=")">
+                #{status}
+            </foreach>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (fd.name LIKE CONCAT('%', #{query.keyword}, '%')
+                OR fd.code LIKE CONCAT('%', #{query.keyword}, '%'))
+            </if>
+            <if test="query.category != null and query.category != ''">
+                AND fi.category = #{query.category}
+            </if>
+            <if test="query.taskStartTimeBegin != null">
+                AND ft.start_time <![CDATA[>=]]> #{query.taskStartTimeBegin}
+            </if>
+            <if test="query.taskStartTimeEnd != null">
+                AND ft.start_time <![CDATA[<=]]> #{query.taskStartTimeEnd}
+            </if>
+            <if test="query.taskEndTimeBegin != null">
+                AND ft.end_time <![CDATA[>=]]> #{query.taskEndTimeBegin}
+            </if>
+            <if test="query.taskEndTimeEnd != null">
+                AND ft.end_time <![CDATA[<=]]> #{query.taskEndTimeEnd}
+            </if>
+        </where>
+        ORDER BY COALESCE(ft.end_time, ft.start_time) DESC, ft.id DESC
+    </select>
 
     <update id="incrementCompletedBranch">
         update flow_task set completed_branch = completed_branch + 1

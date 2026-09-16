@@ -34,6 +34,10 @@
             <groupId>com.plasticene.boot</groupId>
             <artifactId>plasticene-boot-starter-flow</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.plasticene.boot</groupId>
+            <artifactId>plasticene-boot-starter-redis</artifactId>
+        </dependency>
 
         <!-- MySQL连接驱动 -->
         <dependency>

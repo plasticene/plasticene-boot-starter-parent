@@ -1,10 +1,13 @@
 package com.plasticene.boot.flow.core.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
+import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
 
 import java.util.List;
 
@@ -13,6 +16,16 @@ import java.util.List;
  * @date 2025/9/2
  */
 public interface FlowTaskService extends IService<FlowTask> {
+
+    /**
+     * 分页查询当前用户待办任务
+     */
+    PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query);
+
+    /**
+     * 分页查询当前用户已办任务
+     */
+    PageResult<FlowTaskPageVO> pageMyDone(FlowTaskQuery query);
 
     /**
      * 创建开始节点任务

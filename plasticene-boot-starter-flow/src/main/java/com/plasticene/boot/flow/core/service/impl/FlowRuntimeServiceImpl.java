@@ -137,13 +137,19 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         if (instance == null || !Objects.equals(instance.getOrgId(), loginUser.getOrgId())) {
             throw new BizException("流程实例不存在");
         }
+        List<FlowTask> taskList = flowTaskService.listTaskByInstanceId(instanceId);
+        boolean canView = Objects.equals(instance.getUserId(), loginUser.getId())
+                || taskList.stream().anyMatch(task -> Objects.equals(task.getAssignee(), loginUser.getId()));
+        if (!canView) {
+            throw new BizException("流程实例不存在");
+        }
         FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
         if (definition == null || !Objects.equals(definition.getOrgId(), loginUser.getOrgId())) {
             throw new BizException("流程发布定义不存在");
         }
 
         Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
-        List<FlowTaskVO> taskList = flowTaskService.listTaskByInstanceId(instanceId).stream()
+        List<FlowTaskVO> taskVOList = taskList.stream()
                 .map(task -> toTaskVO(task, userMap))
                 .toList();
         Map<String, Object> variables = instance.getVarMap() == null ? Map.of() : instance.getVarMap();
@@ -161,7 +167,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList());
-        detail.setTasks(taskList);
+        detail.setTasks(taskVOList);
         return detail;
     }
 

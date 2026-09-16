@@ -4,33 +4,44 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.common.pojo.PageResult;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
-import com.plasticene.boot.flow.core.executor.ProcessExecutor;
-import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
+import com.plasticene.boot.flow.core.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
+import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.parser.FlowParser;
+import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
+import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
+import com.plasticene.boot.mybatis.core.utils.MybatisUtils;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -39,6 +50,12 @@ import java.util.Objects;
  */
 @Service
 public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> implements FlowTaskService {
+    private static final List<Integer> DONE_STATUSES = List.of(
+            FlowTaskStatusEnum.COMPLETE.getCode(),
+            FlowTaskStatusEnum.REJECT.getCode(),
+            FlowTaskStatusEnum.CANCEL.getCode()
+    );
+
     @Resource
     private FlowTaskDAO flowTaskDAO;
     @Resource
@@ -50,6 +67,72 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     private ProcessExecutor processExecutor;
     @Resource
     private FlowDefinitionService flowDefinitionService;
+    @Resource
+    private CategoryService categoryService;
+    @Resource
+    private FlowOrganizationProvider flowOrganizationProvider;
+
+    @Override
+    public PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query) {
+        query.setStatuses(List.of(FlowTaskStatusEnum.RUNNING.getCode()));
+        return pageMyTask(query);
+    }
+
+    @Override
+    public PageResult<FlowTaskPageVO> pageMyDone(FlowTaskQuery query) {
+        List<Integer> statuses = query.getStatuses();
+        if (CollUtil.isEmpty(statuses)) {
+            query.setStatuses(DONE_STATUSES);
+        } else {
+            boolean invalidStatus = statuses.stream().anyMatch(status -> !DONE_STATUSES.contains(status));
+            if (invalidStatus) {
+                throw new BizException("已办任务状态仅支持已完成、拒绝或已取消");
+            }
+            query.setStatuses(statuses.stream().distinct().toList());
+        }
+        return pageMyTask(query);
+    }
+
+    private PageResult<FlowTaskPageVO> pageMyTask(FlowTaskQuery query) {
+        query.setKeyword(StrUtil.trim(query.getKeyword()));
+        query.setCategory(StrUtil.trim(query.getCategory()));
+        validateTimeRange(query.getTaskStartTimeBegin(), query.getTaskStartTimeEnd(), "任务接收时间");
+        validateTimeRange(query.getTaskEndTimeBegin(), query.getTaskEndTimeEnd(), "任务完成时间");
+
+        LoginUser loginUser = getLoginUser();
+        query.setAssignee(loginUser.getId());
+        query.setOrgId(loginUser.getOrgId());
+        IPage<FlowTaskPageVO> page = flowTaskDAO.pageTask(MybatisUtils.buildPage(query), query);
+
+        Map<String, String> categoryMap = categoryService.getCategoryMap();
+        Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
+        LocalDateTime now = LocalDateTime.now();
+        page.getRecords().forEach(vo -> enrichTaskPageVO(vo, categoryMap, userMap, now));
+        return new PageResult<>(page.getRecords(), page.getTotal(), page.getPages());
+    }
+
+    private void validateTimeRange(LocalDateTime begin, LocalDateTime end, String fieldName) {
+        if (begin != null && end != null && begin.isAfter(end)) {
+            throw new BizException(fieldName + "开始值不能晚于结束值");
+        }
+    }
+
+    private void enrichTaskPageVO(FlowTaskPageVO vo,
+                                  Map<String, String> categoryMap,
+                                  Map<Long, String> userMap,
+                                  LocalDateTime now) {
+        String category = vo.getCategory();
+        vo.setCategoryName(category == null ? null : categoryMap.getOrDefault(category, category));
+        Long startUserId = vo.getStartUserId();
+        vo.setStartUserName(startUserId == null
+                ? null
+                : userMap.getOrDefault(startUserId, String.valueOf(startUserId)));
+        if (vo.getTaskStartTime() == null) {
+            return;
+        }
+        LocalDateTime endTime = vo.getTaskEndTime() == null ? now : vo.getTaskEndTime();
+        vo.setElapsedTime(Math.max(0, Duration.between(vo.getTaskStartTime(), endTime).getSeconds()));
+    }
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -240,7 +323,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     public void approveTask(FlowTaskParam param) {
         Long taskId = param.getTaskId();
         String comment = param.getComment();
-        FlowTask flowTask = flowTaskDAO.selectById(taskId);
+        LoginUser loginUser = getLoginUser();
+        FlowTask flowTask = getExecutableTask(taskId, loginUser);
         Integer requireComment = flowTask.getRequireComment();
         if (Objects.equals(requireComment, CommonConstant.IS_ON) && StrUtil.isBlank(comment)) {
             throw new BizException("意见不能为空");
@@ -249,9 +333,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         String nodeKey = flowTask.getNodeKey();
         Integer approveMode = flowTask.getApproveMode();
         FlowInstance flowInstance = flowRuntimeService.selectInstanceForUpdate(instanceId);
-        validateRunningInstance(flowInstance);
+        validateRunningInstance(flowInstance, loginUser, flowTask);
         // 完成任务
-        completeTask(taskId, comment, FlowTaskStatusEnum.COMPLETE);
+        completeTask(taskId, loginUser, comment, FlowTaskStatusEnum.COMPLETE);
         // 会签
         if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ALL.getCode())) {
             boolean existed = existUncompletedTask(instanceId, nodeKey);
@@ -303,7 +387,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     public void rejectTask(FlowTaskParam param) {
         Long taskId = param.getTaskId();
         String comment = param.getComment();
-        FlowTask flowTask = flowTaskDAO.selectById(taskId);
+        LoginUser loginUser = getLoginUser();
+        FlowTask flowTask = getExecutableTask(taskId, loginUser);
         Integer requireComment = flowTask.getRequireComment();
         if (Objects.equals(requireComment, CommonConstant.IS_ON) && StrUtil.isBlank(comment)) {
             throw new BizException("意见不能为空");
@@ -311,13 +396,13 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         Long instanceId = flowTask.getInstanceId();
         String nodeKey = flowTask.getNodeKey();
         FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(instanceId);
-        validateRunningInstance(instance);
+        validateRunningInstance(instance, loginUser, flowTask);
         // 再次查询任务
         flowTask = flowTaskDAO.selectById(taskId);
         if (Objects.equals(flowTask.getIsDelete(), CommonConstant.IS_DEL)) {
             throw new BizException("当前节点已审批，不能再审");
         }
-        completeTask(taskId, comment, FlowTaskStatusEnum.REJECT);
+        completeTask(taskId, loginUser, comment, FlowTaskStatusEnum.REJECT);
         delInstanceRunningTask(instanceId);
 
         // 终止流程实例
@@ -364,13 +449,19 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     @Override
     public List<FlowTask> listTaskByInstanceId(Long instanceId) {
         PtcLambdaQueryWrapper<FlowTask> queryWrapper = new PtcLambdaQueryWrapper<>();
-        queryWrapper.eq(FlowTask::getInstanceId, instanceId).eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
+        queryWrapper.eq(FlowTask::getInstanceId, instanceId)
+                .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
         queryWrapper.orderByAsc(FlowTask::getId);
-        return flowTaskDAO.selectList(queryWrapper);
+        return flowTaskDAO.selectList(queryWrapper).stream()
+                .filter(task -> Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL))
+                .toList();
     }
 
 
-    private void completeTask(Long taskId, String comment, FlowTaskStatusEnum statusEnum) {
+    private void completeTask(Long taskId,
+                              LoginUser loginUser,
+                              String comment,
+                              FlowTaskStatusEnum statusEnum) {
         FlowTask task = new FlowTask();
         task.setId(taskId);
         task.setStatus(statusEnum.getCode());
@@ -379,6 +470,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(FlowTask::getId, taskId).eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
         updateWrapper.eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
+        updateWrapper.eq(FlowTask::getOrgId, loginUser.getOrgId());
+        updateWrapper.eq(FlowTask::getAssignee, loginUser.getId());
+        updateWrapper.eq(FlowTask::getNodeType, FlowNodeEnum.Type.APPROVE.getCode());
         int update = flowTaskDAO.update(task, updateWrapper);
         if (update != 1) {
             throw new BizException("任务已经处理过，请勿重复处理");
@@ -398,8 +492,34 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         return flowTaskDAO.selectList(queryWrapper);
     }
 
-    private void validateRunningInstance(FlowInstance instance) {
-        if (instance == null || !Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())) {
+    private LoginUser getLoginUser() {
+        LoginUser loginUser = LoginUserHolder.get();
+        if (loginUser == null || loginUser.getId() == null || loginUser.getOrgId() == null) {
+            throw new BizException("登录用户信息不存在");
+        }
+        return loginUser;
+    }
+
+    private FlowTask getExecutableTask(Long taskId, LoginUser loginUser) {
+        FlowTask task = flowTaskDAO.selectById(taskId);
+        if (task == null
+                || !Objects.equals(task.getOrgId(), loginUser.getOrgId())
+                || !Objects.equals(task.getAssignee(), loginUser.getId())
+                || !Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode())) {
+            throw new BizException("任务不存在或无权处理");
+        }
+        if (!Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
+                || !Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL)) {
+            throw new BizException("任务已经处理过，请勿重复处理");
+        }
+        return task;
+    }
+
+    private void validateRunningInstance(FlowInstance instance, LoginUser loginUser, FlowTask task) {
+        if (instance == null
+                || !Objects.equals(instance.getOrgId(), loginUser.getOrgId())
+                || !Objects.equals(instance.getOrgId(), task.getOrgId())
+                || !Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())) {
             throw new BizException("流程实例已结束，不能继续审批");
         }
     }
@@ -413,6 +533,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         task.setNodeType(currentNode.getType());
         task.setApproveType(currentNode.getApproveType());
         task.setApproveMode(currentNode.getApproveMode());
+        task.setRequireComment(currentNode.getRequireComment());
         task.setStartTime(LocalDateTime.now());
         return task;
     }

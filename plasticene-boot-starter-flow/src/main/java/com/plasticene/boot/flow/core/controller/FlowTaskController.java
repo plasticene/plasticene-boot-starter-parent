@@ -1,12 +1,16 @@
 package com.plasticene.boot.flow.core.controller;
 
+import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
+import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +26,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class FlowTaskController {
     @Resource
     private FlowTaskService flowTaskService;
+
+    @Operation(summary = "分页查询当前用户待办任务")
+    @GetMapping("/my/todo/page")
+    public ResponseVO<PageResult<FlowTaskPageVO>> pageMyTodo(@Validated FlowTaskQuery query) {
+        return ResponseVO.success(flowTaskService.pageMyTodo(query));
+    }
+
+    @Operation(summary = "分页查询当前用户已办任务")
+    @GetMapping("/my/done/page")
+    public ResponseVO<PageResult<FlowTaskPageVO>> pageMyDone(@Validated FlowTaskQuery query) {
+        return ResponseVO.success(flowTaskService.pageMyDone(query));
+    }
 
     @Operation(summary = "审批流程实例任务")
     @PostMapping("/approve")
