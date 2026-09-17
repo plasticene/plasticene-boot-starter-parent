@@ -40,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,6 +56,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             FlowTaskStatusEnum.REJECT.getCode(),
             FlowTaskStatusEnum.CANCEL.getCode()
     );
+    private static final List<Integer> INSTANCE_STATUSES = Arrays.stream(FlowInstanceStatusEnum.values())
+            .map(FlowInstanceStatusEnum::getCode)
+            .toList();
 
     @Resource
     private FlowTaskDAO flowTaskDAO;
@@ -74,12 +78,14 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
     @Override
     public PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query) {
+        query.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
         query.setStatuses(List.of(FlowTaskStatusEnum.RUNNING.getCode()));
         return pageMyTask(query);
     }
 
     @Override
     public PageResult<FlowTaskPageVO> pageMyDone(FlowTaskQuery query) {
+        query.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
         List<Integer> statuses = query.getStatuses();
         if (CollUtil.isEmpty(statuses)) {
             query.setStatuses(DONE_STATUSES);
@@ -93,9 +99,17 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         return pageMyTask(query);
     }
 
+    @Override
+    public PageResult<FlowTaskPageVO> pageMyCopy(FlowTaskQuery query) {
+        query.setNodeType(FlowNodeEnum.Type.COPY.getCode());
+        query.setStatuses(List.of(FlowTaskStatusEnum.COMPLETE.getCode()));
+        return pageMyTask(query);
+    }
+
     private PageResult<FlowTaskPageVO> pageMyTask(FlowTaskQuery query) {
         query.setKeyword(StrUtil.trim(query.getKeyword()));
         query.setCategory(StrUtil.trim(query.getCategory()));
+        normalizeInstanceStatuses(query);
         validateTimeRange(query.getTaskStartTimeBegin(), query.getTaskStartTimeEnd(), "任务接收时间");
         validateTimeRange(query.getTaskEndTimeBegin(), query.getTaskEndTimeEnd(), "任务完成时间");
 
@@ -127,6 +141,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         vo.setStartUserName(startUserId == null
                 ? null
                 : userMap.getOrDefault(startUserId, String.valueOf(startUserId)));
+        FlowInstanceStatusEnum instanceStatus = getInstanceStatus(vo.getInstanceStatus());
+        vo.setInstanceStatusName(instanceStatus == null ? null : instanceStatus.getName());
         if (vo.getTaskStartTime() == null) {
             return;
         }
@@ -261,7 +277,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void createCopyTask(FlowInstance instance, FlowNode currentNode) {
-        List<Long> assignees = flowTaskAssigneeProvider.getAssignees(currentNode);
+        List<Long> assignees = flowTaskAssigneeProvider.getAssignees(currentNode).stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
         List<FlowTask> taskList = new ArrayList<>();
         assignees.forEach(assignee -> {
             FlowTask task = buildFlowTask(instance, currentNode);
@@ -498,6 +517,26 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             throw new BizException("登录用户信息不存在");
         }
         return loginUser;
+    }
+
+    private void normalizeInstanceStatuses(FlowTaskQuery query) {
+        List<Integer> statuses = query.getInstanceStatuses();
+        if (CollUtil.isEmpty(statuses)) {
+            query.setInstanceStatuses(null);
+            return;
+        }
+        boolean invalidStatus = statuses.stream().anyMatch(status -> !INSTANCE_STATUSES.contains(status));
+        if (invalidStatus) {
+            throw new BizException("流程实例状态仅支持审批中、审批通过、审批拒绝或已取消");
+        }
+        query.setInstanceStatuses(statuses.stream().distinct().toList());
+    }
+
+    private FlowInstanceStatusEnum getInstanceStatus(Integer code) {
+        return Arrays.stream(FlowInstanceStatusEnum.values())
+                .filter(status -> Objects.equals(status.getCode(), code))
+                .findFirst()
+                .orElse(null);
     }
 
     private FlowTask getExecutableTask(Long taskId, LoginUser loginUser) {

@@ -13,6 +13,7 @@ import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
@@ -25,16 +26,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -186,6 +190,75 @@ class FlowTaskServiceImplTest {
 
         assertThrows(BizException.class, () -> service.pageMyDone(query));
         verify(flowTaskDAO, never()).pageTask(any(), any());
+    }
+
+    @Test
+    void shouldPageCopyTasksAndFillInstanceStatus() {
+        FlowTaskQuery query = new FlowTaskQuery();
+        query.setInstanceStatuses(List.of(
+                FlowInstanceStatusEnum.RUNNING.getCode(),
+                FlowInstanceStatusEnum.RUNNING.getCode(),
+                FlowInstanceStatusEnum.APPROVE.getCode()
+        ));
+        FlowTaskPageVO vo = new FlowTaskPageVO();
+        vo.setTaskId(31L);
+        vo.setCategory("purchase");
+        vo.setStartUserId(7L);
+        vo.setTaskStartTime(LocalDateTime.of(2026, 9, 16, 10, 0));
+        vo.setTaskEndTime(LocalDateTime.of(2026, 9, 16, 10, 0));
+        vo.setInstanceStatus(FlowInstanceStatusEnum.RUNNING.getCode());
+        Page<FlowTaskPageVO> page = new Page<>(1, 10);
+        page.setRecords(List.of(vo));
+        page.setTotal(1);
+        when(flowTaskDAO.pageTask(any(), eq(query))).thenReturn(page);
+        when(categoryService.getCategoryMap()).thenReturn(Map.of("purchase", "采购管理"));
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(7L, "张敏"));
+
+        PageResult<FlowTaskPageVO> result = service.pageMyCopy(query);
+
+        assertEquals(FlowNodeEnum.Type.COPY.getCode(), query.getNodeType());
+        assertEquals(List.of(FlowTaskStatusEnum.COMPLETE.getCode()), query.getStatuses());
+        assertEquals(List.of(
+                FlowInstanceStatusEnum.RUNNING.getCode(),
+                FlowInstanceStatusEnum.APPROVE.getCode()
+        ), query.getInstanceStatuses());
+        assertEquals(8L, query.getAssignee());
+        assertEquals(9L, query.getOrgId());
+        assertEquals("审批中", result.getList().getFirst().getInstanceStatusName());
+        assertEquals("张敏", result.getList().getFirst().getStartUserName());
+    }
+
+    @Test
+    void shouldRejectInvalidInstanceStatusForCopyPage() {
+        FlowTaskQuery query = new FlowTaskQuery();
+        query.setInstanceStatuses(List.of(99));
+
+        assertThrows(BizException.class, () -> service.pageMyCopy(query));
+
+        verify(flowTaskDAO, never()).pageTask(any(), any());
+    }
+
+    @Test
+    void shouldCreateOneCopyTaskPerDistinctAssignee() {
+        FlowInstance instance = new FlowInstance();
+        instance.setId(21L);
+        instance.setOrgId(9L);
+        FlowNode copyNode = new FlowNode();
+        copyNode.setKey("copy");
+        copyNode.setName("财务抄送");
+        copyNode.setType(FlowNodeEnum.Type.COPY.getCode());
+        when(flowTaskAssigneeProvider.getAssignees(copyNode)).thenReturn(List.of(8L, 8L, 10L));
+
+        service.createCopyTask(instance, copyNode);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<FlowTask>> taskCaptor = ArgumentCaptor.forClass(Collection.class);
+        verify(flowTaskDAO).insert(taskCaptor.capture());
+        List<FlowTask> tasks = taskCaptor.getValue().stream().toList();
+        assertEquals(2, tasks.size());
+        assertEquals(List.of(8L, 10L), tasks.stream().map(FlowTask::getAssignee).toList());
+        assertTrue(tasks.stream().allMatch(task -> task.getNodeType().equals(FlowNodeEnum.Type.COPY.getCode())));
+        assertTrue(tasks.stream().allMatch(task -> task.getStatus().equals(FlowTaskStatusEnum.COMPLETE.getCode())));
     }
 
     @Test

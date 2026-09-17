@@ -28,6 +28,11 @@ public interface FlowTaskService extends IService<FlowTask> {
     PageResult<FlowTaskPageVO> pageMyDone(FlowTaskQuery query);
 
     /**
+     * 分页查询抄送给当前用户的任务
+     */
+    PageResult<FlowTaskPageVO> pageMyCopy(FlowTaskQuery query);
+
+    /**
      * 创建开始节点任务
      */
     void createStartTask(FlowInstance instance, FlowNode currentNode);

@@ -17,6 +17,7 @@
                ft.start_time AS task_start_time,
                ft.end_time AS task_end_time,
                ft.status,
+               fi.status AS instance_status,
                ft.comment,
                ft.require_comment
         FROM flow_task ft
@@ -26,12 +27,19 @@
             ft.org_id = #{query.orgId}
             AND ft.assignee = #{query.assignee}
             AND ft.is_delete = 0
-            <!-- FlowNodeEnum.Type.APPROVE -->
-            AND ft.node_type = 1
-            AND ft.status IN
-            <foreach collection="query.statuses" item="status" open="(" separator="," close=")">
-                #{status}
-            </foreach>
+            AND ft.node_type = #{query.nodeType}
+            <if test="query.statuses != null and query.statuses.size() > 0">
+                AND ft.status IN
+                <foreach collection="query.statuses" item="status" open="(" separator="," close=")">
+                    #{status}
+                </foreach>
+            </if>
+            <if test="query.instanceStatuses != null and query.instanceStatuses.size() > 0">
+                AND fi.status IN
+                <foreach collection="query.instanceStatuses" item="status" open="(" separator="," close=")">
+                    #{status}
+                </foreach>
+            </if>
             <if test="query.keyword != null and query.keyword != ''">
                 AND (fd.name LIKE CONCAT('%', #{query.keyword}, '%')
                 OR fd.code LIKE CONCAT('%', #{query.keyword}, '%'))

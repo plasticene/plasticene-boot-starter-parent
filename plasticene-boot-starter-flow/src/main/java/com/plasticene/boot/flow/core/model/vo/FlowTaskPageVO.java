@@ -66,6 +66,12 @@ public class FlowTaskPageVO {
     @Schema(description = "任务状态 0：处理中 1：已完成 2：拒绝 3：已取消")
     private Integer status;
 
+    @Schema(description = "流程实例状态 0：审批中 1：审批通过 2：审批拒绝 3：已取消")
+    private Integer instanceStatus;
+
+    @Schema(description = "流程实例状态名称")
+    private String instanceStatusName;
+
     @Schema(description = "审批意见")
     private String comment;
 

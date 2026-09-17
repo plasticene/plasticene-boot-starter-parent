@@ -39,6 +39,12 @@ public class FlowTaskController {
         return ResponseVO.success(flowTaskService.pageMyDone(query));
     }
 
+    @Operation(summary = "分页查询抄送给当前用户的任务")
+    @GetMapping("/my/copy/page")
+    public ResponseVO<PageResult<FlowTaskPageVO>> pageMyCopy(@Validated FlowTaskQuery query) {
+        return ResponseVO.success(flowTaskService.pageMyCopy(query));
+    }
+
     @Operation(summary = "审批流程实例任务")
     @PostMapping("/approve")
     public ResponseVO<Void> approveFlowTask(@RequestBody @Validated FlowTaskParam param) {

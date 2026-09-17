@@ -29,6 +29,9 @@ public class FlowTaskQuery extends PageQuery {
     @Schema(description = "任务状态 0：处理中 1：已完成 2：拒绝 3：已取消")
     private List<Integer> statuses;
 
+    @Schema(description = "流程实例状态 0：审批中 1：审批通过 2：审批拒绝 3：已取消")
+    private List<Integer> instanceStatuses;
+
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     @Schema(description = "任务接收时间开始值")
     private LocalDateTime taskStartTimeBegin;
@@ -50,4 +53,7 @@ public class FlowTaskQuery extends PageQuery {
 
     @Schema(description = "租户id", hidden = true)
     private Long orgId;
+
+    @Schema(description = "节点类型", hidden = true)
+    private Integer nodeType;
 }

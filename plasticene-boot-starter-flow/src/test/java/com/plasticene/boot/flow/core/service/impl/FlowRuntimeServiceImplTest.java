@@ -216,6 +216,37 @@ class FlowRuntimeServiceImplTest {
         verify(flowDefinitionService, never()).getById(any());
     }
 
+    @Test
+    void shouldReturnDetailWhenCurrentUserReceivedCopyTask() {
+        FlowInstance instance = runningInstance(9L);
+        FlowDefinition definition = new FlowDefinition();
+        definition.setId(31L);
+        definition.setOrgId(10L);
+        definition.setName("采购付款申请");
+        definition.setCode("FLOW-PAY-001");
+        FlowNode startNode = new FlowNode();
+        startNode.setKey("start");
+        startNode.setName("发起人");
+        definition.setModelNode(startNode);
+        FlowTask copyTask = new FlowTask();
+        copyTask.setId(41L);
+        copyTask.setNodeKey("copy");
+        copyTask.setNodeType(2);
+        copyTask.setAssignee(8L);
+        copyTask.setStatus(1);
+        when(flowInstanceDAO.selectById(21L)).thenReturn(instance);
+        when(flowTaskService.listTaskByInstanceId(21L)).thenReturn(List.of(copyTask));
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(categoryService.getCategoryMap()).thenReturn(Map.of());
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "当前用户", 9L, "流程发起人"));
+        when(processExecutor.calculateRouteTrace(startNode, Map.of())).thenReturn(List.of(startNode));
+
+        FlowInstanceDetailVO detail = service.getInstanceDetail(21L);
+
+        assertEquals("采购付款申请", detail.getInstance().getName());
+        assertEquals("当前用户", detail.getTasks().getFirst().getAssigneeName());
+    }
+
     private FlowInstance runningInstance(Long userId) {
         FlowInstance instance = new FlowInstance();
         instance.setId(21L);
