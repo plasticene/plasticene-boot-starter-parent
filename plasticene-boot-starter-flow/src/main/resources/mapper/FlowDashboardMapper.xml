@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.plasticene.boot.flow.core.dao.FlowDashboardDAO">
+
+    <sql id="trendBucket">
+        <choose>
+            <when test="query.granularity.name() == 'WEEK'">
+                DATE_SUB(DATE(event_time), INTERVAL WEEKDAY(event_time) DAY)
+            </when>
+            <when test="query.granularity.name() == 'MONTH'">
+                CAST(DATE_FORMAT(event_time, '%Y-%m-01') AS DATE)
+            </when>
+            <otherwise>
+                DATE(event_time)
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectSummary" resultType="com.plasticene.boot.flow.core.model.vo.FlowDashboardVO$Summary">
+        SELECT COALESCE(SUM(CASE
+                    WHEN start_time <![CDATA[>=]]> #{query.startTime}
+                     AND start_time <![CDATA[<]]> #{query.endTime} THEN 1 ELSE 0 END), 0) AS started,
+               COALESCE(SUM(CASE
+                    WHEN start_time <![CDATA[>=]]> #{previousStartTime}
+                     AND start_time <![CDATA[<]]> #{query.startTime} THEN 1 ELSE 0 END), 0) AS previous_started,
+               COALESCE(SUM(CASE
+                    WHEN end_time <![CDATA[>=]]> #{query.startTime}
+                     AND end_time <![CDATA[<]]> #{query.endTime}
+                     AND status IN (1, 2, 3) THEN 1 ELSE 0 END), 0) AS completed,
+               COALESCE(SUM(CASE
+                    WHEN end_time <![CDATA[>=]]> #{previousStartTime}
+                     AND end_time <![CDATA[<]]> #{query.startTime}
+                     AND status IN (1, 2, 3) THEN 1 ELSE 0 END), 0) AS previous_completed,
+               COALESCE(SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END), 0) AS current_running,
+               COALESCE(SUM(CASE
+                    WHEN end_time <![CDATA[>=]]> #{query.startTime}
+                     AND end_time <![CDATA[<]]> #{query.endTime}
+                     AND status = 1 THEN 1 ELSE 0 END), 0) AS approved,
+               COALESCE(SUM(CASE
+                    WHEN end_time <![CDATA[>=]]> #{query.startTime}
+                     AND end_time <![CDATA[<]]> #{query.endTime}
+                     AND status = 2 THEN 1 ELSE 0 END), 0) AS rejected,
+               COALESCE(SUM(CASE
+                    WHEN end_time <![CDATA[>=]]> #{query.startTime}
+                     AND end_time <![CDATA[<]]> #{query.endTime}
+                     AND status = 3 THEN 1 ELSE 0 END), 0) AS cancelled,
+               COALESCE(SUM(CASE
+                    WHEN status = 0 AND start_time <![CDATA[<]]> #{longRunningBefore}
+                    THEN 1 ELSE 0 END), 0) AS long_running
+        FROM flow_instance
+        WHERE org_id = #{query.orgId}
+    </select>
+
+    <select id="selectDurationStatistics"
+            resultType="com.plasticene.boot.flow.core.model.vo.FlowDashboardVO$Summary">
+        WITH ranked_duration AS (
+            SELECT TIMESTAMPDIFF(SECOND, start_time, end_time) AS duration_seconds,
+                   ROW_NUMBER() OVER (ORDER BY TIMESTAMPDIFF(SECOND, start_time, end_time)) AS ranking_index,
+                   COUNT(*) OVER () AS total_count
+            FROM flow_instance
+            WHERE org_id = #{orgId}
+              AND status IN (1, 2)
+              AND end_time <![CDATA[>=]]> #{startTime}
+              AND end_time <![CDATA[<]]> #{endTime}
+        )
+        SELECT CAST(COALESCE(ROUND(AVG(CASE
+                    WHEN ranking_index IN (FLOOR((total_count + 1) / 2), FLOOR((total_count + 2) / 2))
+                    THEN duration_seconds END)), 0) AS SIGNED) AS median_duration_seconds,
+               CAST(COALESCE(MAX(CASE
+                    WHEN ranking_index = CEIL(total_count * 0.9)
+                    THEN duration_seconds END), 0) AS SIGNED) AS p90_duration_seconds
+        FROM ranked_duration
+    </select>
+
+    <select id="listTrends" resultType="com.plasticene.boot.flow.core.model.vo.FlowDashboardVO$TrendItem">
+        SELECT bucket AS date,
+               SUM(started) AS started,
+               SUM(completed) AS completed
+        FROM (
+            SELECT <include refid="trendBucket"/> AS bucket, 1 AS started, 0 AS completed
+            FROM (
+                SELECT start_time AS event_time
+                FROM flow_instance
+                WHERE org_id = #{query.orgId}
+                  AND start_time <![CDATA[>=]]> #{query.startTime}
+                  AND start_time <![CDATA[<]]> #{query.endTime}
+            ) started_event
+            UNION ALL
+            SELECT <include refid="trendBucket"/> AS bucket, 0 AS started, 1 AS completed
+            FROM (
+                SELECT end_time AS event_time
+                FROM flow_instance
+                WHERE org_id = #{query.orgId}
+                  AND status IN (1, 2, 3)
+                  AND end_time <![CDATA[>=]]> #{query.startTime}
+                  AND end_time <![CDATA[<]]> #{query.endTime}
+            ) completed_event
+        ) trend_event
+        GROUP BY bucket
+        ORDER BY bucket
+    </select>
+
+    <select id="selectBacklog" resultType="com.plasticene.boot.flow.core.model.vo.FlowDashboardVO$Backlog">
+        SELECT COALESCE(SUM(CASE WHEN start_time <![CDATA[>=]]> #{oneDayBefore} THEN 1 ELSE 0 END), 0)
+                   AS within_one_day,
+               COALESCE(SUM(CASE
+                    WHEN start_time <![CDATA[>=]]> #{threeDaysBefore}
+                     AND start_time <![CDATA[<]]> #{oneDayBefore} THEN 1 ELSE 0 END), 0)
+                   AS one_to_three_days,
+               COALESCE(SUM(CASE WHEN start_time <![CDATA[<]]> #{threeDaysBefore} THEN 1 ELSE 0 END), 0)
+                   AS over_three_days
+        FROM flow_instance
+        WHERE org_id = #{orgId}
+          AND status = 0
+    </select>
+
+    <select id="listModelRankings"
+            resultType="com.plasticene.boot.flow.core.model.vo.FlowDashboardVO$ModelRanking">
+        WITH ranked_duration AS (
+            SELECT fd.model_id,
+                   TIMESTAMPDIFF(SECOND, fi.start_time, fi.end_time) AS duration_seconds,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY fd.model_id
+                       ORDER BY TIMESTAMPDIFF(SECOND, fi.start_time, fi.end_time)
+                   ) AS ranking_index,
+                   COUNT(*) OVER (PARTITION BY fd.model_id) AS total_count
+            FROM flow_instance fi
+            INNER JOIN flow_definition fd ON fd.id = fi.definition_id AND fd.org_id = fi.org_id
+            WHERE fi.org_id = #{query.orgId}
+              AND fi.status IN (1, 2)
+              AND fi.end_time <![CDATA[>=]]> #{query.startTime}
+              AND fi.end_time <![CDATA[<]]> #{query.endTime}
+        ), duration_statistics AS (
+            SELECT model_id,
+                   CAST(ROUND(AVG(CASE
+                       WHEN ranking_index IN (FLOOR((total_count + 1) / 2), FLOOR((total_count + 2) / 2))
+                       THEN duration_seconds END)) AS SIGNED) AS median_duration_seconds,
+                   CAST(MAX(CASE
+                       WHEN ranking_index = CEIL(total_count * 0.9)
+                       THEN duration_seconds END) AS SIGNED) AS p90_duration_seconds
+            FROM ranked_duration
+            GROUP BY model_id
+        )
+        SELECT fm.id AS model_id,
+               fm.name AS process_name,
+               COALESCE(SUM(CASE
+                   WHEN fi.start_time <![CDATA[>=]]> #{query.startTime}
+                    AND fi.start_time <![CDATA[<]]> #{query.endTime} THEN 1 ELSE 0 END), 0) AS started,
+               COALESCE(SUM(CASE WHEN fi.status = 0 THEN 1 ELSE 0 END), 0) AS current_running,
+               COALESCE(SUM(CASE
+                   WHEN fi.end_time <![CDATA[>=]]> #{query.startTime}
+                    AND fi.end_time <![CDATA[<]]> #{query.endTime}
+                    AND fi.status = 1 THEN 1 ELSE 0 END), 0) AS approved,
+               COALESCE(SUM(CASE
+                   WHEN fi.end_time <![CDATA[>=]]> #{query.startTime}
+                    AND fi.end_time <![CDATA[<]]> #{query.endTime}
+                    AND fi.status = 2 THEN 1 ELSE 0 END), 0) AS rejected,
+               COALESCE(ds.median_duration_seconds, 0) AS median_duration_seconds,
+               COALESCE(ds.p90_duration_seconds, 0) AS p90_duration_seconds,
+               COALESCE(SUM(CASE
+                   WHEN fi.status = 0 AND fi.start_time <![CDATA[<]]> #{longRunningBefore}
+                   THEN 1 ELSE 0 END), 0) AS long_running
+        FROM flow_instance fi
+        INNER JOIN flow_definition fd ON fd.id = fi.definition_id AND fd.org_id = fi.org_id
+        INNER JOIN flow_model fm ON fm.id = fd.model_id AND fm.org_id = fi.org_id
+        LEFT JOIN duration_statistics ds ON ds.model_id = fm.id
+        WHERE fi.org_id = #{query.orgId}
+        GROUP BY fm.id, fm.name, ds.median_duration_seconds, ds.p90_duration_seconds
+        HAVING started > 0 OR current_running > 0 OR approved > 0 OR rejected > 0
+        ORDER BY long_running DESC, current_running DESC, p90_duration_seconds DESC, started DESC
+        LIMIT 10
+    </select>
+
+    <select id="listNodeRankings"
+            resultType="com.plasticene.boot.flow.core.model.vo.FlowDashboardVO$NodeRanking">
+        WITH ranked_duration AS (
+            SELECT fd.model_id,
+                   ft.node_key,
+                   TIMESTAMPDIFF(SECOND, ft.start_time, ft.end_time) AS duration_seconds,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY fd.model_id, ft.node_key
+                       ORDER BY TIMESTAMPDIFF(SECOND, ft.start_time, ft.end_time)
+                   ) AS ranking_index,
+                   COUNT(*) OVER (PARTITION BY fd.model_id, ft.node_key) AS total_count
+            FROM flow_task ft
+            INNER JOIN flow_instance fi ON fi.id = ft.instance_id AND fi.org_id = ft.org_id
+            INNER JOIN flow_definition fd ON fd.id = fi.definition_id AND fd.org_id = ft.org_id
+            WHERE ft.org_id = #{query.orgId}
+              AND ft.node_type = 1
+              AND ft.is_delete = 0
+              AND ft.status IN (1, 2)
+              AND ft.end_time <![CDATA[>=]]> #{query.startTime}
+              AND ft.end_time <![CDATA[<]]> #{query.endTime}
+        ), duration_statistics AS (
+            SELECT model_id,
+                   node_key,
+                   CAST(MAX(CASE
+                       WHEN ranking_index = CEIL(total_count * 0.9)
+                       THEN duration_seconds END) AS SIGNED) AS p90_duration_seconds
+            FROM ranked_duration
+            GROUP BY model_id, node_key
+        )
+        SELECT fm.id AS model_id,
+               fm.name AS process_name,
+               ft.node_key,
+               ft.node_name,
+               COUNT(*) AS pending_count,
+               MAX(TIMESTAMPDIFF(SECOND, ft.start_time, #{now})) AS max_waiting_seconds,
+               COALESCE(ds.p90_duration_seconds, 0) AS p90_duration_seconds
+        FROM flow_task ft
+        INNER JOIN flow_instance fi ON fi.id = ft.instance_id AND fi.org_id = ft.org_id
+        INNER JOIN flow_definition fd ON fd.id = fi.definition_id AND fd.org_id = ft.org_id
+        INNER JOIN flow_model fm ON fm.id = fd.model_id AND fm.org_id = ft.org_id
+        LEFT JOIN duration_statistics ds ON ds.model_id = fm.id AND ds.node_key = ft.node_key
+        WHERE ft.org_id = #{query.orgId}
+          AND ft.node_type = 1
+          AND ft.is_delete = 0
+          AND ft.status = 0
+        GROUP BY fm.id, fm.name, ft.node_key, ft.node_name, ds.p90_duration_seconds
+        ORDER BY pending_count DESC, max_waiting_seconds DESC
+        LIMIT 10
+    </select>
+</mapper>
