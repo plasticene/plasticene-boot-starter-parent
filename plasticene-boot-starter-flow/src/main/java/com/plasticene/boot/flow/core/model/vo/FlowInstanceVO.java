@@ -36,6 +36,12 @@ public class FlowInstanceVO {
     @Schema(description = "流程分类名称")
     private String categoryName;
 
+    @Schema(description = "申请人id")
+    private Long startUserId;
+
+    @Schema(description = "申请人名称")
+    private String startUserName;
+
     @Schema(description = "当前节点key")
     private String currentNodeKey;
 
@@ -56,4 +62,10 @@ public class FlowInstanceVO {
 
     @Schema(description = "结束时间")
     private LocalDateTime endTime;
+
+    @Schema(description = "实例运行时长，单位秒")
+    private Long elapsedTime;
+
+    @Schema(description = "当前节点停留时长，单位秒")
+    private Long currentNodeElapsedTime;
 }

@@ -12,10 +12,12 @@ import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.dto.FlowInstanceNodeTimeDTO;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
-import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
+import com.plasticene.boot.flow.core.model.vo.FlowInstanceStatisticsVO;
+import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
@@ -30,6 +32,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -88,20 +91,25 @@ class FlowRuntimeServiceImplTest {
         query.setKeyword(" 采购 ");
         FlowInstanceVO vo = new FlowInstanceVO();
         vo.setId(21L);
+        vo.setStartUserId(8L);
         vo.setCategory("admin");
         vo.setStatus(FlowInstanceStatusEnum.RUNNING.getCode());
+        vo.setStartTime(LocalDateTime.now().minusSeconds(60));
         Page<FlowInstanceVO> page = new Page<>(1, 10);
         page.setRecords(List.of(vo));
         page.setTotal(1);
-        when(flowInstanceDAO.pageInstance(any(), eq(query))).thenReturn(page);
+        when(flowInstanceDAO.pageInstance(any(), eq(query), eq(true))).thenReturn(page);
         when(categoryService.getCategoryMap()).thenReturn(Map.of("admin", "行政审批"));
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
 
         PageResult<FlowInstanceVO> result = service.page(query);
 
         assertEquals("采购", query.getKeyword());
         assertEquals(1L, result.getTotal());
         assertEquals("行政审批", result.getList().getFirst().getCategoryName());
+        assertEquals("张三", result.getList().getFirst().getStartUserName());
         assertEquals("审批中", result.getList().getFirst().getStatusName());
+        assertTrue(result.getList().getFirst().getElapsedTime() >= 60);
         assertTrue(result.getList().getFirst().getCancelable());
     }
 
@@ -114,7 +122,7 @@ class FlowRuntimeServiceImplTest {
         Page<FlowInstanceVO> page = new Page<>(1, 10);
         page.setRecords(List.of(vo));
         page.setTotal(1);
-        when(flowInstanceDAO.pageInstance(any(), eq(query))).thenReturn(page);
+        when(flowInstanceDAO.pageInstance(any(), eq(query), eq(true))).thenReturn(page);
         when(categoryService.getCategoryMap()).thenReturn(Map.of());
 
         PageResult<FlowInstanceVO> result = service.page(query);
@@ -122,6 +130,61 @@ class FlowRuntimeServiceImplTest {
         assertEquals("removed-category", result.getList().getFirst().getCategoryName());
         assertEquals("审批通过", result.getList().getFirst().getStatusName());
         assertFalse(result.getList().getFirst().getCancelable());
+    }
+
+    @Test
+    void shouldCalculateInstanceAndCurrentNodeElapsedTimeInSeconds() {
+        FlowInstanceQuery query = new FlowInstanceQuery();
+        query.setOrgId(10L);
+        LocalDateTime startTime = LocalDateTime.of(2026, 9, 17, 9, 0);
+        FlowInstanceVO vo = new FlowInstanceVO();
+        vo.setId(21L);
+        vo.setStartUserId(9L);
+        vo.setStatus(FlowInstanceStatusEnum.APPROVE.getCode());
+        vo.setStartTime(startTime);
+        vo.setEndTime(startTime.plusSeconds(600));
+        Page<FlowInstanceVO> page = new Page<>(1, 10);
+        page.setRecords(List.of(vo));
+        page.setTotal(1);
+        FlowInstanceNodeTimeDTO nodeTime = new FlowInstanceNodeTimeDTO();
+        nodeTime.setInstanceId(21L);
+        nodeTime.setStartTime(startTime.plusSeconds(240));
+        when(flowInstanceDAO.pageInstance(any(), eq(query), eq(true))).thenReturn(page);
+        when(flowInstanceDAO.listCurrentNodeStartTimes(10L, List.of(21L))).thenReturn(List.of(nodeTime));
+        when(categoryService.getCategoryMap()).thenReturn(Map.of());
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(9L, "李四"));
+
+        PageResult<FlowInstanceVO> result = service.page(query);
+
+        FlowInstanceVO instance = result.getList().getFirst();
+        assertEquals(600L, instance.getElapsedTime());
+        assertEquals(360L, instance.getCurrentNodeElapsedTime());
+        assertEquals("李四", instance.getStartUserName());
+        assertFalse(instance.getCancelable());
+    }
+
+    @Test
+    void shouldReturnStatisticsWithoutApplyingStatusFilter() {
+        FlowInstanceQuery query = new FlowInstanceQuery();
+        query.setKeyword(" #21 ");
+        query.setCurrentNodeName(" 财务复核 ");
+        query.setStatus(FlowInstanceStatusEnum.RUNNING.getCode());
+        FlowInstanceStatisticsVO statistics = new FlowInstanceStatisticsVO();
+        statistics.setTotal(10L);
+        statistics.setRunning(3L);
+        statistics.setApproved(5L);
+        statistics.setRejected(1L);
+        statistics.setCancelled(1L);
+        when(flowInstanceDAO.statisticsInstance(query, false)).thenReturn(statistics);
+
+        FlowInstanceStatisticsVO result = service.statistics(query);
+
+        assertEquals(10L, result.getTotal());
+        assertEquals(3L, result.getRunning());
+        assertEquals("#21", query.getKeyword());
+        assertEquals(21L, query.getKeywordInstanceId());
+        assertEquals("财务复核", query.getCurrentNodeName());
+        verify(flowInstanceDAO).statisticsInstance(query, false);
     }
 
     @Test
@@ -208,8 +271,10 @@ class FlowRuntimeServiceImplTest {
     }
 
     @Test
-    void shouldRejectDetailWhenApplicationBelongsToAnotherUser() {
-        when(flowInstanceDAO.selectById(21L)).thenReturn(runningInstance(9L));
+    void shouldRejectDetailWhenApplicationBelongsToAnotherOrganization() {
+        FlowInstance instance = runningInstance(9L);
+        instance.setOrgId(11L);
+        when(flowInstanceDAO.selectById(21L)).thenReturn(instance);
 
         assertThrows(BizException.class, () -> service.getInstanceDetail(21L));
 
@@ -217,7 +282,7 @@ class FlowRuntimeServiceImplTest {
     }
 
     @Test
-    void shouldReturnDetailWhenCurrentUserReceivedCopyTask() {
+    void shouldReturnDetailForAnotherUserInSameOrganization() {
         FlowInstance instance = runningInstance(9L);
         FlowDefinition definition = new FlowDefinition();
         definition.setId(31L);
@@ -228,14 +293,8 @@ class FlowRuntimeServiceImplTest {
         startNode.setKey("start");
         startNode.setName("发起人");
         definition.setModelNode(startNode);
-        FlowTask copyTask = new FlowTask();
-        copyTask.setId(41L);
-        copyTask.setNodeKey("copy");
-        copyTask.setNodeType(2);
-        copyTask.setAssignee(8L);
-        copyTask.setStatus(1);
         when(flowInstanceDAO.selectById(21L)).thenReturn(instance);
-        when(flowTaskService.listTaskByInstanceId(21L)).thenReturn(List.of(copyTask));
+        when(flowTaskService.listTaskByInstanceId(21L)).thenReturn(List.of());
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
         when(categoryService.getCategoryMap()).thenReturn(Map.of());
         when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "当前用户", 9L, "流程发起人"));
@@ -244,7 +303,8 @@ class FlowRuntimeServiceImplTest {
         FlowInstanceDetailVO detail = service.getInstanceDetail(21L);
 
         assertEquals("采购付款申请", detail.getInstance().getName());
-        assertEquals("当前用户", detail.getTasks().getFirst().getAssigneeName());
+        assertEquals("流程发起人", detail.getStartUserName());
+        assertTrue(detail.getTasks().isEmpty());
     }
 
     private FlowInstance runningInstance(Long userId) {

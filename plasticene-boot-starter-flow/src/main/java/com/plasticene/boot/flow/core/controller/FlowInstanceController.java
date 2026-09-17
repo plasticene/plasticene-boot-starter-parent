@@ -8,6 +8,7 @@ import com.plasticene.boot.flow.core.model.param.FlowInstanceParam;
 import com.plasticene.boot.flow.core.model.param.FlowRouteParam;
 import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
+import com.plasticene.boot.flow.core.model.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
@@ -58,6 +59,14 @@ public class FlowInstanceController {
         LoginUser loginUser = LoginUserHolder.get();
         query.setOrgId(loginUser.getOrgId());
         return ResponseVO.success(flowRuntimeService.page(query));
+    }
+
+    @Operation(summary = "统计流程实例状态数量")
+    @GetMapping("/statistics")
+    public ResponseVO<FlowInstanceStatisticsVO> statistics(@Validated FlowInstanceQuery query) {
+        LoginUser loginUser = LoginUserHolder.get();
+        query.setOrgId(loginUser.getOrgId());
+        return ResponseVO.success(flowRuntimeService.statistics(query));
     }
 
     @Operation(summary = "分页查询当前用户发起的流程实例")

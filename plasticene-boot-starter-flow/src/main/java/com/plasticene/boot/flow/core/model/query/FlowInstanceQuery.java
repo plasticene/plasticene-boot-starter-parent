@@ -18,14 +18,23 @@ import java.time.LocalDateTime;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "当前用户发起的流程实例分页查询参数")
+@Schema(description = "流程实例分页查询参数")
 public class FlowInstanceQuery extends PageQuery {
 
-    @Schema(description = "关键字，搜索流程名称或者编码")
+    @Schema(description = "关键字，搜索流程名称、编码或者实例id")
     private String keyword;
+
+    @Schema(description = "关键字解析出的流程实例id", hidden = true)
+    private Long keywordInstanceId;
+
+    @Schema(description = "申请人id")
+    private Long startUserId;
 
     @Schema(description = "流程分类编码")
     private String category;
+
+    @Schema(description = "当前节点名称")
+    private String currentNodeName;
 
     @Min(value = 0, message = "流程实例状态最小值为 0")
     @Max(value = 3, message = "流程实例状态最大值为 3")

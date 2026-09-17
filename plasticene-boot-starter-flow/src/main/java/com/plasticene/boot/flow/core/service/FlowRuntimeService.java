@@ -7,6 +7,7 @@ import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
+import com.plasticene.boot.flow.core.model.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,6 +65,13 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @return 流程实例分页结果
      */
     PageResult<FlowInstanceVO> page(FlowInstanceQuery query);
+
+    /**
+     * 统计流程实例状态数量
+     * @param query 查询参数，状态条件不参与统计
+     * @return 流程实例状态统计
+     */
+    FlowInstanceStatisticsVO statistics(FlowInstanceQuery query);
 
     /**
      * 获取流程实例详情

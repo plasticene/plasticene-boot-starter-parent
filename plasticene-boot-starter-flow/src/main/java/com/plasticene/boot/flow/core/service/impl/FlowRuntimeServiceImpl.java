@@ -16,9 +16,11 @@ import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.dto.FlowInstanceNodeTimeDTO;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
+import com.plasticene.boot.flow.core.model.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskVO;
@@ -37,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -109,22 +112,21 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
     @Override
     public PageResult<FlowInstanceVO> page(FlowInstanceQuery query) {
-        query.setKeyword(StrUtil.trim(query.getKeyword()));
-        query.setCategory(StrUtil.trim(query.getCategory()));
-        if (query.getStartTimeBegin() != null && query.getStartTimeEnd() != null
-                && query.getStartTimeBegin().isAfter(query.getStartTimeEnd())) {
-            throw new BizException("发起时间开始值不能晚于结束值");
-        }
-        IPage<FlowInstanceVO> page = flowInstanceDAO.pageInstance(MybatisUtils.buildPage(query), query);
+        normalizeQuery(query);
+        IPage<FlowInstanceVO> page = flowInstanceDAO.pageInstance(MybatisUtils.buildPage(query), query, true);
+        List<FlowInstanceVO> records = page.getRecords();
         Map<String, String> categoryMap = categoryService.getCategoryMap();
-        page.getRecords().forEach(vo -> {
-            String category = vo.getCategory();
-            vo.setCategoryName(category == null ? null : categoryMap.getOrDefault(category, category));
-            FlowInstanceStatusEnum status = getStatus(vo.getStatus());
-            vo.setStatusName(status == null ? null : status.getName());
-            vo.setCancelable(Objects.equals(vo.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode()));
-        });
-        return new PageResult<>(page.getRecords(), page.getTotal(), page.getPages());
+        Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
+        Map<Long, LocalDateTime> nodeStartTimeMap = getCurrentNodeStartTimeMap(query.getOrgId(), records);
+        LocalDateTime now = LocalDateTime.now();
+        records.forEach(vo -> enrichInstanceVO(vo, categoryMap, userMap, nodeStartTimeMap.get(vo.getId()), now));
+        return new PageResult<>(records, page.getTotal(), page.getPages());
+    }
+
+    @Override
+    public FlowInstanceStatisticsVO statistics(FlowInstanceQuery query) {
+        normalizeQuery(query);
+        return flowInstanceDAO.statisticsInstance(query, false);
     }
 
     @Override
@@ -138,11 +140,6 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
             throw new BizException("流程实例不存在");
         }
         List<FlowTask> taskList = flowTaskService.listTaskByInstanceId(instanceId);
-        boolean canView = Objects.equals(instance.getUserId(), loginUser.getId())
-                || taskList.stream().anyMatch(task -> Objects.equals(task.getAssignee(), loginUser.getId()));
-        if (!canView) {
-            throw new BizException("流程实例不存在");
-        }
         FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
         if (definition == null || !Objects.equals(definition.getOrgId(), loginUser.getOrgId())) {
             throw new BizException("流程发布定义不存在");
@@ -154,8 +151,18 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .toList();
         Map<String, Object> variables = instance.getVarMap() == null ? Map.of() : instance.getVarMap();
 
+        FlowInstanceVO instanceVO = toInstanceVO(instance, definition);
+        LocalDateTime currentNodeStartTime = taskList.stream()
+                .filter(task -> Objects.equals(task.getNodeKey(), instance.getCurrentNodeKey()))
+                .map(FlowTask::getStartTime)
+                .filter(Objects::nonNull)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
+        enrichInstanceVO(instanceVO, categoryService.getCategoryMap(), userMap,
+                currentNodeStartTime, LocalDateTime.now());
+
         FlowInstanceDetailVO detail = new FlowInstanceDetailVO();
-        detail.setInstance(toInstanceVO(instance, definition));
+        detail.setInstance(instanceVO);
         detail.setStartUserId(instance.getUserId());
         detail.setStartUserName(userMap.getOrDefault(instance.getUserId(), String.valueOf(instance.getUserId())));
         detail.setVersion(definition.getVersion());
@@ -280,19 +287,77 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         vo.setName(definition.getName());
         vo.setCode(definition.getCode());
         vo.setCategory(instance.getCategory());
-        Map<String, String> categoryMap = categoryService.getCategoryMap();
-        vo.setCategoryName(instance.getCategory() == null
-                ? null
-                : categoryMap.getOrDefault(instance.getCategory(), instance.getCategory()));
+        vo.setStartUserId(instance.getUserId());
         vo.setCurrentNodeKey(instance.getCurrentNodeKey());
         vo.setCurrentNodeName(instance.getCurrentNodeName());
         vo.setStatus(instance.getStatus());
-        FlowInstanceStatusEnum status = getStatus(instance.getStatus());
-        vo.setStatusName(status == null ? null : status.getName());
-        vo.setCancelable(Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode()));
         vo.setStartTime(instance.getStartTime());
         vo.setEndTime(instance.getEndTime());
         return vo;
+    }
+
+    private void normalizeQuery(FlowInstanceQuery query) {
+        query.setKeyword(StrUtil.trim(query.getKeyword()));
+        query.setKeywordInstanceId(parseKeywordInstanceId(query.getKeyword()));
+        query.setCategory(StrUtil.trim(query.getCategory()));
+        query.setCurrentNodeName(StrUtil.trim(query.getCurrentNodeName()));
+        if (query.getStartTimeBegin() != null && query.getStartTimeEnd() != null
+                && query.getStartTimeBegin().isAfter(query.getStartTimeEnd())) {
+            throw new BizException("发起时间开始值不能晚于结束值");
+        }
+    }
+
+    private Long parseKeywordInstanceId(String keyword) {
+        if (StrUtil.isBlank(keyword)) {
+            return null;
+        }
+        String value = StrUtil.removePrefix(keyword, "#");
+        try {
+            long instanceId = Long.parseLong(value);
+            return instanceId > 0 ? instanceId : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private Map<Long, LocalDateTime> getCurrentNodeStartTimeMap(Long orgId, List<FlowInstanceVO> instances) {
+        if (instances.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> instanceIds = instances.stream().map(FlowInstanceVO::getId).toList();
+        List<FlowInstanceNodeTimeDTO> nodeTimes = flowInstanceDAO.listCurrentNodeStartTimes(orgId, instanceIds);
+        Map<Long, LocalDateTime> result = new HashMap<>();
+        nodeTimes.forEach(item -> result.put(item.getInstanceId(), item.getStartTime()));
+        return result;
+    }
+
+    private void enrichInstanceVO(FlowInstanceVO vo,
+                                  Map<String, String> categoryMap,
+                                  Map<Long, String> userMap,
+                                  LocalDateTime currentNodeStartTime,
+                                  LocalDateTime now) {
+        String category = vo.getCategory();
+        vo.setCategoryName(category == null ? null : categoryMap.getOrDefault(category, category));
+        Long startUserId = vo.getStartUserId();
+        vo.setStartUserName(startUserId == null
+                ? null
+                : userMap.getOrDefault(startUserId, String.valueOf(startUserId)));
+        FlowInstanceStatusEnum status = getStatus(vo.getStatus());
+        vo.setStatusName(status == null ? null : status.getName());
+        LoginUser loginUser = LoginUserHolder.get();
+        vo.setCancelable(Objects.equals(vo.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
+                && startUserId != null
+                && Objects.equals(startUserId, loginUser.getId()));
+        LocalDateTime elapsedEndTime = vo.getEndTime() == null ? now : vo.getEndTime();
+        vo.setElapsedTime(elapsedSeconds(vo.getStartTime(), elapsedEndTime));
+        vo.setCurrentNodeElapsedTime(elapsedSeconds(currentNodeStartTime, elapsedEndTime));
+    }
+
+    private Long elapsedSeconds(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            return null;
+        }
+        return Math.max(0, Duration.between(startTime, endTime).getSeconds());
     }
 
     private FlowTaskVO toTaskVO(FlowTask task, Map<Long, String> userMap) {
