@@ -26,19 +26,19 @@ public class ProcessConditionRule {
     /**
      * 字段类型
      */
-    @Schema(description = "字段类型 0：字符串  1：数字  2：日期  3：bool  4：集合字段")
+    @Schema(description = "字段类型 0：字符串  1：数字  2：日期  3：集合字段")
     private Integer type;
 
     /**
      * 运算符
      */
-    @Schema(description = "运算符")
+    @Schema(description = "运算符：=、!=、>、>=、<、<=、allMatch、anyMatch、notContains")
     private String operator;
 
     /**
      * 输入值
      */
-    @Schema(description = "输入值")
+    @Schema(description = "输入值；日期时间使用 yyyy-MM-dd HH:mm:ss 格式，集合使用 JSON 数组字符串")
     private String inputValue;
 
 

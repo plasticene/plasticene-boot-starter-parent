@@ -5,7 +5,6 @@ import com.plasticene.boot.flow.core.enums.FieldTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
-import java.util.Date;
 import java.util.Objects;
 
 /**
@@ -27,9 +26,7 @@ public class EqualsOperator implements Operator {
               return input.compareTo(value) == 0;
           }
           if (Objects.equals(fieldType, FieldTypeEnum.DATE.getCode())) {
-              // 日期时间统一转换为时间戳, 好比较
-              long timestamp = getTimestamp(fieldValue);
-              return Objects.equals(timestamp, Long.valueOf(inputValue));
+              return getDateTime(fieldValue).isEqual(getDateTime(inputValue));
           }
           return Objects.equals(fieldValue.toString(), inputValue);
        } catch (Exception e) {

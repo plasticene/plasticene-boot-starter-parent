@@ -23,12 +23,10 @@ public class GreaterThanOperator implements Operator {
                 BigDecimal value = new BigDecimal(fieldValue.toString());
                 BigDecimal input = new BigDecimal(inputValue);
                 return value.compareTo(input) > 0;
-            }
-            if (Objects.equals(fieldType, FieldTypeEnum.DATE.getCode())) {
-                // 日期时间统一转换为时间戳, 好比较
-                long timestamp = getTimestamp(fieldValue);
-                return timestamp > Long.parseLong(inputValue);
-            }
+          }
+          if (Objects.equals(fieldType, FieldTypeEnum.DATE.getCode())) {
+              return getDateTime(fieldValue).isAfter(getDateTime(inputValue));
+          }
         } catch (Exception e) {
             log.error("【{}】operator error: fieldValue={}, inputValue={}", op(), fieldValue, inputValue, e);
             throw e;

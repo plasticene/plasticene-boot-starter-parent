@@ -25,6 +25,9 @@ public class OperatorFactory {
         OPERATOR_LIST.add(new LessThanOrEqualsOperator());
         OPERATOR_LIST.add(new GreaterThanOperator());
         OPERATOR_LIST.add(new GreaterThanOrEqualsOperator());
+        OPERATOR_LIST.add(new AllMatchOperator());
+        OPERATOR_LIST.add(new AnyMatchOperator());
+        OPERATOR_LIST.add(new NotContainsOperator());
 
 
 

@@ -7,6 +7,9 @@ package com.plasticene.boot.flow.core.operator;
 public class GreaterThanOrEqualsOperator extends LessThanOperator implements Operator {
     @Override
     public boolean compare(Integer fieldType, Object fieldValue, String inputValue) {
+        if (fieldValue == null || inputValue == null) {
+            return false;
+        }
         try {
             boolean compare = super.compare(fieldType, fieldValue, inputValue);
             return !compare;
