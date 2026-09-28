@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.model.vo;
 
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -34,6 +35,8 @@ public class FlowModelVO {
     private Integer status;
     @Schema(description = "流程表单配置快照")
     private Map<String, Object> formConfig;
+    @Schema(description = "流程更多设置")
+    private FlowExtraSetting extraSetting;
     @Schema(description = "流程表单配置")
     private FlowNode modelNode;
     @Schema(description = "设计态-流程模型节点配置")

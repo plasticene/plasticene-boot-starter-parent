@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.entity;
 
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler;
 import lombok.EqualsAndHashCode;
@@ -56,6 +57,10 @@ public class FlowModel extends BaseDO {
     /** 流程表单配置快照 */
     @TableField(value = "form_config", typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> formConfig;
+
+    /** 流程更多设置 */
+    @TableField(value = "extra_setting", typeHandler = JacksonTypeHandler.class)
+    private FlowExtraSetting extraSetting;
 
     /** 设计态-流程模型节点配置 */
     @TableField(value = "model_node", typeHandler = JacksonTypeHandler.class)

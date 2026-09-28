@@ -31,6 +31,8 @@ public class FlowModelDTO {
     private Integer status;
     @Schema(description = "流程表单配置快照")
     private Map<String, Object> formConfig;
+    @Schema(description = "流程更多设置")
+    private FlowExtraSetting extraSetting;
     @Schema(description = "设计态-流程模型节点配置")
     private String draftModel;
     @Schema(description = "运行态-流程模型节点配置")

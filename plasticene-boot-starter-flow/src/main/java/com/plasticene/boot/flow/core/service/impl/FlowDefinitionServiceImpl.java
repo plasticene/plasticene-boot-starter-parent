@@ -12,6 +12,7 @@ import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.enums.FlowModelEnums;
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.vo.FlowDefinitionVO;
 import com.plasticene.boot.flow.core.model.vo.FlowStartCatalogVO;
 import com.plasticene.boot.flow.core.model.vo.FlowStartableModelVO;
@@ -98,6 +99,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         FlowDefinitionVO vo = PtcBeanUtils.copy(flowDefinition, FlowDefinitionVO.class);
         vo.setDefinitionId(flowDefinition.getId());
         vo.setCategoryName(categoryMap.get(flowDefinition.getCategory()));
+        vo.setExtraSetting(FlowExtraSetting.normalize(vo.getExtraSetting()));
         return vo;
     }
 

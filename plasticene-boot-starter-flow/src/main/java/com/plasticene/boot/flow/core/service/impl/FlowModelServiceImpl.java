@@ -10,6 +10,7 @@ import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.enums.FlowModelEnums;
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowModelEnableParam;
 import com.plasticene.boot.flow.core.model.vo.FlowModelStatisticsVO;
@@ -56,6 +57,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Override
     public Long create(FlowModelParam param) {
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
+        flowModel.setExtraSetting(FlowExtraSetting.normalize(flowModel.getExtraSetting()));
         flowModel.setOrgId(LoginUserHolder.get().getOrgId());
         flowModel.setIsEdited(CommonConstant.IS_ON);
         flowModelDAO.insert(flowModel);
@@ -66,6 +68,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Override
     public void update(FlowModelParam param) {
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
+        if (flowModel.getExtraSetting() != null) {
+            flowModel.setExtraSetting(FlowExtraSetting.normalize(flowModel.getExtraSetting()));
+        }
         flowModel.setIsEdited(CommonConstant.IS_ON);
         flowModelDAO.updateById(flowModel);
     }
@@ -98,7 +103,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Override
     public FlowModelVO detail(Long id) {
         FlowModel flowModel = flowModelDAO.selectById(id);
-        return PtcBeanUtils.copy(flowModel, FlowModelVO.class);
+        FlowModelVO vo = PtcBeanUtils.copy(flowModel, FlowModelVO.class);
+        vo.setExtraSetting(FlowExtraSetting.normalize(vo.getExtraSetting()));
+        return vo;
     }
 
     @Override
@@ -154,6 +161,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         flowNodeValidator.validate(modelNode);
         // 3.生成发布流程定义快照
         FlowDefinition flowDefinition = PtcBeanUtils.copy(flowModel, FlowDefinition.class);
+        flowDefinition.setExtraSetting(FlowExtraSetting.normalize(flowDefinition.getExtraSetting()));
         flowDefinition.setId(null);
         flowDefinition.setModelId(id);
         flowDefinition.setCreateTime(LocalDateTime.now());

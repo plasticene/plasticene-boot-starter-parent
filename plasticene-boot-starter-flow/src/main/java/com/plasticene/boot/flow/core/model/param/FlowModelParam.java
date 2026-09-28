@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.model.param;
 
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.web.core.validator.Insert;
 import com.plasticene.boot.web.core.validator.Update;
@@ -46,6 +47,8 @@ public class FlowModelParam {
     private Integer status;
     @Schema(description = "流程表单配置快照")
     private Map<String, Object> formConfig;
+    @Schema(description = "流程更多设置")
+    private FlowExtraSetting extraSetting;
     @Schema(description = "流程模型配置")
     private FlowNode modelNode;
     @Schema(description = "可发起人类型  0：全员   1：指定人员   2：指定部门    3：指定角色")

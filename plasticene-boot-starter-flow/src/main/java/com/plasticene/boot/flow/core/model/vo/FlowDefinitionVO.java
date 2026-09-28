@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.model.vo;
 
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -35,6 +36,8 @@ public class FlowDefinitionVO {
     private LocalDateTime publishTime;
     @Schema(description = "发布时的表单配置快照")
     private Map<String, Object> formConfig;
+    @Schema(description = "发布时的流程更多设置快照")
+    private FlowExtraSetting extraSetting;
     @Schema(description = "发布时的流程模型快照")
     private FlowNode modelNode;
 
