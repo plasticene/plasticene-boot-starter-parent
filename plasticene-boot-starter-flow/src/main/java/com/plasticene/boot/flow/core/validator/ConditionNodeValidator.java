@@ -18,6 +18,8 @@ import java.util.List;
  * @since 2026/4/15
  */
 public class ConditionNodeValidator implements NodeValidator{
+    private static final String PARALLEL_NODE_KEY_PREFIX = "Parallel_";
+
     @Override
     public boolean support(FlowNodeEnum.Type nodeType) {
         return FlowNodeEnum.Type.CONDITION_NODE.equals(nodeType);
@@ -25,6 +27,9 @@ public class ConditionNodeValidator implements NodeValidator{
 
     @Override
     public void validate(FlowNode node, ValidationContext context) {
+        if (StrUtil.startWith(node.getKey(), PARALLEL_NODE_KEY_PREFIX)) {
+            return;
+        }
         ProcessNodeCondition condition = node.getCondition();
         if (condition == null) {
             throw new BizException("条件节点: {0}, 条件配置不能为空", node.getKey());
