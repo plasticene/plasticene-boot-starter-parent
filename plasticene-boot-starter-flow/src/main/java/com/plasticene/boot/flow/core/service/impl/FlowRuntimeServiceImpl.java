@@ -16,6 +16,7 @@ import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowInstanceNodeTimeDTO;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
@@ -43,6 +44,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author ZFJ
@@ -117,9 +120,13 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         List<FlowInstanceVO> records = page.getRecords();
         Map<String, String> categoryMap = categoryService.getCategoryMap();
         Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
+        Map<Long, FlowDefinition> definitionMap = getDefinitionMap(records);
         Map<Long, LocalDateTime> nodeStartTimeMap = getCurrentNodeStartTimeMap(query.getOrgId(), records);
         LocalDateTime now = LocalDateTime.now();
-        records.forEach(vo -> enrichInstanceVO(vo, categoryMap, userMap, nodeStartTimeMap.get(vo.getId()), now));
+        records.forEach(vo -> enrichInstanceVO(vo, categoryMap, userMap, nodeStartTimeMap.get(vo.getId()), now,
+                allowSubmitterCancel(vo.getDefinitionId() == null
+                        ? null
+                        : definitionMap.get(vo.getDefinitionId()))));
         return new PageResult<>(records, page.getTotal(), page.getPages());
     }
 
@@ -147,7 +154,11 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
         Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
         List<FlowTaskVO> taskVOList = taskList.stream()
-                .map(task -> toTaskVO(task, userMap))
+                .map(task -> {
+                    FlowTaskVO vo = toTaskVO(task, userMap);
+                    vo.setWithdrawable(flowTaskService.canWithdrawTask(task, instance, definition, taskList));
+                    return vo;
+                })
                 .toList();
         Map<String, Object> variables = instance.getVarMap() == null ? Map.of() : instance.getVarMap();
 
@@ -159,7 +170,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .min(LocalDateTime::compareTo)
                 .orElse(null);
         enrichInstanceVO(instanceVO, categoryService.getCategoryMap(), userMap,
-                currentNodeStartTime, LocalDateTime.now());
+                currentNodeStartTime, LocalDateTime.now(), allowSubmitterCancel(definition));
 
         FlowInstanceDetailVO detail = new FlowInstanceDetailVO();
         detail.setInstance(instanceVO);
@@ -193,6 +204,10 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         }
         if (!Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())) {
             throw new BizException("流程实例已结束，不能取消");
+        }
+        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+        if (!allowSubmitterCancel(definition)) {
+            throw new BizException("当前流程不允许提交人撤销申请");
         }
 
         flowTaskService.cancelInstanceRunningTask(instanceId);
@@ -335,7 +350,8 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                                   Map<String, String> categoryMap,
                                   Map<Long, String> userMap,
                                   LocalDateTime currentNodeStartTime,
-                                  LocalDateTime now) {
+                                  LocalDateTime now,
+                                  boolean allowCancel) {
         String category = vo.getCategory();
         vo.setCategoryName(category == null ? null : categoryMap.getOrDefault(category, category));
         Long startUserId = vo.getStartUserId();
@@ -347,10 +363,36 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         LoginUser loginUser = LoginUserHolder.get();
         vo.setCancelable(Objects.equals(vo.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
                 && startUserId != null
-                && Objects.equals(startUserId, loginUser.getId()));
+                && Objects.equals(startUserId, loginUser.getId())
+                && allowCancel);
         LocalDateTime elapsedEndTime = vo.getEndTime() == null ? now : vo.getEndTime();
         vo.setElapsedTime(elapsedSeconds(vo.getStartTime(), elapsedEndTime));
         vo.setCurrentNodeElapsedTime(elapsedSeconds(currentNodeStartTime, elapsedEndTime));
+    }
+
+    private Map<Long, FlowDefinition> getDefinitionMap(List<FlowInstanceVO> instances) {
+        List<Long> definitionIds = instances.stream()
+                .map(FlowInstanceVO::getDefinitionId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (definitionIds.isEmpty()) {
+            return Map.of();
+        }
+        List<FlowDefinition> definitions = flowDefinitionService.listByIds(definitionIds);
+        if (definitions == null || definitions.isEmpty()) {
+            return Map.of();
+        }
+        return definitions.stream()
+                .collect(Collectors.toMap(FlowDefinition::getId, Function.identity()));
+    }
+
+    private boolean allowSubmitterCancel(FlowDefinition definition) {
+        if (definition == null) {
+            return true;
+        }
+        FlowExtraSetting setting = FlowExtraSetting.normalize(definition.getExtraSetting());
+        return Boolean.TRUE.equals(setting.getAllowSubmitterCancel());
     }
 
     private Long elapsedSeconds(LocalDateTime startTime, LocalDateTime endTime) {

@@ -19,6 +19,7 @@ import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
@@ -44,6 +45,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author ZFJ
@@ -165,7 +168,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             return;
         }
         // 人工手动审批
-        List<Long> assignees = flowTaskAssigneeProvider.getAssignees(currentNode);
+        List<Long> assignees = new ArrayList<>(flowTaskAssigneeProvider.getAssignees(currentNode).stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
         // 处理审批人为空
         processAssigneeEmpty(instance, currentNode, assignees);
         // 处理发起人同审批人为同一人
@@ -174,7 +180,19 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         if (CollUtil.isEmpty(assignees)) {
             return;
         }
+        Set<Long> deduplicatedAssignees = findDeduplicatedAssignees(instance, currentNode, assignees);
+        deduplicatedAssignees.forEach(assignee -> createDeduplicatedApproveTask(instance, currentNode, assignee));
+        assignees.removeAll(deduplicatedAssignees);
         Integer approveMode = currentNode.getApproveMode();
+        if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ANY.getCode())
+                && CollUtil.isNotEmpty(deduplicatedAssignees)) {
+            processExecutor.moveToNextNode(instance, currentNode);
+            return;
+        }
+        if (CollUtil.isEmpty(assignees)) {
+            processExecutor.moveToNextNode(instance, currentNode);
+            return;
+        }
         // 不是顺序审批 即会签或者或签
         if (!Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ORDER.getCode())) {
             List<FlowTask> taskList = new ArrayList<>();
@@ -200,6 +218,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                                         FlowTaskStatusEnum status,
                                         String comment) {
         FlowTask task = buildFlowTask(instance, currentNode);
+        task.setApproveType(Objects.equals(status, FlowTaskStatusEnum.COMPLETE)
+                ? FlowNodeEnum.ApproveType.AUTO_PASS.getCode()
+                : FlowNodeEnum.ApproveType.AUTO_REJECT.getCode());
         task.setEndTime(LocalDateTime.now());
         task.setStatus(status.getCode());
         task.setComment(comment);
@@ -252,6 +273,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 FlowTask task = buildFlowTask(instance, currentNode);
                 task.setEndTime(LocalDateTime.now());
                 task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+                task.setApproveType(FlowNodeEnum.ApproveType.AUTO_PASS.getCode());
                 task.setAssignee(assignees.getFirst());
                 task.setComment("审批人与提交人是同一人，系统自动通过");
                 flowTaskDAO.insert(task);
@@ -434,6 +456,95 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
     @Transactional(rollbackFor = Exception.class)
     @Override
+    public void withdrawTask(Long taskId) {
+        if (taskId == null) {
+            throw new BizException("任务id不能为空");
+        }
+        LoginUser loginUser = getLoginUser();
+        FlowTask task = flowTaskDAO.selectById(taskId);
+        if (task == null
+                || !Objects.equals(task.getOrgId(), loginUser.getOrgId())
+                || !Objects.equals(task.getAssignee(), loginUser.getId())) {
+            throw new BizException("任务不存在或无权撤回");
+        }
+        FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(task.getInstanceId());
+        FlowDefinition definition = instance == null ? null : flowDefinitionService.getById(instance.getDefinitionId());
+        List<FlowTask> instanceTasks = instance == null ? List.of() : listTaskByInstanceId(instance.getId());
+        if (!canWithdrawTask(task, instance, definition, instanceTasks)) {
+            throw new BizException("当前审批结果不允许撤回");
+        }
+
+        boolean sameNode = Objects.equals(instance.getCurrentNodeKey(), task.getNodeKey());
+        if (!sameNode || Objects.equals(task.getApproveMode(), FlowNodeEnum.ApproveMode.ORDER.getCode())) {
+            LambdaUpdateWrapper<FlowTask> cancelRunningWrapper = new LambdaUpdateWrapper<>();
+            cancelRunningWrapper.eq(FlowTask::getInstanceId, instance.getId())
+                    .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
+                    .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL)
+                    .set(FlowTask::getIsDelete, CommonConstant.IS_DEL);
+            flowTaskDAO.update(cancelRunningWrapper);
+        }
+
+        LambdaUpdateWrapper<FlowTask> withdrawWrapper = new LambdaUpdateWrapper<>();
+        withdrawWrapper.eq(FlowTask::getId, taskId)
+                .eq(FlowTask::getStatus, FlowTaskStatusEnum.COMPLETE.getCode())
+                .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL)
+                .set(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
+                .set(FlowTask::getApproveType, FlowNodeEnum.ApproveType.MANUAL.getCode())
+                .set(FlowTask::getEndTime, null)
+                .set(FlowTask::getComment, null);
+        int updated = flowTaskDAO.update(withdrawWrapper);
+        if (updated != 1) {
+            throw new BizException("审批结果已发生变化，请刷新后重试");
+        }
+
+        FlowNode node = new FlowNode();
+        node.setKey(task.getNodeKey());
+        node.setName(task.getNodeName());
+        flowRuntimeService.updateInstanceCurrentNode(instance.getId(), node);
+    }
+
+    @Override
+    public boolean canWithdrawTask(FlowTask task, FlowInstance instance,
+                                   FlowDefinition definition, List<FlowTask> instanceTasks) {
+        LoginUser loginUser = LoginUserHolder.get();
+        if (task == null || instance == null || definition == null || loginUser == null
+                || !Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
+                || !Objects.equals(instance.getOrgId(), loginUser.getOrgId())
+                || !Objects.equals(task.getOrgId(), loginUser.getOrgId())
+                || !Objects.equals(task.getAssignee(), loginUser.getId())
+                || !Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode())
+                || !Objects.equals(task.getStatus(), FlowTaskStatusEnum.COMPLETE.getCode())
+                || !Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL)
+                || task.getEndTime() == null) {
+            return false;
+        }
+        FlowExtraSetting setting = FlowExtraSetting.normalize(definition.getExtraSetting());
+        if (!Boolean.TRUE.equals(setting.getAllowApproverWithdraw())) {
+            return false;
+        }
+        boolean laterApprovalHandled = instanceTasks.stream()
+                .filter(item -> !Objects.equals(item.getId(), task.getId()))
+                .filter(item -> Objects.equals(item.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()))
+                .filter(item -> Objects.equals(item.getStatus(), FlowTaskStatusEnum.COMPLETE.getCode())
+                        || Objects.equals(item.getStatus(), FlowTaskStatusEnum.REJECT.getCode()))
+                .filter(item -> item.getEndTime() != null)
+                .anyMatch(item -> item.getEndTime().isAfter(task.getEndTime())
+                        || item.getEndTime().isEqual(task.getEndTime())
+                        && item.getId() != null && task.getId() != null && item.getId() > task.getId());
+        if (laterApprovalHandled) {
+            return false;
+        }
+        List<FlowTask> runningTasks = instanceTasks.stream()
+                .filter(item -> Objects.equals(item.getStatus(), FlowTaskStatusEnum.RUNNING.getCode()))
+                .filter(item -> Objects.equals(item.getIsDelete(), CommonConstant.IS_NOT_DEL))
+                .toList();
+        return CollUtil.isNotEmpty(runningTasks)
+                && runningTasks.stream().allMatch(item -> Objects.equals(item.getNodeKey(),
+                instance.getCurrentNodeKey()));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
     public int incrementCompletedBranchAndGet(Long instanceId, String nodeKey) {
         flowTaskDAO.incrementCompletedBranch(instanceId, nodeKey);
         LambdaQueryWrapper<FlowTask> queryWrapper = new LambdaQueryWrapper<>();
@@ -471,9 +582,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         queryWrapper.eq(FlowTask::getInstanceId, instanceId)
                 .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
         queryWrapper.orderByAsc(FlowTask::getId);
-        return flowTaskDAO.selectList(queryWrapper).stream()
-                .filter(task -> Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL))
-                .toList();
+        return flowTaskDAO.selectList(queryWrapper);
     }
 
 
@@ -509,6 +618,50 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         queryWrapper.eq(FlowTask::getInstanceId, instanceId);
         queryWrapper.eq(FlowTask::getNodeKey, nodeKey);
         return flowTaskDAO.selectList(queryWrapper);
+    }
+
+    private Set<Long> findDeduplicatedAssignees(FlowInstance instance, FlowNode currentNode,
+                                                List<Long> assignees) {
+        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+        FlowExtraSetting setting = FlowExtraSetting.normalize(
+                definition == null ? null : definition.getExtraSetting());
+        FlowExtraSetting.ApproverDeduplication strategy = setting.getApproverDeduplication();
+        if (Objects.equals(strategy, FlowExtraSetting.ApproverDeduplication.NONE)) {
+            return Set.of();
+        }
+        List<FlowTask> history = listTaskByInstanceId(instance.getId()).stream()
+                .filter(task -> Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()))
+                .filter(task -> Objects.equals(task.getStatus(), FlowTaskStatusEnum.COMPLETE.getCode()))
+                .filter(task -> task.getAssignee() != null)
+                .toList();
+        if (Objects.equals(strategy, FlowExtraSetting.ApproverDeduplication.ONCE_PER_PROCESS)) {
+            Set<Long> manuallyApprovedUsers = history.stream()
+                    .filter(task -> Objects.equals(task.getApproveType(), FlowNodeEnum.ApproveType.MANUAL.getCode()))
+                    .map(FlowTask::getAssignee)
+                    .collect(Collectors.toSet());
+            return assignees.stream().filter(manuallyApprovedUsers::contains).collect(Collectors.toSet());
+        }
+        FlowNode previousNode = currentNode.getParentNode();
+        if (previousNode == null
+                || !Objects.equals(previousNode.getType(), FlowNodeEnum.Type.APPROVE.getCode())) {
+            return Set.of();
+        }
+        Set<Long> previousAssignees = history.stream()
+                .filter(task -> Objects.equals(task.getNodeKey(), previousNode.getKey()))
+                .map(FlowTask::getAssignee)
+                .collect(Collectors.toSet());
+        return assignees.stream().filter(previousAssignees::contains).collect(Collectors.toSet());
+    }
+
+    private void createDeduplicatedApproveTask(FlowInstance instance, FlowNode currentNode, Long assignee) {
+        FlowTask task = buildFlowTask(instance, currentNode);
+        task.setAssignee(assignee);
+        task.setApproveType(FlowNodeEnum.ApproveType.AUTO_PASS.getCode());
+        task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+        task.setStartTime(LocalDateTime.now());
+        task.setEndTime(LocalDateTime.now());
+        task.setComment("审批人已审批，系统自动通过");
+        flowTaskDAO.insert(task);
     }
 
     private LoginUser getLoginUser() {

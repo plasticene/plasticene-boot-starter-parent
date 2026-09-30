@@ -24,6 +24,9 @@
         <result column="manager_user_ids" jdbcType="VARCHAR" property="managerUserIds"
                 javaType="java.util.List"
                 typeHandler="com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler"/>
+        <result column="extra_setting" jdbcType="VARCHAR" property="extraSetting"
+                javaType="com.plasticene.boot.flow.core.model.dto.FlowExtraSetting"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
     </resultMap>
 
 

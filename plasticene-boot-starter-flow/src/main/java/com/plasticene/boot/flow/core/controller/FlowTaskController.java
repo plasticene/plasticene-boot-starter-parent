@@ -12,6 +12,7 @@ import jakarta.annotation.Resource;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -56,6 +57,13 @@ public class FlowTaskController {
     @PostMapping("/reject")
     public ResponseVO<Void> rejectFlowTask(@RequestBody @Validated FlowTaskParam param) {
         flowTaskService.rejectTask(param);
+        return ResponseVO.success();
+    }
+
+    @Operation(summary = "撤回已同意的审批结果")
+    @PostMapping("/{taskId}/withdraw")
+    public ResponseVO<Void> withdrawFlowTask(@PathVariable("taskId") Long taskId) {
+        flowTaskService.withdrawTask(taskId);
         return ResponseVO.success();
     }
 }

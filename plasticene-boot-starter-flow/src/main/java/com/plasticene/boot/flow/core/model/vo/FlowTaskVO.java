@@ -43,4 +43,6 @@ public class FlowTaskVO {
     private String comment;
     @Schema(description = "耗时，单位毫秒")
     private Long durationMillis;
+    @Schema(description = "当前用户是否可以撤回该审批结果")
+    private Boolean withdrawable;
 }

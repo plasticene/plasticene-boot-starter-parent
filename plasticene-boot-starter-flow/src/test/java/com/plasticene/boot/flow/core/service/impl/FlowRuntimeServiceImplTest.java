@@ -12,6 +12,7 @@ import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowInstanceNodeTimeDTO;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
@@ -226,6 +227,22 @@ class FlowRuntimeServiceImplTest {
         FlowInstance instance = runningInstance(8L);
         instance.setStatus(FlowInstanceStatusEnum.APPROVE.getCode());
         when(flowInstanceDAO.selectInstanceForUpdate(21L)).thenReturn(instance);
+
+        assertThrows(BizException.class, () -> service.cancelInstance(21L));
+
+        verify(flowTaskService, never()).cancelInstanceRunningTask(any());
+        verify(flowInstanceDAO, never()).updateById(any(FlowInstance.class));
+    }
+
+    @Test
+    void shouldRejectCancelWhenDefinitionDisablesIt() {
+        FlowInstance instance = runningInstance(8L);
+        FlowDefinition definition = new FlowDefinition();
+        FlowExtraSetting setting = new FlowExtraSetting();
+        setting.setAllowSubmitterCancel(false);
+        definition.setExtraSetting(setting);
+        when(flowInstanceDAO.selectInstanceForUpdate(21L)).thenReturn(instance);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
 
         assertThrows(BizException.class, () -> service.cancelInstance(21L));
 

@@ -3,6 +3,7 @@ package com.plasticene.boot.flow.core.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
@@ -71,6 +72,18 @@ public interface FlowTaskService extends IService<FlowTask> {
      * 拒绝任务
      */
     void rejectTask(FlowTaskParam param);
+
+    /**
+     * 撤回已同意的审批结果
+     * @param taskId 任务id
+     */
+    void withdrawTask(Long taskId);
+
+    /**
+     * 判断当前用户是否可以撤回任务
+     */
+    boolean canWithdrawTask(FlowTask task, FlowInstance instance,
+                            FlowDefinition definition, List<FlowTask> instanceTasks);
 
     /**
      * 并行分支任务完成的分支数量+1

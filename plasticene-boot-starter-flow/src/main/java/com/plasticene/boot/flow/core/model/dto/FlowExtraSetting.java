@@ -25,7 +25,7 @@ public class FlowExtraSetting {
     public static FlowExtraSetting normalize(FlowExtraSetting setting) {
         FlowExtraSetting normalized = setting == null ? new FlowExtraSetting() : setting;
         if (normalized.getAllowSubmitterCancel() == null) {
-            normalized.setAllowSubmitterCancel(true);
+            normalized.setAllowSubmitterCancel(false);
         }
         if (normalized.getAllowApproverWithdraw() == null) {
             normalized.setAllowApproverWithdraw(false);

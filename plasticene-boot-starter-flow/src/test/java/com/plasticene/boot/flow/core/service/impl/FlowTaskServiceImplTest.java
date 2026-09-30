@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
@@ -7,12 +8,14 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
+import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
@@ -37,11 +40,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -273,6 +278,145 @@ class FlowTaskServiceImplTest {
         verify(flowRuntimeService, never()).selectInstanceForUpdate(any());
     }
 
+    @Test
+    void shouldAutoApproveRepeatedAssigneeOncePerProcess() {
+        FlowInstance instance = runningInstance();
+        FlowNode node = approveNode("second");
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L));
+        when(flowDefinitionService.getById(31L)).thenReturn(definition(
+                FlowExtraSetting.ApproverDeduplication.ONCE_PER_PROCESS, false));
+        FlowTask previous = completedApproval(1L, "first", 8L,
+                FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(2));
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(previous));
+
+        service.createApproveTask(instance, node);
+
+        ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        assertEquals(8L, captor.getValue().getAssignee());
+        assertEquals(FlowNodeEnum.ApproveType.AUTO_PASS.getCode(), captor.getValue().getApproveType());
+        assertEquals(FlowTaskStatusEnum.COMPLETE.getCode(), captor.getValue().getStatus());
+        verify(processExecutor).moveToNextNode(instance, node);
+    }
+
+    @Test
+    void shouldNotAutoApproveWhenPreviousNodeHasDifferentAssignee() {
+        FlowInstance instance = runningInstance();
+        FlowNode node = approveNode("second");
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L));
+        when(flowDefinitionService.getById(31L)).thenReturn(definition(
+                FlowExtraSetting.ApproverDeduplication.CONSECUTIVE, false));
+        FlowTask earlier = completedApproval(1L, "first", 8L,
+                FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(3));
+        FlowTask previous = completedApproval(2L, "middle", 9L,
+                FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(2));
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(earlier, previous));
+
+        service.createApproveTask(instance, node);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        assertEquals(FlowTaskStatusEnum.RUNNING.getCode(), captor.getValue().iterator().next().getStatus());
+        verify(processExecutor, never()).moveToNextNode(any(), any());
+    }
+
+    @Test
+    void shouldAutoApproveSameAssigneeOnConsecutiveApproveNode() {
+        FlowInstance instance = runningInstance();
+        FlowNode previousNode = approveNode("first");
+        FlowNode node = approveNode("second");
+        node.setParentNode(previousNode);
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L));
+        when(flowDefinitionService.getById(31L)).thenReturn(definition(
+                FlowExtraSetting.ApproverDeduplication.CONSECUTIVE, false));
+        FlowTask previous = completedApproval(1L, "first", 8L,
+                FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(2));
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(previous));
+
+        service.createApproveTask(instance, node);
+
+        ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        assertEquals(FlowNodeEnum.ApproveType.AUTO_PASS.getCode(), captor.getValue().getApproveType());
+        verify(processExecutor).moveToNextNode(instance, node);
+    }
+
+    @Test
+    void shouldAllowWithdrawWhenNextApproverHasNotHandledTask() {
+        LocalDateTime approvedAt = LocalDateTime.now().minusMinutes(1);
+        FlowTask approved = completedApproval(11L, "first", 8L,
+                FlowNodeEnum.ApproveType.MANUAL.getCode(), approvedAt);
+        approved.setOrgId(9L);
+        FlowTask pending = task(12L, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.RUNNING);
+        pending.setOrgId(9L);
+        pending.setNodeKey("second");
+        pending.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
+        FlowInstance instance = runningInstance();
+        instance.setCurrentNodeKey("second");
+        FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, true);
+
+        assertTrue(service.canWithdrawTask(approved, instance, definition, List.of(approved, pending)));
+    }
+
+    @Test
+    void shouldAllowAssignedAutoPassTaskToWithdraw() {
+        FlowTask approved = completedApproval(11L, "first", 8L,
+                FlowNodeEnum.ApproveType.AUTO_PASS.getCode(), LocalDateTime.now().minusMinutes(1));
+        approved.setOrgId(9L);
+        FlowTask pending = task(12L, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.RUNNING);
+        pending.setOrgId(9L);
+        pending.setNodeKey("second");
+        pending.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
+        FlowInstance instance = runningInstance();
+        instance.setCurrentNodeKey("second");
+        FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, true);
+
+        assertTrue(service.canWithdrawTask(approved, instance, definition, List.of(approved, pending)));
+    }
+
+    @Test
+    void shouldWithdrawApprovalAndRestoreOriginalTask() {
+        FlowTask approved = completedApproval(11L, "first", 8L,
+                FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(1));
+        approved.setOrgId(9L);
+        approved.setNodeName("一级审批");
+        approved.setApproveMode(FlowNodeEnum.ApproveMode.ALL.getCode());
+        FlowTask pending = task(12L, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.RUNNING);
+        pending.setOrgId(9L);
+        pending.setNodeKey("second");
+        pending.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
+        FlowInstance instance = runningInstance();
+        instance.setCurrentNodeKey("second");
+        FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, true);
+        when(flowTaskDAO.selectById(11L)).thenReturn(approved);
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(instance);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(approved, pending));
+        when(flowTaskDAO.update(any(LambdaUpdateWrapper.class))).thenReturn(1);
+
+        service.withdrawTask(11L);
+
+        verify(flowTaskDAO, times(2)).update(any(LambdaUpdateWrapper.class));
+        verify(flowRuntimeService).updateInstanceCurrentNode(eq(21L), any(FlowNode.class));
+    }
+
+    @Test
+    void shouldRejectWithdrawAfterLaterApprovalWasHandled() {
+        LocalDateTime approvedAt = LocalDateTime.now().minusMinutes(2);
+        FlowTask approved = completedApproval(11L, "first", 8L,
+                FlowNodeEnum.ApproveType.MANUAL.getCode(), approvedAt);
+        approved.setOrgId(9L);
+        FlowTask later = completedApproval(12L, "second", 9L,
+                FlowNodeEnum.ApproveType.MANUAL.getCode(), approvedAt.plusMinutes(1));
+        later.setOrgId(9L);
+        FlowInstance instance = runningInstance();
+        instance.setCurrentNodeKey("third");
+        FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, true);
+
+        assertFalse(service.canWithdrawTask(approved, instance, definition, List.of(approved, later)));
+    }
+
     private FlowTask runningTask() {
         FlowTask task = new FlowTask();
         task.setId(11L);
@@ -283,6 +427,48 @@ class FlowTaskServiceImplTest {
         task.setAssignee(8L);
         task.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
         task.setIsDelete(CommonConstant.IS_NOT_DEL);
+        return task;
+    }
+
+    private FlowInstance runningInstance() {
+        FlowInstance instance = new FlowInstance();
+        instance.setId(21L);
+        instance.setOrgId(9L);
+        instance.setUserId(7L);
+        instance.setDefinitionId(31L);
+        instance.setStatus(FlowInstanceStatusEnum.RUNNING.getCode());
+        return instance;
+    }
+
+    private FlowNode approveNode(String key) {
+        FlowNode node = new FlowNode();
+        node.setKey(key);
+        node.setName(key);
+        node.setType(FlowNodeEnum.Type.APPROVE.getCode());
+        node.setApproveType(FlowNodeEnum.ApproveType.MANUAL.getCode());
+        node.setApproveMode(FlowNodeEnum.ApproveMode.ALL.getCode());
+        node.setSelfApprove(FlowNodeEnum.SelfApprove.MANUAL.getCode());
+        return node;
+    }
+
+    private FlowDefinition definition(FlowExtraSetting.ApproverDeduplication strategy,
+                                      boolean allowWithdraw) {
+        FlowDefinition definition = new FlowDefinition();
+        FlowExtraSetting setting = new FlowExtraSetting();
+        setting.setApproverDeduplication(strategy);
+        setting.setAllowApproverWithdraw(allowWithdraw);
+        definition.setExtraSetting(setting);
+        return definition;
+    }
+
+    private FlowTask completedApproval(Long id, String nodeKey, Long assignee,
+                                       Integer approveType, LocalDateTime endTime) {
+        FlowTask task = task(id, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.COMPLETE);
+        task.setNodeKey(nodeKey);
+        task.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
+        task.setAssignee(assignee);
+        task.setApproveType(approveType);
+        task.setEndTime(endTime);
         return task;
     }
 
