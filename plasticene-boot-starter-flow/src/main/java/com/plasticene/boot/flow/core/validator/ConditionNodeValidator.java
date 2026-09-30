@@ -6,7 +6,6 @@ import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.factory.OperatorFactory;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
-import com.plasticene.boot.flow.core.model.dto.ProcessConditionGroup;
 import com.plasticene.boot.flow.core.model.dto.ProcessConditionRule;
 import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.operator.Operator;
