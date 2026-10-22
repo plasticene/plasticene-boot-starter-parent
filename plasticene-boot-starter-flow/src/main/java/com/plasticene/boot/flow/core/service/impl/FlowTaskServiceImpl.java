@@ -339,6 +339,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     @Override
     public void createBranchTask(FlowInstance instance, FlowNode currentNode) {
         FlowTask task = buildFlowTask(instance, currentNode);
+        task.setCompletedBranch(0);
         task.setEndTime(LocalDateTime.now());
         task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
         flowTaskDAO.insert(task);
@@ -392,7 +393,13 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             if (Objects.equals(flowTask.getIsDelete(), CommonConstant.IS_DEL)) {
                 throw new BizException("当前节点已审批，不能再审");
             }
-            delInstanceRunningTask(instanceId);
+            // 或签只结束当前审批节点，不能删除其他并行分支的待办。
+            LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(FlowTask::getInstanceId, instanceId);
+            updateWrapper.eq(FlowTask::getNodeKey, nodeKey);
+            updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
+            updateWrapper.set(FlowTask::getIsDelete, CommonConstant.IS_DEL);
+            flowTaskDAO.update(updateWrapper);
         }
         // 顺序审批
         if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ORDER.getCode())) {

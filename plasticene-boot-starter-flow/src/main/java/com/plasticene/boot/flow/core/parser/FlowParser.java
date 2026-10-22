@@ -10,7 +10,6 @@ import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 流程解析器
@@ -41,21 +40,16 @@ public class FlowParser {
             return;
         }
         FlowNode childNode = flowNode.getChildNode();
-        if (childNode == null) {
-            return;
+        if (childNode != null) {
+            childNode.setParentNode(flowNode);
+            makeParentNode(childNode);
         }
-        childNode.setParentNode(flowNode);
-        // 递归处理子节点
-        makeParentNode(childNode);
         // 递归处理条件节点
         List<FlowNode> conditionNodes = flowNode.getConditionNodes();
         if (CollUtil.isNotEmpty(conditionNodes)) {
             conditionNodes.forEach(conditionNode -> {
-                FlowNode conditionChildNode = conditionNode.getChildNode();
-                if (conditionChildNode != null) {
-                    conditionChildNode.setParentNode(flowNode);
-                    makeParentNode(conditionChildNode);
-                }
+                conditionNode.setParentNode(flowNode);
+                makeParentNode(conditionNode);
             });
         }
     }
@@ -63,7 +57,6 @@ public class FlowParser {
     /**
      * 校验流程模型节点是否合法
      * 1.必须包含一个审批节点
-     * 2. todo 校验条件节点的条件规则是否合法
      */
     public static boolean validateProcessNode(FlowNode flowNode) {
         if (flowNode == null) {
@@ -116,7 +109,7 @@ public class FlowParser {
         List<FlowNode> conditionNodes = flowNode.getConditionNodes();
         if (CollUtil.isNotEmpty(conditionNodes)) {
             for (FlowNode conditionNode : conditionNodes) {
-                FlowNode node = findNodeByKey(conditionNode.getChildNode(), nodeKey);
+                FlowNode node = findNodeByKey(conditionNode, nodeKey);
                 if (node != null) {
                     return node;
                 }
@@ -150,6 +143,9 @@ public class FlowParser {
             return null;
         }
         FlowNode parentNode = flowNode.getParentNode();
+        if (parentNode == null) {
+            return null;
+        }
         // 条件分支下的节点
         FlowNode child = parentNode.getChildNode();
         // 找到父节点层级，流入父节点的子节点，如果子节点是当前节点，那么需要父节点再往上找
@@ -167,51 +163,35 @@ public class FlowParser {
      */
     public static List<ProcessConditionRule> getAllProcessConditionRules(FlowNode flowNode) {
         List<ProcessConditionRule> conditionRules = new ArrayList<>();
-        findConditionRules(flowNode, conditionRules);
+        findConditionRules(flowNode, conditionRules, new HashSet<>());
         return conditionRules;
     }
 
-    private static void findConditionRules(FlowNode flowNode, List<ProcessConditionRule> result) {
+    private static void findConditionRules(FlowNode flowNode, List<ProcessConditionRule> result, Set<String> exists) {
         if (flowNode == null) {
             return;
         }
-
-        // 使用 Set 记录已存在的字段，避免 stream.noneMatch 重复遍历
-        Set<String> exists = result.stream()
-                .map(ProcessConditionRule::getField)
-                .collect(Collectors.toSet());
-
-        // 处理条件节点
-        List<FlowNode> conditionNodes = flowNode.getConditionNodes();
-        if (CollUtil.isNotEmpty(conditionNodes)) {
-            for (FlowNode conditionNode : conditionNodes) {
-                ProcessNodeCondition condition = conditionNode.getCondition();
-                if (condition == null) {
-                    continue;
+        ProcessNodeCondition condition = flowNode.getCondition();
+        if (condition != null) {
+            List<ProcessConditionRule> rules = Optional.ofNullable(condition.getConditionGroups())
+                    .orElse(Collections.emptyList()).stream()
+                    .filter(Objects::nonNull)
+                    .map(ProcessConditionGroup::getConditionRules)
+                    .filter(CollUtil::isNotEmpty)
+                    .flatMap(List::stream)
+                    .toList();
+            for (ProcessConditionRule rule : rules) {
+                if (exists.add(rule.getField())) {
+                    result.add(rule);
                 }
-                // 收集规则
-                List<ProcessConditionRule> rules = Optional.ofNullable(condition.getConditionGroups())
-                        .orElse(Collections.emptyList())
-                        .stream()
-                        .filter(Objects::nonNull)
-                        .map(ProcessConditionGroup::getConditionRules)
-                        .filter(CollUtil::isNotEmpty)
-                        .flatMap(List::stream)
-                        .toList();
-
-                for (ProcessConditionRule rule : rules) {
-                    if (exists.add(rule.getField())) {
-                        result.add(rule);
-                    }
-                }
-
-                // 递归子条件节点
-                findConditionRules(conditionNode.getChildNode(), result);
             }
         }
-
-        // 递归子节点
-        findConditionRules(flowNode.getChildNode(), result);
+        if (CollUtil.isNotEmpty(flowNode.getConditionNodes())) {
+            for (FlowNode branch : flowNode.getConditionNodes()) {
+                findConditionRules(branch, result, exists);
+            }
+        }
+        findConditionRules(flowNode.getChildNode(), result, exists);
     }
 
 

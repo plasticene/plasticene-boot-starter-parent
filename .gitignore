@@ -4,3 +4,4 @@
 logs/
 /docs
 **/target/
+.codegraph

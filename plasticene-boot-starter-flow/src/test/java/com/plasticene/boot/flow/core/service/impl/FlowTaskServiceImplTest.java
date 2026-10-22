@@ -417,6 +417,33 @@ class FlowTaskServiceImplTest {
         assertFalse(service.canWithdrawTask(approved, instance, definition, List.of(approved, later)));
     }
 
+    @Test
+    void shouldKeepOtherParallelBranchesRunningWhenAnyApproverCompletes() {
+        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(
+                new org.apache.ibatis.builder.MapperBuilderAssistant(
+                        new com.baomidou.mybatisplus.core.MybatisConfiguration(), "test"), FlowTask.class);
+        FlowTask task = runningTask();
+        task.setApproveMode(FlowNodeEnum.ApproveMode.ANY.getCode());
+        FlowInstance instance = runningInstance();
+        when(flowTaskDAO.selectById(11L)).thenReturn(task);
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(instance);
+        when(flowTaskDAO.update(any(FlowTask.class), any())).thenReturn(1);
+        FlowDefinition definition = new FlowDefinition();
+        FlowNode approve = approveNode("approve");
+        definition.setModelNode(approve);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        FlowTaskParam param = new FlowTaskParam();
+        param.setTaskId(11L);
+        service.approveTask(param);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<LambdaUpdateWrapper<FlowTask>> captor = ArgumentCaptor.forClass(LambdaUpdateWrapper.class);
+        verify(flowTaskDAO).update(captor.capture());
+        String sql = captor.getValue().getSqlSegment();
+        assertTrue(sql.contains("node_key"));
+        assertTrue(captor.getValue().getParamNameValuePairs().containsValue("approve"));
+        verify(processExecutor).moveToNextNode(instance, approve);
+    }
+
     private FlowTask runningTask() {
         FlowTask task = new FlowTask();
         task.setId(11L);

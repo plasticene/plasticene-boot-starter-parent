@@ -10,7 +10,6 @@ import com.plasticene.boot.flow.core.enums.FlowConditionTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.factory.OperatorFactory;
-import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import com.plasticene.boot.flow.core.operator.Operator;
@@ -57,20 +56,29 @@ public class DefaultProcessExecutor implements ProcessExecutor {
 
     @Override
     public void moveToNextNode(FlowInstance instance, FlowNode currentNode) {
-        FlowNode nextNode = FlowParser.findExecutionNextNode(currentNode);
-        FlowNode parentNode = nextNode.getParentNode();
-        // 如果要执行的下一个节点的父节点是并行分支，需要判断所有分支是否已经执行，才能流入下一个节点
-        if (Objects.equals(parentNode.getType(), FlowNodeEnum.Type.PARALLEL_BRANCH.getCode())) {
-            // 并行分支完成分支数+1，并返回最新完成分支数
-            int completedBranch = flowTaskService.incrementCompletedBranchAndGet(instance.getId(), parentNode.getKey());
-            // 并行分支数
-            int branches = parentNode.getConditionNodes().size();
-            if (completedBranch != branches) {
-                // 完成的分支数不等于并行分支数，不流入下一个节点
+        FlowNode completedNode = currentNode;
+        while (completedNode != null) {
+            if (completedNode.getChildNode() != null) {
+                executeNode(instance, completedNode.getChildNode());
                 return;
             }
+            // 沿当前分支向上查找出口，逐层完成嵌套网关的汇合。
+            FlowNode branch = completedNode;
+            while (branch != null && !Objects.equals(branch.getType(), FlowNodeEnum.Type.CONDITION_NODE.getCode())) {
+                branch = branch.getParentNode();
+            }
+            if (branch == null) {
+                return;
+            }
+            FlowNode gateway = branch.getParentNode();
+            if (Objects.equals(gateway.getType(), FlowNodeEnum.Type.PARALLEL_BRANCH.getCode())) {
+                int completed = flowTaskService.incrementCompletedBranchAndGet(instance.getId(), gateway.getKey());
+                if (completed != gateway.getConditionNodes().size()) {
+                    return;
+                }
+            }
+            completedNode = gateway;
         }
-        executeNode(instance, nextNode);
     }
 
     @Override
@@ -124,7 +132,7 @@ public class DefaultProcessExecutor implements ProcessExecutor {
             if (includeRoutingNodes) {
                 routeNodes.add(flowNode);
             }
-            List<FlowNode> conditionNodes = flowNode.getConditionNodes();
+            List<FlowNode> conditionNodes = selectParallelBranches(flowNode, varMap);
             for (FlowNode conditionNode : conditionNodes) {
                 if (includeRoutingNodes) {
                     routeNodes.add(conditionNode);
@@ -192,7 +200,7 @@ public class DefaultProcessExecutor implements ProcessExecutor {
                     executeNode(instance, childNode);
                 } else {
                     // 没有子节点，那就回退到当前条件分支，执行条件分支节点的子节点
-                    moveToNextNode(instance, currentNode);
+                    moveToNextNode(instance, conditionNode);
                 }
                 // 匹配成功后，同一个条件分支节点下的后续条件节点不再遍历
                 break;
@@ -254,16 +262,37 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         return andMatch;
     }
 
+    private List<FlowNode> selectParallelBranches(FlowNode gateway, Map<String, Object> varMap) {
+        List<FlowNode> matched = new ArrayList<>();
+        FlowNode fallback = null;
+        for (FlowNode branch : gateway.getConditionNodes()) {
+            if (branch.getCondition() != null && Boolean.TRUE.equals(branch.getCondition().getIsDefault())) {
+                fallback = branch;
+            } else if (handleConditionNode(varMap, branch)) {
+                matched.add(branch);
+            }
+        }
+        if (matched.isEmpty() && fallback != null) {
+            matched.add(fallback);
+        }
+        return matched;
+    }
+
     private void handleParallelBranch(FlowInstance instance, FlowNode currentNode) {
+        List<FlowNode> conditionNodes = selectParallelBranches(currentNode, instance.getVarMap());
         flowTaskService.createBranchTask(instance, currentNode);
-        // 并行分支下的条件节点是不配置条件的，直接进入条件节点的下一个节点
-        List<FlowNode> conditionNodes = currentNode.getConditionNodes();
+        // 先持久化跳过数量，避免同步完成的空分支或自动审批提前汇合。
+        int skipped = currentNode.getConditionNodes().size() - conditionNodes.size();
+        for (int i = 0; i < skipped; i++) {
+            flowTaskService.incrementCompletedBranchAndGet(instance.getId(), currentNode.getKey());
+        }
         for (FlowNode conditionNode : conditionNodes) {
             Integer status = instance.getStatus();
             if (!Objects.equals(status, FlowInstanceStatusEnum.RUNNING.getCode())) {
                 // 实例状态不是运行中，则结束   eg:第一个分支自动拒绝了，后续分支就没必要执行了
                 break;
             }
+            flowTaskService.createConditionNodeTask(instance, conditionNode);
             // 条件节点是否有子节点
             FlowNode childNode = conditionNode.getChildNode();
             if (childNode != null) {
@@ -271,7 +300,7 @@ public class DefaultProcessExecutor implements ProcessExecutor {
                 executeNode(instance, childNode);
             } else {
                 // 没有子节点，那就回退到当前条件分支，执行条件分支的其他子节点
-                moveToNextNode(instance, currentNode);
+                moveToNextNode(instance, conditionNode);
             }
         }
 

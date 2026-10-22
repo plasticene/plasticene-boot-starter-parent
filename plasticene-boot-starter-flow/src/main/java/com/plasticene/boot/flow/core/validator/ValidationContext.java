@@ -8,5 +8,7 @@ import lombok.Data;
  */
 @Data
 public class ValidationContext {
-    private  int approveNodeCount = 0;
+    private int approveNodeCount = 0;
+    /** 当前被校验节点的直接父节点类型。 */
+    private Integer parentNodeType;
 }
