@@ -1,5 +1,6 @@
 package com.plasticene.boot.example.flow;
 
+import com.plasticene.boot.example.flow.service.TestService;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
@@ -30,6 +31,8 @@ public class FlowTest {
     private FlowRuntimeServiceTest flowRuntimeServiceTest;
     @Resource
     private ProcessExecutor processExecutor;
+    @Resource
+    private TestService testService;
 
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -98,6 +101,17 @@ public class FlowTest {
         List<FlowNode> route = processExecutor.calculateRoute(flowNode, Map.of("day", 8));
         System.out.println(route);
     }
+
+    @Test
+    public void testRepeatableRead() throws InterruptedException {
+        TimeUnit.SECONDS.sleep(3);
+        executorService.submit(() -> testService.updateTaskStatus(143L));
+        executorService.submit(() -> testService.updateTaskStatus(143L));
+        TimeUnit.SECONDS.sleep(60);
+
+    }
+
+
 
 
 

@@ -13,6 +13,11 @@ spring:
     url: jdbc:mysql://10.10.0.10:3306/ptc_flow?&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&allowMultiQueries=true
   profiles:
     active: dev
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
 #  main:
 #    allow-circular-references: true
 
@@ -20,3 +25,6 @@ spring:
 #logging:
 #  level:
 #    com.plasticene.boot.flow.core.dao: debug
+mybatis-plus:
+  configuration:
+    local-cache-scope: statement
