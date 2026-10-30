@@ -13,6 +13,6 @@ import org.apache.ibatis.annotations.Select;
  */
 public interface FlowTimeoutNoticeDAO extends BaseMapperX<FlowTimeoutNotice> {
     @Options(useCache = false, flushCache = Options.FlushCachePolicy.TRUE)
-    @Select("SELECT * FROM flow_timeout_notice WHERE id = #{id} AND org_id = #{orgId} FOR UPDATE")
-    FlowTimeoutNotice lock(@Param("id") Long id, @Param("orgId") Long orgId);
+    @Select("SELECT * FROM flow_timeout_notice WHERE id = #{id}FOR UPDATE")
+    FlowTimeoutNotice lock(@Param("id") Long id);
 }

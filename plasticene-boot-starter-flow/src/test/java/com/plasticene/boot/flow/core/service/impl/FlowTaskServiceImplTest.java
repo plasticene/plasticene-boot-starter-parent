@@ -115,7 +115,7 @@ class FlowTaskServiceImplTest {
 
     @Test
     void shouldKeepCancelledTaskButHideLogicallyDeletedRunningTaskInHistory() {
-        FlowTask completed = task(1L, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.COMPLETE);
+        FlowTask completed = task(1L, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.APPROVE);
         FlowTask cancelled = task(2L, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.CANCEL);
         FlowTask invalidRunning = task(3L, CommonConstant.IS_DEL, FlowTaskStatusEnum.RUNNING);
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(completed, cancelled, invalidRunning));
@@ -155,7 +155,7 @@ class FlowTaskServiceImplTest {
         assertEquals("张敏", result.getList().getFirst().getStartUserName());
         assertEquals(90L, result.getList().getFirst().getElapsedTime());
         assertEquals(List.of(
-                FlowTaskStatusEnum.COMPLETE.getCode(),
+                FlowTaskStatusEnum.APPROVE.getCode(),
                 FlowTaskStatusEnum.REJECT.getCode(),
                 FlowTaskStatusEnum.CANCEL.getCode()
         ), query.getStatuses());
@@ -226,7 +226,7 @@ class FlowTaskServiceImplTest {
         PageResult<FlowTaskPageVO> result = service.pageMyCopy(query);
 
         assertEquals(FlowNodeEnum.Type.COPY.getCode(), query.getNodeType());
-        assertEquals(List.of(FlowTaskStatusEnum.COMPLETE.getCode()), query.getStatuses());
+        assertEquals(List.of(FlowTaskStatusEnum.APPROVE.getCode()), query.getStatuses());
         assertEquals(List.of(
                 FlowInstanceStatusEnum.RUNNING.getCode(),
                 FlowInstanceStatusEnum.APPROVE.getCode()
@@ -267,7 +267,7 @@ class FlowTaskServiceImplTest {
         assertEquals(2, tasks.size());
         assertEquals(List.of(8L, 10L), tasks.stream().map(FlowTask::getAssignee).toList());
         assertTrue(tasks.stream().allMatch(task -> task.getNodeType().equals(FlowNodeEnum.Type.COPY.getCode())));
-        assertTrue(tasks.stream().allMatch(task -> task.getStatus().equals(FlowTaskStatusEnum.COMPLETE.getCode())));
+        assertTrue(tasks.stream().allMatch(task -> task.getStatus().equals(FlowTaskStatusEnum.APPROVE.getCode())));
     }
 
     @Test
@@ -372,7 +372,7 @@ class FlowTaskServiceImplTest {
         verify(flowTaskDAO).insert(captor.capture());
         assertEquals(8L, captor.getValue().getAssignee());
         assertEquals(FlowNodeEnum.ApproveType.AUTO_PASS.getCode(), captor.getValue().getApproveType());
-        assertEquals(FlowTaskStatusEnum.COMPLETE.getCode(), captor.getValue().getStatus());
+        assertEquals(FlowTaskStatusEnum.APPROVE.getCode(), captor.getValue().getStatus());
         verify(processExecutor).moveToNextNode(instance, node);
     }
 
@@ -626,7 +626,7 @@ class FlowTaskServiceImplTest {
 
     private FlowTask completedApproval(Long id, String nodeKey, Long assignee,
                                        Integer approveType, LocalDateTime endTime) {
-        FlowTask task = task(id, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.COMPLETE);
+        FlowTask task = task(id, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.APPROVE);
         task.setNodeKey(nodeKey);
         task.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
         task.setAssignee(assignee);

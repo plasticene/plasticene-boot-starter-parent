@@ -9,7 +9,7 @@ import lombok.Getter;
 @Getter
 public enum FlowTaskStatusEnum {
     RUNNING(0, "处理中"),
-    COMPLETE(1, "已完成"),
+    APPROVE(1, "已审批"),
     REJECT(2, "拒绝"),
     CANCEL(3, "已取消");
 

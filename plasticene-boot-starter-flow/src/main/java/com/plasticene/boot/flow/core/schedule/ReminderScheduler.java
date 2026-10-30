@@ -1,8 +1,8 @@
 package com.plasticene.boot.flow.core.schedule;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
+import com.plasticene.boot.flow.core.enums.FlowTimeoutNoticeEnums.State;
 import com.plasticene.boot.flow.core.service.FlowTimeoutService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +17,8 @@ import java.time.LocalDateTime;
 @Slf4j
 @RequiredArgsConstructor
 public class ReminderScheduler {
-    private final FlowTimeoutNoticeDAO flowTimeoutNoticeDAO;
+    private static final int SCAN_BATCH_SIZE = 200;
+
     private final FlowTimeoutService flowTimeoutService;
 
 
@@ -30,13 +31,13 @@ public class ReminderScheduler {
         LocalDateTime now = LocalDateTime.now();
         long startId = 0;
         while (true) {
-            var batch = flowTimeoutNoticeDAO.selectList(new LambdaQueryWrapper<FlowTimeoutNotice>()
+            var batch = flowTimeoutService.list(new LambdaQueryWrapper<FlowTimeoutNotice>()
                     .select(FlowTimeoutNotice::getId, FlowTimeoutNotice::getOrgId)
                     .gt(FlowTimeoutNotice::getId, startId)
-                    .eq(FlowTimeoutNotice::getState, "PENDING")
+                    .eq(FlowTimeoutNotice::getState, State.PENDING.getCode())
                     .le(FlowTimeoutNotice::getRetryAt, now)
                     .orderByAsc(FlowTimeoutNotice::getId)
-                    .last("LIMIT 200"));
+                    .last("LIMIT " + SCAN_BATCH_SIZE));
             for (FlowTimeoutNotice notice : batch) {
                 try {
                     flowTimeoutService.sendNotification(notice.getId(), now);
@@ -45,7 +46,7 @@ public class ReminderScheduler {
                 }
                 startId = notice.getId();
             }
-            if (batch.size() < 200) {
+            if (batch.size() < SCAN_BATCH_SIZE) {
                 break;
             }
         }

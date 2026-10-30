@@ -1,9 +1,11 @@
 package com.plasticene.boot.flow.core.schedule;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.service.FlowTimeoutService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,8 @@ import java.time.LocalDateTime;
 @Slf4j
 @RequiredArgsConstructor
 public class FlowTimeoutScheduler {
+    private static final int SCAN_BATCH_SIZE = 200;
+
     private final FlowTaskDAO flowTaskDAO;
     private final FlowTimeoutService flowTimeoutService;
 
@@ -35,13 +39,12 @@ public class FlowTimeoutScheduler {
             var batch = flowTaskDAO.selectList(new LambdaQueryWrapper<FlowTask>()
                     .select(FlowTask::getId, FlowTask::getOrgId, FlowTask::getInstanceId)
                     .gt(FlowTask::getId, startId)
-                    .eq(FlowTask::getStatus, 0)
-                    .eq(FlowTask::getIsDelete, 0)
+                    .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
+                    .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL)
                     .and(q -> q.le(FlowTask::getDeadline, now).or().le(FlowTask::getNextRemindTime, now))
                     .orderByAsc(FlowTask::getId)
-                    .last("LIMIT 200"));
+                    .last("LIMIT " + SCAN_BATCH_SIZE));
             for (FlowTask task : batch) {
-                buildSystemUser(task.getOrgId());
                 try {
                     flowTimeoutService.handleDueTask(task, now);
                 } catch (Exception failure) {
@@ -49,16 +52,9 @@ public class FlowTimeoutScheduler {
                 }
                 startId = task.getId();
             }
-            if (batch.size() < 200) {
+            if (batch.size() < SCAN_BATCH_SIZE) {
                 break;
             }
         }
-    }
-
-
-    private void buildSystemUser(Long orgId) {
-        LoginUser system = new LoginUser();
-        system.setId(0L);
-        system.setOrgId(orgId);
     }
 }

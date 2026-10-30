@@ -3,6 +3,7 @@ package com.plasticene.boot.flow.core.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.plasticene.boot.flow.core.enums.FlowTimeoutNoticeEnums;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -32,7 +33,7 @@ public class FlowTimeoutNotice {
      */
     private Long taskId;
     /**
-     * 通知事件类型：REMINDER 为审批超时提醒，RESULT 为超时自动处理结果通知。
+     * 通知事件类型，取值见 {@link FlowTimeoutNoticeEnums.EventType}：REMINDER 为审批超时提醒，RESULT 为超时自动处理结果通知。
      */
     private String eventType;
     /**
@@ -40,11 +41,11 @@ public class FlowTimeoutNotice {
      */
     private Integer roundNumber;
     /**
-     * 发送状态：PENDING 待发送，SENT 已发送，FAILED 重试耗尽，CANCELLED 提醒已失效。
+     * 发送状态，取值见 {@link FlowTimeoutNoticeEnums.State}：PENDING 待发送，SENT 已发送，FAILED 重试耗尽，CANCELLED 提醒已失效。
      */
     private String state;
     /**
-     * 本轮通知的投递尝试次数，最多 3 次；未配置渠道不计入尝试次数。
+     * 本轮通知的投递尝试次数，最多 3 次；
      */
     private Integer attempts;
     /**

@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
 @Service
 public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> implements FlowTaskService {
     private static final List<Integer> DONE_STATUSES = List.of(
-            FlowTaskStatusEnum.COMPLETE.getCode(),
+            FlowTaskStatusEnum.APPROVE.getCode(),
             FlowTaskStatusEnum.REJECT.getCode(),
             FlowTaskStatusEnum.CANCEL.getCode()
     );
@@ -107,7 +107,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     @Override
     public PageResult<FlowTaskPageVO> pageMyCopy(FlowTaskQuery query) {
         query.setNodeType(FlowNodeEnum.Type.COPY.getCode());
-        query.setStatuses(List.of(FlowTaskStatusEnum.COMPLETE.getCode()));
+        query.setStatuses(List.of(FlowTaskStatusEnum.APPROVE.getCode()));
         return pageMyTask(query);
     }
 
@@ -161,7 +161,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         Integer approveType = currentNode.getApproveType();
         // 自动通过
         if (Objects.equals(approveType, FlowNodeEnum.ApproveType.AUTO_PASS.getCode())) {
-            createAutoApproveTask(instance, currentNode, FlowTaskStatusEnum.COMPLETE, "系统自动通过");
+            createAutoApproveTask(instance, currentNode, FlowTaskStatusEnum.APPROVE, "系统自动通过");
             return;
         }
         // 自动拒绝
@@ -226,7 +226,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                                         FlowTaskStatusEnum status,
                                         String comment) {
         FlowTask task = buildFlowTask(instance, currentNode);
-        task.setApproveType(Objects.equals(status, FlowTaskStatusEnum.COMPLETE)
+        task.setApproveType(Objects.equals(status, FlowTaskStatusEnum.APPROVE)
                 ? FlowNodeEnum.ApproveType.AUTO_PASS.getCode()
                 : FlowNodeEnum.ApproveType.AUTO_REJECT.getCode());
         task.setEndTime(LocalDateTime.now());
@@ -243,7 +243,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         Integer assigneeEmpty = currentNode.getAssigneeEmpty();
         // 自动通过
         if (Objects.equals(assigneeEmpty, FlowNodeEnum.AssigneeEmpty.AUTO_APPROVE.getCode())) {
-            createAutoApproveTask(instance, currentNode, FlowTaskStatusEnum.COMPLETE, "审批人为空，系统自动通过");
+            createAutoApproveTask(instance, currentNode, FlowTaskStatusEnum.APPROVE, "审批人为空，系统自动通过");
             // 移动到下一个节点
             processExecutor.moveToNextNode(instance, currentNode);
         }
@@ -280,7 +280,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             if (assignees.size() == 1) {
                 FlowTask task = buildFlowTask(instance, currentNode);
                 task.setEndTime(LocalDateTime.now());
-                task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+                task.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
                 task.setApproveType(FlowNodeEnum.ApproveType.AUTO_PASS.getCode());
                 task.setAssignee(assignees.getFirst());
                 task.setComment("审批人与提交人是同一人，系统自动通过");
@@ -315,7 +315,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         assignees.forEach(assignee -> {
             FlowTask task = buildFlowTask(instance, currentNode);
             task.setEndTime(LocalDateTime.now());
-            task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+            task.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
             task.setAssignee(assignee);
             taskList.add(task);
         });
@@ -329,7 +329,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     public void createStartTask(FlowInstance instance, FlowNode currentNode) {
         FlowTask task = buildFlowTask(instance, currentNode);
         task.setEndTime(LocalDateTime.now());
-        task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+        task.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
         task.setAssignee(instance.getUserId());
         flowTaskDAO.insert(task);
     }
@@ -339,7 +339,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     public void createEndTask(FlowInstance instance, FlowNode currentNode) {
         FlowTask task = buildFlowTask(instance, currentNode);
         task.setEndTime(LocalDateTime.now());
-        task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+        task.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
         flowTaskDAO.insert(task);
     }
 
@@ -349,7 +349,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         FlowTask task = buildFlowTask(instance, currentNode);
         task.setCompletedBranch(0);
         task.setEndTime(LocalDateTime.now());
-        task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+        task.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
         flowTaskDAO.insert(task);
     }
 
@@ -364,7 +364,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         task.setNodeType(FlowNodeEnum.Type.CONDITION_NODE.getCode());
         task.setStartTime(LocalDateTime.now());
         task.setEndTime(LocalDateTime.now());
-        task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+        task.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
         flowTaskDAO.insert(task);
     }
 
@@ -374,7 +374,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         approveTask(param, getLoginUser());
     }
 
-    private void approveTask(FlowTaskParam param, LoginUser loginUser) {
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public void approveTask(FlowTaskParam param, LoginUser loginUser) {
         Long taskId = param.getTaskId();
         String comment = param.getComment();
         FlowTask flowTask = getExecutableTask(taskId, loginUser);
@@ -388,7 +390,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         FlowInstance flowInstance = flowRuntimeService.selectInstanceForUpdate(instanceId);
         validateRunningInstance(flowInstance, loginUser, flowTask);
         // 完成任务
-        completeTask(taskId, loginUser, comment, FlowTaskStatusEnum.COMPLETE);
+        completeTask(taskId, loginUser, comment, FlowTaskStatusEnum.APPROVE);
         // 会签
         if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ALL.getCode())) {
             boolean existed = existUncompletedTask(instanceId, nodeKey);
@@ -449,7 +451,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         rejectTask(param, getLoginUser());
     }
 
-    private void rejectTask(FlowTaskParam param, LoginUser loginUser) {
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public void rejectTask(FlowTaskParam param, LoginUser loginUser) {
         Long taskId = param.getTaskId();
         String comment = param.getComment();
         FlowTask flowTask = getExecutableTask(taskId, loginUser);
@@ -509,7 +513,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
         LambdaUpdateWrapper<FlowTask> withdrawWrapper = new LambdaUpdateWrapper<>();
         withdrawWrapper.eq(FlowTask::getId, taskId)
-                .eq(FlowTask::getStatus, FlowTaskStatusEnum.COMPLETE.getCode())
+                .eq(FlowTask::getStatus, FlowTaskStatusEnum.APPROVE.getCode())
                 .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL)
                 .set(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
                 .set(FlowTask::getApproveType, FlowNodeEnum.ApproveType.MANUAL.getCode())
@@ -536,7 +540,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 || !Objects.equals(task.getOrgId(), loginUser.getOrgId())
                 || !Objects.equals(task.getAssignee(), loginUser.getId())
                 || !Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode())
-                || !Objects.equals(task.getStatus(), FlowTaskStatusEnum.COMPLETE.getCode())
+                || !Objects.equals(task.getStatus(), FlowTaskStatusEnum.APPROVE.getCode())
                 || !Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL)
                 || Boolean.TRUE.equals(task.getTimeoutHandled())
                 || task.getEndTime() == null) {
@@ -549,7 +553,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         boolean laterApprovalHandled = instanceTasks.stream()
                 .filter(item -> !Objects.equals(item.getId(), task.getId()))
                 .filter(item -> Objects.equals(item.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()))
-                .filter(item -> Objects.equals(item.getStatus(), FlowTaskStatusEnum.COMPLETE.getCode())
+                .filter(item -> Objects.equals(item.getStatus(), FlowTaskStatusEnum.APPROVE.getCode())
                         || Objects.equals(item.getStatus(), FlowTaskStatusEnum.REJECT.getCode()))
                 .filter(item -> item.getEndTime() != null)
                 .anyMatch(item -> item.getEndTime().isAfter(task.getEndTime())
@@ -627,16 +631,14 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         updateWrapper.eq(FlowTask::getNodeType, FlowNodeEnum.Type.APPROVE.getCode());
         int update = flowTaskDAO.update(task, updateWrapper);
         if (update != 1) {
-            FlowTask latest = flowTaskDAO.selectById(taskId);
-            throw new BizException(latest != null && Boolean.TRUE.equals(latest.getTimeoutHandled())
-                    ? "任务已超时自动处理，请刷新后查看" : "任务已经处理过，请勿重复处理");
+            throw new BizException("任务已经处理过，请勿重复处理");
         }
     }
 
     private boolean existUncompletedTask(Long instanceId, String nodeKey) {
         List<FlowTask> flowTasks = listTasksByInstanceIdAndNodeKey(instanceId, nodeKey);
         return flowTasks.stream()
-                .anyMatch(task -> !Objects.equals(task.getStatus(), FlowTaskStatusEnum.COMPLETE.getCode()));
+                .anyMatch(task -> !Objects.equals(task.getStatus(), FlowTaskStatusEnum.APPROVE.getCode()));
     }
 
     private List<FlowTask> listTasksByInstanceIdAndNodeKey(Long instanceId, String nodeKey) {
@@ -654,7 +656,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         }
         List<FlowTask> history = listTaskByInstanceId(instance.getId()).stream()
                 .filter(task -> Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()))
-                .filter(task -> Objects.equals(task.getStatus(), FlowTaskStatusEnum.COMPLETE.getCode()))
+                .filter(task -> Objects.equals(task.getStatus(), FlowTaskStatusEnum.APPROVE.getCode()))
                 .filter(task -> task.getAssignee() != null)
                 .toList();
         if (Objects.equals(strategy, FlowExtraSetting.ApproverDeduplication.ONCE_PER_PROCESS)) {
@@ -681,7 +683,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         FlowTask task = buildFlowTask(instance, currentNode);
         task.setAssignee(assignee);
         task.setApproveType(FlowNodeEnum.ApproveType.AUTO_PASS.getCode());
-        task.setStatus(FlowTaskStatusEnum.COMPLETE.getCode());
+        task.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
         task.setStartTime(LocalDateTime.now());
         task.setEndTime(LocalDateTime.now());
         task.setComment("审批人已审批，系统自动通过");
@@ -763,24 +765,6 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 ? task.getStartTime().plusMinutes(FlowTimeoutRule.minutes(rule.getAutoAfter(), rule.getAutoUnit())) : null);
         task.setNextRemindTime(rule != null && Boolean.TRUE.equals(rule.getReminderEnabled())
                 ? task.getStartTime().plusMinutes(FlowTimeoutRule.minutes(rule.getFirstReminder(), rule.getFirstReminderUnit())) : null);
-    }
-
-    /** 仅供后台超时执行器在实例锁和事务中调用，不暴露为人工审批接口。 */
-    @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
-    public void executeTimeout(FlowTask task) {
-        LoginUser owner = new LoginUser();
-        owner.setId(task.getAssignee());
-        owner.setOrgId(task.getOrgId());
-        FlowTaskParam param = new FlowTaskParam();
-        param.setTaskId(task.getId());
-        boolean approve = task.getTimeoutRule().getAction() == FlowTimeoutRule.Action.APPROVE;
-        param.setComment(approve ? "系统超时自动同意" : "系统超时自动拒绝");
-        if (approve) {
-            approveTask(param, owner);
-        } else {
-            rejectTask(param, owner);
-        }
     }
 
 }

@@ -20,32 +20,29 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
  * @since 2026-10-22
  */
 @Configuration(proxyBeanMethods = false)
+@EnableScheduling
+@ConditionalOnProperty(prefix = "ptc.flow.timeout", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class FlowTimeoutConfiguration {
-    @Configuration(proxyBeanMethods = false)
-    @EnableScheduling
-    @ConditionalOnProperty(prefix = "ptc.flow.timeout", name = "enabled", havingValue = "true", matchIfMissing = true)
-    static class SchedulingConfiguration {
-        @Bean
-        @ConditionalOnMissingBean(name = "flowTimeoutSchedulerExecutor")
-        ThreadPoolTaskScheduler flowTimeoutSchedulerExecutor() {
-            ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-            scheduler.setPoolSize(2);
-            scheduler.setThreadNamePrefix("flow-timeout-");
-            return scheduler;
-        }
+    @Bean
+    @ConditionalOnMissingBean(name = "flowTimeoutSchedulerExecutor")
+    ThreadPoolTaskScheduler flowTimeoutSchedulerExecutor() {
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(2);
+        scheduler.setThreadNamePrefix("flow-timeout-");
+        return scheduler;
+    }
 
-        @Bean
-        FlowTimeoutScheduler flowTimeoutScheduler(FlowTaskDAO flowTaskDAO, FlowTimeoutService flowTimeoutService) {
-            return new FlowTimeoutScheduler(flowTaskDAO, flowTimeoutService);
-        }
+    @Bean
+    FlowTimeoutScheduler flowTimeoutScheduler(FlowTaskDAO flowTaskDAO, FlowTimeoutService flowTimeoutService) {
+        return new FlowTimeoutScheduler(flowTaskDAO, flowTimeoutService);
+    }
 
-        /**
-         * 实现了消息通知，才注入提醒调度器
-         */
-        @Bean
-        @ConditionalOnBean(FlowTimeoutNotification.class)
-        ReminderScheduler reminderScheduler(FlowTimeoutNoticeDAO notices, FlowTimeoutService service) {
-            return new ReminderScheduler(notices, service);
-        }
+    /**
+     * 实现了消息通知，才注入提醒调度器
+     */
+    @Bean
+    @ConditionalOnBean(FlowTimeoutNotification.class)
+    ReminderScheduler reminderScheduler(FlowTimeoutService flowTimeoutService) {
+        return new ReminderScheduler(flowTimeoutService);
     }
 }
