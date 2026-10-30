@@ -1,9 +1,11 @@
 package com.plasticene.boot.flow.core.model.vo;
 
+import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 流程实例任务记录
@@ -14,7 +16,6 @@ import java.time.LocalDateTime;
 @Data
 @Schema(description = "流程实例任务记录")
 public class FlowTaskVO {
-
     @Schema(description = "任务id")
     private Long id;
     @Schema(description = "节点key")
@@ -45,4 +46,14 @@ public class FlowTaskVO {
     private Long durationMillis;
     @Schema(description = "当前用户是否可以撤回该审批结果")
     private Boolean withdrawable;
+    @Schema(description = "超时提醒和结果通知记录")
+    private List<FlowTimeoutNotice> timeoutNotices;
+    @Schema(description = "自动处理截止时间")
+    private LocalDateTime deadline;
+    @Schema(description = "下次计划提醒时间")
+    private LocalDateTime nextRemindTime;
+    @Schema(description = "超时动作 APPROVE/REJECT")
+    private String timeoutAction;
+    @Schema(description = "是否由系统超时处理")
+    private Boolean timeoutHandled;
 }

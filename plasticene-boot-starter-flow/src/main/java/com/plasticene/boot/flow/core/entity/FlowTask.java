@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
 import com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import lombok.Data;
@@ -20,6 +22,9 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "flow_task", autoResultMap = true)
 public class FlowTask extends BaseDO {
+    /**
+     * 审批任务主键。
+     */
     @TableId(type = IdType.AUTO)
     private Long id;
     /**
@@ -89,4 +94,27 @@ public class FlowTask extends BaseDO {
      */
     @TableField(typeHandler = LongListTypeHandler.class)
     private List<Long> assigneeList;
+
+    /**
+     * 待办生效的超时规则快照；由发布版本的流程默认规则或节点自定义规则解析得到。
+     */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private FlowTimeoutRule timeoutRule;
+    /**
+     * 自动处理截止时间，从当前待办创建时刻计算；未开启自动处理时为空。
+     */
+    private LocalDateTime deadline;
+    /**
+     * 下次计划生成业务提醒的时间；未开启提醒、轮次用尽或超时已处理时为空。
+     */
+    private LocalDateTime nextRemindTime;
+    /**
+     * 已生成的业务提醒轮次，初始为 0；与渠道是否发送成功、发送重试次数无关。
+     */
+    private Integer remindCount;
+    /**
+     * 是否由系统超时自动处理：false 否，true 是；用于区分人工审批与系统决定。
+     */
+    private Boolean timeoutHandled;
+
 }

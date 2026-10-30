@@ -1,38 +1,40 @@
 
 package com.plasticene.boot.flow.core.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUserHolder;
+import com.plasticene.boot.common.utils.PtcBeanUtils;
+import com.plasticene.boot.flow.core.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowModel;
-import com.plasticene.boot.flow.core.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.enums.FlowModelEnums;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowModelEnableParam;
+import com.plasticene.boot.flow.core.model.param.FlowModelParam;
+import com.plasticene.boot.flow.core.model.query.FlowModelQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowModelStatisticsVO;
+import com.plasticene.boot.flow.core.model.vo.FlowModelVO;
 import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowModelService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.plasticene.boot.flow.core.model.param.FlowModelParam;
-import com.plasticene.boot.flow.core.model.query.FlowModelQuery;
-import com.plasticene.boot.flow.core.model.vo.FlowModelVO;
-import cn.hutool.core.collection.CollUtil;
-import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.validator.FlowNodeValidator;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
-import com.plasticene.boot.common.pojo.PageResult;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  *
@@ -58,6 +60,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     public Long create(FlowModelParam param) {
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
         flowModel.setExtraSetting(FlowExtraSetting.normalize(flowModel.getExtraSetting()));
+        if (flowModel.getExtraSetting().getTimeoutRule() != null) {
+            flowModel.getExtraSetting().getTimeoutRule().validate();
+        }
         flowModel.setOrgId(LoginUserHolder.get().getOrgId());
         flowModel.setIsEdited(CommonConstant.IS_ON);
         flowModelDAO.insert(flowModel);
@@ -70,6 +75,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
         if (flowModel.getExtraSetting() != null) {
             flowModel.setExtraSetting(FlowExtraSetting.normalize(flowModel.getExtraSetting()));
+            if (flowModel.getExtraSetting().getTimeoutRule() != null) {
+                flowModel.getExtraSetting().getTimeoutRule().validate();
+            }
         }
         flowModel.setIsEdited(CommonConstant.IS_ON);
         flowModelDAO.updateById(flowModel);

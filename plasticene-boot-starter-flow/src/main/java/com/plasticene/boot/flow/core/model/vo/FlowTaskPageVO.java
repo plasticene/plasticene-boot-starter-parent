@@ -77,4 +77,13 @@ public class FlowTaskPageVO {
 
     @Schema(description = "是否需要填写审批意见 0：否 1：是")
     private Integer requireComment;
+
+    @Schema(description = "自动处理截止时间")
+    private LocalDateTime deadline;
+    @Schema(description = "下次计划提醒时间")
+    private LocalDateTime nextRemindTime;
+    @Schema(description = "超时动作 APPROVE/REJECT")
+    private String timeoutAction;
+    @Schema(description = "是否由系统超时处理")
+    private Boolean timeoutHandled;
 }

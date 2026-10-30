@@ -19,6 +19,10 @@
                ft.status,
                fi.status AS instance_status,
                ft.comment,
+               ft.deadline,
+               ft.next_remind_time,
+               NULLIF(JSON_UNQUOTE(JSON_EXTRACT(ft.timeout_rule, '$.action')), 'null') AS timeout_action,
+               ft.timeout_handled,
                ft.require_comment
         FROM flow_task ft
         INNER JOIN flow_instance fi ON fi.id = ft.instance_id AND fi.org_id = ft.org_id

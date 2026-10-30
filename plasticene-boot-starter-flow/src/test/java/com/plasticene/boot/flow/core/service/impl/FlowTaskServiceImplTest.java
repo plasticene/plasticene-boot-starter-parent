@@ -17,6 +17,7 @@ import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
@@ -41,6 +42,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,6 +51,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -279,6 +283,79 @@ class FlowTaskServiceImplTest {
     }
 
     @Test
+    void shouldResolveInheritedTimeoutOnceForBatchApprovalTasks() {
+        FlowNode node = approveNode("approve");
+        FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, false);
+        FlowTimeoutRule rule = timeoutRule();
+        definition.getExtraSetting().setTimeoutRule(rule);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L, 12L));
+
+        service.createApproveTask(runningInstance(), node);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        assertEquals(3, captor.getValue().size());
+        captor.getValue().forEach(task -> assertInitializedTimeout(task, rule));
+        verify(flowDefinitionService, times(1)).getById(31L);
+    }
+
+    @Test
+    void shouldUseCustomTimeoutForFirstOrderedApprovalTask() {
+        FlowNode node = approveNode("approve");
+        node.setApproveMode(FlowNodeEnum.ApproveMode.ORDER.getCode());
+        node.setTimeoutMode(FlowTimeoutRule.Mode.CUSTOM);
+        FlowTimeoutRule rule = timeoutRule();
+        node.setTimeoutRule(rule);
+        FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, false);
+        definition.getExtraSetting().setTimeoutRule(new FlowTimeoutRule());
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L));
+
+        service.createApproveTask(runningInstance(), node);
+
+        ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        assertEquals(8L, captor.getValue().getAssignee());
+        assertEquals(List.of(8L, 10L), captor.getValue().getAssigneeList());
+        assertInitializedTimeout(captor.getValue(), rule);
+        verify(flowDefinitionService, times(1)).getById(31L);
+    }
+
+    @Test
+    void shouldDisableTimeoutForBatchApprovalTasks() {
+        FlowNode node = approveNode("approve");
+        node.setTimeoutMode(FlowTimeoutRule.Mode.DISABLED);
+        FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, false);
+        definition.getExtraSetting().setTimeoutRule(timeoutRule());
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L));
+
+        service.createApproveTask(runningInstance(), node);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        assertEquals(2, captor.getValue().size());
+        captor.getValue().forEach(task -> assertInitializedTimeout(task, null));
+        verify(flowDefinitionService, times(1)).getById(31L);
+    }
+
+    @Test
+    void shouldReuseTimeoutSnapshotAndRestartTimingForNextOrderedTask() {
+        FlowTimeoutRule rule = timeoutRule();
+        FlowTask nextTask = approveAndCaptureNextOrderedTask(rule);
+        assertInitializedTimeout(nextTask, rule);
+    }
+
+    @Test
+    void shouldKeepNextOrderedTaskWithoutTimeoutForOldSnapshot() {
+        FlowTask nextTask = approveAndCaptureNextOrderedTask(null);
+        assertInitializedTimeout(nextTask, null);
+    }
+
+    @Test
     void shouldAutoApproveRepeatedAssigneeOncePerProcess() {
         FlowInstance instance = runningInstance();
         FlowNode node = approveNode("second");
@@ -442,6 +519,65 @@ class FlowTaskServiceImplTest {
         assertTrue(sql.contains("node_key"));
         assertTrue(captor.getValue().getParamNameValuePairs().containsValue("approve"));
         verify(processExecutor).moveToNextNode(instance, approve);
+    }
+
+    private FlowTimeoutRule timeoutRule() {
+        FlowTimeoutRule rule = new FlowTimeoutRule();
+        rule.setReminderEnabled(true);
+        rule.setFirstReminder(30);
+        rule.setFirstReminderUnit(FlowTimeoutRule.Unit.MINUTE);
+        rule.setReminderInterval(1);
+        rule.setMaxReminders(3);
+        rule.setAutoEnabled(true);
+        rule.setAutoAfter(2);
+        rule.setAction(FlowTimeoutRule.Action.APPROVE);
+        return rule;
+    }
+
+    private void assertInitializedTimeout(FlowTask task, FlowTimeoutRule rule) {
+        assertSame(rule, task.getTimeoutRule());
+        assertEquals(0, task.getRemindCount());
+        assertEquals(false, task.getTimeoutHandled());
+        if (rule == null) {
+            assertNull(task.getDeadline());
+            assertNull(task.getNextRemindTime());
+        } else {
+            assertEquals(task.getStartTime().plusHours(2), task.getDeadline());
+            assertEquals(task.getStartTime().plusMinutes(30), task.getNextRemindTime());
+        }
+    }
+
+    private FlowTask approveAndCaptureNextOrderedTask(FlowTimeoutRule rule) {
+        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(
+                new org.apache.ibatis.builder.MapperBuilderAssistant(
+                        new com.baomidou.mybatisplus.core.MybatisConfiguration(), "test"), FlowTask.class);
+        FlowTask task = runningTask();
+        task.setApproveMode(FlowNodeEnum.ApproveMode.ORDER.getCode());
+        task.setAssigneeList(List.of(8L, 10L));
+        task.setTimeoutRule(rule);
+        LocalDateTime oldStart = LocalDateTime.now().minusDays(1);
+        task.setStartTime(oldStart);
+        task.setDeadline(oldStart.plusHours(2));
+        task.setNextRemindTime(oldStart.plusMinutes(30));
+        task.setRemindCount(3);
+        task.setTimeoutHandled(true);
+        when(flowTaskDAO.selectById(11L)).thenReturn(task);
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        when(flowTaskDAO.update(any(FlowTask.class), any())).thenReturn(1);
+        FlowTaskParam param = new FlowTaskParam();
+        param.setTaskId(11L);
+
+        service.approveTask(param);
+
+        ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        FlowTask nextTask = captor.getValue();
+        assertNull(nextTask.getId());
+        assertEquals(10L, nextTask.getAssignee());
+        assertEquals(FlowTaskStatusEnum.RUNNING.getCode(), nextTask.getStatus());
+        assertTrue(nextTask.getStartTime().isAfter(oldStart));
+        verifyNoInteractions(flowDefinitionService, processExecutor);
+        return nextTask;
     }
 
     private FlowTask runningTask() {

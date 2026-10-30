@@ -21,6 +21,7 @@ import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
@@ -36,6 +37,7 @@ import com.plasticene.boot.mybatis.core.utils.MybatisUtils;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -180,7 +182,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         if (CollUtil.isEmpty(assignees)) {
             return;
         }
-        Set<Long> deduplicatedAssignees = findDeduplicatedAssignees(instance, currentNode, assignees);
+        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+        FlowExtraSetting setting = FlowExtraSetting.normalize(
+                definition == null ? null : definition.getExtraSetting());
+        Set<Long> deduplicatedAssignees = findDeduplicatedAssignees(instance, currentNode, assignees, setting);
         deduplicatedAssignees.forEach(assignee -> createDeduplicatedApproveTask(instance, currentNode, assignee));
         assignees.removeAll(deduplicatedAssignees);
         Integer approveMode = currentNode.getApproveMode();
@@ -193,6 +198,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             processExecutor.moveToNextNode(instance, currentNode);
             return;
         }
+        FlowTimeoutRule timeoutRule = FlowTimeoutRule.resolve(currentNode, setting);
         // 不是顺序审批 即会签或者或签
         if (!Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ORDER.getCode())) {
             List<FlowTask> taskList = new ArrayList<>();
@@ -200,6 +206,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 FlowTask task = buildFlowTask(instance, currentNode);
                 task.setAssignee(assignee);
                 task.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
+                initializeTimeout(task, timeoutRule);
                 taskList.add(task);
             });
             flowTaskDAO.insert(taskList);
@@ -210,6 +217,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         task.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
         task.setAssignee(assignees.getFirst());
         task.setAssigneeList(assignees);
+        initializeTimeout(task, timeoutRule);
         flowTaskDAO.insert(task);
     }
 
@@ -360,12 +368,15 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         flowTaskDAO.insert(task);
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     @Override
     public void approveTask(FlowTaskParam param) {
+        approveTask(param, getLoginUser());
+    }
+
+    private void approveTask(FlowTaskParam param, LoginUser loginUser) {
         Long taskId = param.getTaskId();
         String comment = param.getComment();
-        LoginUser loginUser = getLoginUser();
         FlowTask flowTask = getExecutableTask(taskId, loginUser);
         Integer requireComment = flowTask.getRequireComment();
         if (Objects.equals(requireComment, CommonConstant.IS_ON) && StrUtil.isBlank(comment)) {
@@ -417,6 +428,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 flowTask.setUpdater(null);
                 flowTask.setCreateTime(null);
                 flowTask.setUpdateTime(null);
+                flowTask.setComment(null);
+                initializeTimeout(flowTask, flowTask.getTimeoutRule());
                 flowTaskDAO.insert(flowTask);
                 return;
             }
@@ -430,12 +443,15 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         processExecutor.moveToNextNode(flowInstance, currentNode);
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     @Override
     public void rejectTask(FlowTaskParam param) {
+        rejectTask(param, getLoginUser());
+    }
+
+    private void rejectTask(FlowTaskParam param, LoginUser loginUser) {
         Long taskId = param.getTaskId();
         String comment = param.getComment();
-        LoginUser loginUser = getLoginUser();
         FlowTask flowTask = getExecutableTask(taskId, loginUser);
         Integer requireComment = flowTask.getRequireComment();
         if (Objects.equals(requireComment, CommonConstant.IS_ON) && StrUtil.isBlank(comment)) {
@@ -522,6 +538,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 || !Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode())
                 || !Objects.equals(task.getStatus(), FlowTaskStatusEnum.COMPLETE.getCode())
                 || !Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL)
+                || Boolean.TRUE.equals(task.getTimeoutHandled())
                 || task.getEndTime() == null) {
             return false;
         }
@@ -610,7 +627,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         updateWrapper.eq(FlowTask::getNodeType, FlowNodeEnum.Type.APPROVE.getCode());
         int update = flowTaskDAO.update(task, updateWrapper);
         if (update != 1) {
-            throw new BizException("任务已经处理过，请勿重复处理");
+            FlowTask latest = flowTaskDAO.selectById(taskId);
+            throw new BizException(latest != null && Boolean.TRUE.equals(latest.getTimeoutHandled())
+                    ? "任务已超时自动处理，请刷新后查看" : "任务已经处理过，请勿重复处理");
         }
     }
 
@@ -628,10 +647,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     }
 
     private Set<Long> findDeduplicatedAssignees(FlowInstance instance, FlowNode currentNode,
-                                                List<Long> assignees) {
-        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
-        FlowExtraSetting setting = FlowExtraSetting.normalize(
-                definition == null ? null : definition.getExtraSetting());
+                                                List<Long> assignees, FlowExtraSetting setting) {
         FlowExtraSetting.ApproverDeduplication strategy = setting.getApproverDeduplication();
         if (Objects.equals(strategy, FlowExtraSetting.ApproverDeduplication.NONE)) {
             return Set.of();
@@ -644,6 +660,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         if (Objects.equals(strategy, FlowExtraSetting.ApproverDeduplication.ONCE_PER_PROCESS)) {
             Set<Long> manuallyApprovedUsers = history.stream()
                     .filter(task -> Objects.equals(task.getApproveType(), FlowNodeEnum.ApproveType.MANUAL.getCode()))
+                    .filter(task -> !Boolean.TRUE.equals(task.getTimeoutHandled()))
                     .map(FlowTask::getAssignee)
                     .collect(Collectors.toSet());
             return assignees.stream().filter(manuallyApprovedUsers::contains).collect(Collectors.toSet());
@@ -709,7 +726,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         }
         if (!Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
                 || !Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL)) {
-            throw new BizException("任务已经处理过，请勿重复处理");
+            throw new BizException(Boolean.TRUE.equals(task.getTimeoutHandled())
+                    ? "任务已超时自动处理，请刷新后查看" : "任务已经处理过，请勿重复处理");
         }
         return task;
     }
@@ -735,6 +753,34 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         task.setRequireComment(currentNode.getRequireComment());
         task.setStartTime(LocalDateTime.now());
         return task;
+    }
+
+    private void initializeTimeout(FlowTask task, FlowTimeoutRule rule) {
+        task.setTimeoutRule(rule);
+        task.setRemindCount(0);
+        task.setTimeoutHandled(false);
+        task.setDeadline(rule != null && Boolean.TRUE.equals(rule.getAutoEnabled())
+                ? task.getStartTime().plusMinutes(FlowTimeoutRule.minutes(rule.getAutoAfter(), rule.getAutoUnit())) : null);
+        task.setNextRemindTime(rule != null && Boolean.TRUE.equals(rule.getReminderEnabled())
+                ? task.getStartTime().plusMinutes(FlowTimeoutRule.minutes(rule.getFirstReminder(), rule.getFirstReminderUnit())) : null);
+    }
+
+    /** 仅供后台超时执行器在实例锁和事务中调用，不暴露为人工审批接口。 */
+    @Override
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    public void executeTimeout(FlowTask task) {
+        LoginUser owner = new LoginUser();
+        owner.setId(task.getAssignee());
+        owner.setOrgId(task.getOrgId());
+        FlowTaskParam param = new FlowTaskParam();
+        param.setTaskId(task.getId());
+        boolean approve = task.getTimeoutRule().getAction() == FlowTimeoutRule.Action.APPROVE;
+        param.setComment(approve ? "系统超时自动同意" : "系统超时自动拒绝");
+        if (approve) {
+            approveTask(param, owner);
+        } else {
+            rejectTask(param, owner);
+        }
     }
 
 }

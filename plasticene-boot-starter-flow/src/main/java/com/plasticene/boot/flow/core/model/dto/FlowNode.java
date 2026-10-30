@@ -19,7 +19,6 @@ import java.util.List;
 // 序列化的时候忽略null字段，解决数据库很多null无效字段信息
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class FlowNode {
-
     /**
      * 节点key
      */
@@ -136,6 +135,17 @@ public class FlowNode {
      */
     @Schema(description = "父节点  后端使用，前端不需要传", hidden = true)
     private FlowNode parentNode;
+
+    /**
+     * 节点超时规则来源：INHERIT 继承流程默认规则，CUSTOM 整套自定义，DISABLED 关闭；缺省继承。
+     */
+    @Schema(description = "节点超时规则来源：INHERIT 继承流程默认规则，CUSTOM 整套自定义，DISABLED 关闭；缺省继承。")
+    private FlowTimeoutRule.Mode timeoutMode;
+    /**
+     * 节点自定义超时规则，仅在 timeoutMode 为 CUSTOM 时生效。
+     */
+    @Schema(description = "节点自定义超时规则，仅在 timeoutMode 为 CUSTOM 时生效。")
+    private FlowTimeoutRule timeoutRule;
 
 }
 

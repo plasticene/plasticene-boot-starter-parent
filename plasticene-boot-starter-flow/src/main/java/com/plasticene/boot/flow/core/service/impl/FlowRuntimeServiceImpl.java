@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.exception.BizException;
@@ -8,9 +9,11 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
+import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
@@ -69,6 +72,8 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     private FlowTaskService flowTaskService;
     @Resource
     private FlowOrganizationProvider flowOrganizationProvider;
+    @Resource
+    private FlowTimeoutNoticeDAO timeoutNoticeDAO;
 
 
     @Transactional(rollbackFor = Exception.class)
@@ -153,9 +158,14 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         }
 
         Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
+        var timeoutNotices = timeoutNoticeDAO.selectList(new LambdaQueryWrapper<FlowTimeoutNotice>()
+                .eq(FlowTimeoutNotice::getInstanceId, instanceId)
+                .eq(FlowTimeoutNotice::getOrgId, instance.getOrgId())
+                .orderByAsc(FlowTimeoutNotice::getId));
         List<FlowTaskVO> taskVOList = taskList.stream()
                 .map(task -> {
                     FlowTaskVO vo = toTaskVO(task, userMap);
+                    vo.setTimeoutNotices(timeoutNotices.stream().filter(notice -> Objects.equals(notice.getTaskId(), task.getId())).toList());
                     vo.setWithdrawable(flowTaskService.canWithdrawTask(task, instance, definition, taskList));
                     return vo;
                 })
@@ -420,6 +430,11 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         vo.setStartTime(task.getStartTime());
         vo.setEndTime(task.getEndTime());
         vo.setComment(task.getComment());
+        vo.setDeadline(task.getDeadline());
+        vo.setNextRemindTime(task.getNextRemindTime());
+        vo.setTimeoutAction(task.getTimeoutRule() == null || task.getTimeoutRule().getAction() == null
+                ? null : task.getTimeoutRule().getAction().name());
+        vo.setTimeoutHandled(task.getTimeoutHandled());
         if (task.getStartTime() != null) {
             LocalDateTime endTime = task.getEndTime() == null ? LocalDateTime.now() : task.getEndTime();
             vo.setDurationMillis(Math.max(0, Duration.between(task.getStartTime(), endTime).toMillis()));

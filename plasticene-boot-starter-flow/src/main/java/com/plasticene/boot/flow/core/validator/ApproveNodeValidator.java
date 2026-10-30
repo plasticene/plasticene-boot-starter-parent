@@ -3,6 +3,7 @@ package com.plasticene.boot.flow.core.validator;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
 
 /**
  * @author ZFJ
@@ -21,6 +22,13 @@ public class ApproveNodeValidator implements NodeValidator{
         }
         if (node.getAssigneeType() == null) {
             throw new BizException("审批节点: {0}, 处理人类型不能为空", node.getKey());
+        }
+
+        if (node.getTimeoutMode() == FlowTimeoutRule.Mode.CUSTOM) {
+            if (node.getTimeoutRule() == null) {
+                throw new BizException("审批节点: {0}, 自定义超时规则不能为空", node.getKey());
+            }
+            node.getTimeoutRule().validate();
         }
 
         context.setApproveNodeCount(context.getApproveNodeCount() + 1);

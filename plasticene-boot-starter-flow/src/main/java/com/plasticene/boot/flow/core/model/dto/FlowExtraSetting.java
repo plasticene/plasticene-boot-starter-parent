@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -21,6 +22,10 @@ public class FlowExtraSetting {
 
     @Schema(description = "审批人去重策略")
     private ApproverDeduplication approverDeduplication = ApproverDeduplication.NONE;
+
+    @Schema(description = "流程默认超时规则，缺省关闭")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private FlowTimeoutRule timeoutRule;
 
     public static FlowExtraSetting normalize(FlowExtraSetting setting) {
         FlowExtraSetting normalized = setting == null ? new FlowExtraSetting() : setting;

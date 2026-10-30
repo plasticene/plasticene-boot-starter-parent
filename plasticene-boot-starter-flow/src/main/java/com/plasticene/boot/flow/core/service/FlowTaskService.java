@@ -74,6 +74,13 @@ public interface FlowTaskService extends IService<FlowTask> {
     void rejectTask(FlowTaskParam param);
 
     /**
+     * 后台超时执行入口，调用方必须持有实例锁并校验待办截止时间。
+     * */
+    default void executeTimeout(FlowTask task) {
+        throw new UnsupportedOperationException("当前任务服务未实现超时处理");
+    }
+
+    /**
      * 撤回已同意的审批结果
      * @param taskId 任务id
      */
