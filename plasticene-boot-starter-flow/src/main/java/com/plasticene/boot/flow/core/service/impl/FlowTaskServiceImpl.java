@@ -495,8 +495,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             throw new BizException("任务不存在或无权撤回");
         }
         FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(task.getInstanceId());
-        FlowDefinition definition = instance == null ? null : flowDefinitionService.getById(instance.getDefinitionId());
-        List<FlowTask> instanceTasks = instance == null ? List.of() : listTaskByInstanceId(instance.getId());
+        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+        List<FlowTask> instanceTasks = listTaskByInstanceId(instance.getId());
         if (!canWithdrawTask(task, instance, definition, instanceTasks)) {
             throw new BizException("当前审批结果不允许撤回");
         }

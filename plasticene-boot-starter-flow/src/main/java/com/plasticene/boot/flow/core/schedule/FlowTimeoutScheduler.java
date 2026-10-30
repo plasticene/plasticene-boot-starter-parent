@@ -2,7 +2,6 @@ package com.plasticene.boot.flow.core.schedule;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.plasticene.boot.common.constant.CommonConstant;
-import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;

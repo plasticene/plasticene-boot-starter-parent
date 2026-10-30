@@ -1,7 +1,6 @@
 package com.plasticene.boot.flow.autoconfigure;
 
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
-import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.provider.FlowTimeoutNotification;
 import com.plasticene.boot.flow.core.schedule.FlowTimeoutScheduler;
 import com.plasticene.boot.flow.core.schedule.ReminderScheduler;
