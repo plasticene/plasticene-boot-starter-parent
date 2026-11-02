@@ -11,6 +11,7 @@ import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
+import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
@@ -23,6 +24,7 @@ import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.parser.FlowParser;
@@ -59,7 +61,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     private static final List<Integer> DONE_STATUSES = List.of(
             FlowTaskStatusEnum.APPROVE.getCode(),
             FlowTaskStatusEnum.REJECT.getCode(),
-            FlowTaskStatusEnum.CANCEL.getCode()
+            FlowTaskStatusEnum.CANCEL.getCode(),
+            FlowTaskStatusEnum.TRANSFERRED.getCode()
     );
     private static final List<Integer> INSTANCE_STATUSES = Arrays.stream(FlowInstanceStatusEnum.values())
             .map(FlowInstanceStatusEnum::getCode)
@@ -97,7 +100,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         } else {
             boolean invalidStatus = statuses.stream().anyMatch(status -> !DONE_STATUSES.contains(status));
             if (invalidStatus) {
-                throw new BizException("已办任务状态仅支持已完成、拒绝或已取消");
+                throw new BizException("已办任务状态仅支持已完成、拒绝、已取消或已转交");
             }
             query.setStatuses(statuses.stream().distinct().toList());
         }
@@ -422,6 +425,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             if (index < assigneeList.size() - 1) {
                 // 不是当前节点最后一个审批人，插入下一个审批人任务，不流入下个节点
                 flowTask.setId(null);
+                flowTask.setSourceTaskId(null);
+                flowTask.setTransferTo(null);
                 flowTask.setAssignee(assigneeList.get(index + 1));
                 flowTask.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
                 flowTask.setStartTime(LocalDateTime.now());
@@ -479,6 +484,68 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         FlowParser.makeParentNode(flowNode);
         FlowNode currentNode = FlowParser.findNodeByKey(flowNode, nodeKey);
         flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
+    }
+
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public void transferTask(FlowTaskTransferParam param) {
+        LoginUser loginUser = getLoginUser();
+        FlowTask task = getExecutableTask(param.getTaskId(), loginUser);
+        FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(task.getInstanceId());
+        // 与人工审批、取消和超时处理使用同一实例锁，锁内重读最新任务。
+        task = getExecutableTask(param.getTaskId(), loginUser);
+        validateRunningInstance(instance, loginUser, task);
+        Long assignee = param.getAssignee();
+        if (Objects.equals(assignee, loginUser.getId())) {
+            throw new BizException("不能转交给自己");
+        }
+        if (!flowOrganizationProvider.getActiveUserMap().containsKey(assignee)) {
+            throw new BizException("接收人不存在、已禁用或不属于当前组织");
+        }
+        List<FlowTask> nodeTasks = listTasksByInstanceIdAndNodeKey(task.getInstanceId(), task.getNodeKey());
+        if (nodeTasks.stream().anyMatch(item -> Objects.equals(item.getAssignee(), assignee))
+                || task.getAssigneeList() != null && task.getAssigneeList().contains(assignee)) {
+            throw new BizException("不能转交给当前节点已有的审批人");
+        }
+        List<Long> assignees = task.getAssigneeList() == null ? null : new ArrayList<>(task.getAssigneeList());
+        if (Objects.equals(task.getApproveMode(), FlowNodeEnum.ApproveMode.ORDER.getCode())) {
+            int index = assignees == null ? -1 : assignees.indexOf(task.getAssignee());
+            if (index < 0) {
+                throw new BizException("顺序审批人员数据异常，不能转交");
+            }
+            assignees.set(index, assignee);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        FlowTask history = new FlowTask();
+        history.setStatus(FlowTaskStatusEnum.TRANSFERRED.getCode());
+        history.setEndTime(now);
+        history.setComment(param.getComment().trim());
+        history.setTransferTo(assignee);
+        int updated = flowTaskDAO.update(history, new LambdaUpdateWrapper<FlowTask>()
+                .eq(FlowTask::getId, task.getId())
+                .eq(FlowTask::getOrgId, loginUser.getOrgId())
+                .eq(FlowTask::getAssignee, loginUser.getId())
+                .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
+                .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL));
+        if (updated != 1) {
+            throw new BizException("任务已发生变化，请刷新后重试");
+        }
+        // 复制待办快照，保留截止时间、提醒轮次与下一次提醒时间，不重新计时。
+        FlowTask next = PtcBeanUtils.copy(task, FlowTask.class);
+        next.setId(null);
+        next.setSourceTaskId(task.getId());
+        next.setTransferTo(null);
+        next.setAssignee(assignee);
+        next.setAssigneeList(assignees);
+        next.setStartTime(now);
+        next.setEndTime(null);
+        next.setComment(null);
+        next.setTimeoutHandled(false);
+        next.setCreator(null);
+        next.setUpdater(null);
+        next.setCreateTime(null);
+        next.setUpdateTime(null);
+        flowTaskDAO.insert(next);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -554,7 +621,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 .filter(item -> !Objects.equals(item.getId(), task.getId()))
                 .filter(item -> Objects.equals(item.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()))
                 .filter(item -> Objects.equals(item.getStatus(), FlowTaskStatusEnum.APPROVE.getCode())
-                        || Objects.equals(item.getStatus(), FlowTaskStatusEnum.REJECT.getCode()))
+                        || Objects.equals(item.getStatus(), FlowTaskStatusEnum.REJECT.getCode())
+                        || Objects.equals(item.getStatus(), FlowTaskStatusEnum.TRANSFERRED.getCode()))
                 .filter(item -> item.getEndTime() != null)
                 .anyMatch(item -> item.getEndTime().isAfter(task.getEndTime())
                         || item.getEndTime().isEqual(task.getEndTime())
@@ -638,7 +706,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     private boolean existUncompletedTask(Long instanceId, String nodeKey) {
         List<FlowTask> flowTasks = listTasksByInstanceIdAndNodeKey(instanceId, nodeKey);
         return flowTasks.stream()
-                .anyMatch(task -> !Objects.equals(task.getStatus(), FlowTaskStatusEnum.APPROVE.getCode()));
+                .anyMatch(task -> !Objects.equals(task.getStatus(), FlowTaskStatusEnum.APPROVE.getCode())
+                        && !Objects.equals(task.getStatus(), FlowTaskStatusEnum.TRANSFERRED.getCode()));
     }
 
     private List<FlowTask> listTasksByInstanceIdAndNodeKey(Long instanceId, String nodeKey) {

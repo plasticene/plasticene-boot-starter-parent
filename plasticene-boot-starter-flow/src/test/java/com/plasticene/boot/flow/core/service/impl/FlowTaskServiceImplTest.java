@@ -19,6 +19,7 @@ import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
@@ -157,7 +158,8 @@ class FlowTaskServiceImplTest {
         assertEquals(List.of(
                 FlowTaskStatusEnum.APPROVE.getCode(),
                 FlowTaskStatusEnum.REJECT.getCode(),
-                FlowTaskStatusEnum.CANCEL.getCode()
+                FlowTaskStatusEnum.CANCEL.getCode(),
+                FlowTaskStatusEnum.TRANSFERRED.getCode()
         ), query.getStatuses());
         verify(flowTaskDAO).pageTask(any(), eq(query));
     }
@@ -578,6 +580,232 @@ class FlowTaskServiceImplTest {
         assertTrue(nextTask.getStartTime().isAfter(oldStart));
         verifyNoInteractions(flowDefinitionService, processExecutor);
         return nextTask;
+    }
+
+    @Test
+    void shouldTransferAndPreserveTimeoutSnapshot() {
+        FlowTask task = prepareTransfer();
+        task.setStartTime(LocalDateTime.now().minusHours(1));
+        task.setTimeoutRule(timeoutRule());
+        task.setDeadline(LocalDateTime.now().plusMinutes(20));
+        task.setNextRemindTime(LocalDateTime.now().plusMinutes(5));
+        task.setRemindCount(2);
+
+        service.transferTask(transferParam());
+
+        ArgumentCaptor<FlowTask> history = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).update(history.capture(), any());
+        assertEquals(FlowTaskStatusEnum.TRANSFERRED.getCode(), history.getValue().getStatus());
+        assertEquals(10L, history.getValue().getTransferTo());
+        assertEquals("出差交接", history.getValue().getComment());
+        ArgumentCaptor<FlowTask> next = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(next.capture());
+        assertEquals(10L, next.getValue().getAssignee());
+        assertEquals(11L, next.getValue().getSourceTaskId());
+        assertEquals(FlowTaskStatusEnum.RUNNING.getCode(), next.getValue().getStatus());
+        assertEquals(task.getDeadline(), next.getValue().getDeadline());
+        assertEquals(task.getNextRemindTime(), next.getValue().getNextRemindTime());
+        assertEquals(2, next.getValue().getRemindCount());
+        assertSame(task.getTimeoutRule(), next.getValue().getTimeoutRule());
+        assertTrue(next.getValue().getStartTime().isAfter(task.getStartTime()));
+        assertNull(next.getValue().getId());
+        assertNull(next.getValue().getComment());
+        assertNull(next.getValue().getEndTime());
+        assertFalse(next.getValue().getTimeoutHandled());
+        verifyNoInteractions(processExecutor);
+    }
+
+    @Test
+    void shouldReplaceOnlyCurrentOrderedPositionAndContinueWithNextApprover() {
+        FlowTask task = prepareTransfer();
+        task.setApproveMode(FlowNodeEnum.ApproveMode.ORDER.getCode());
+        task.setAssigneeList(List.of(7L, 8L, 12L));
+        service.transferTask(transferParam());
+        ArgumentCaptor<FlowTask> captured = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(captured.capture());
+        FlowTask recipient = captured.getValue();
+        assertEquals(List.of(7L, 10L, 12L), recipient.getAssigneeList());
+        assertEquals(List.of(7L, 8L, 12L), task.getAssigneeList());
+        org.mockito.Mockito.clearInvocations(flowTaskDAO);
+        recipient.setId(13L);
+        LoginUserHolder.get().setId(10L);
+        when(flowTaskDAO.selectById(13L)).thenReturn(recipient);
+        FlowTaskParam approval = new FlowTaskParam();
+        approval.setTaskId(13L);
+        service.approveTask(approval);
+        verify(flowTaskDAO).insert(captured.capture());
+        assertEquals(12L, captured.getValue().getAssignee());
+        assertNull(captured.getValue().getSourceTaskId());
+        assertNull(captured.getValue().getTransferTo());
+        verifyNoInteractions(processExecutor);
+    }
+
+    @Test
+    void shouldKeepAnyApprovalModeWhenTransferring() {
+        FlowTask task = prepareTransfer();
+        task.setApproveMode(FlowNodeEnum.ApproveMode.ANY.getCode());
+        service.transferTask(transferParam());
+        ArgumentCaptor<FlowTask> captured = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(captured.capture());
+        assertEquals(FlowNodeEnum.ApproveMode.ANY.getCode(), captured.getValue().getApproveMode());
+        verifyNoInteractions(processExecutor);
+        FlowTask recipient = captured.getValue();
+        recipient.setId(13L);
+        LoginUserHolder.get().setId(10L);
+        when(flowTaskDAO.selectById(13L)).thenReturn(recipient);
+        FlowNode node = approveNode("approve");
+        FlowDefinition definition = new FlowDefinition();
+        definition.setModelNode(node);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        FlowTaskParam approval = new FlowTaskParam();
+        approval.setTaskId(13L);
+        service.approveTask(approval);
+        verify(processExecutor).moveToNextNode(any(), eq(node));
+    }
+
+    @Test
+    void shouldCompleteAllApprovalIgnoringTransferHistory() {
+        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(
+                new org.apache.ibatis.builder.MapperBuilderAssistant(
+                        new com.baomidou.mybatisplus.core.MybatisConfiguration(), "test"), FlowTask.class);
+        FlowTask recipient = runningTask();
+        recipient.setApproveMode(FlowNodeEnum.ApproveMode.ALL.getCode());
+        recipient.setSourceTaskId(1L);
+        FlowTask transferred = completedApproval(1L, "approve", 7L, 0, LocalDateTime.now());
+        transferred.setStatus(FlowTaskStatusEnum.TRANSFERRED.getCode());
+        FlowTask completed = completedApproval(11L, "approve", 8L, 0, LocalDateTime.now());
+        when(flowTaskDAO.selectById(11L)).thenReturn(recipient);
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        when(flowTaskDAO.update(any(FlowTask.class), any())).thenReturn(1);
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(transferred, completed));
+        FlowDefinition definition = new FlowDefinition();
+        FlowNode node = approveNode("approve");
+        definition.setModelNode(node);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        FlowTaskParam approval = new FlowTaskParam();
+        approval.setTaskId(11L);
+        service.approveTask(approval);
+        verify(processExecutor).moveToNextNode(any(), eq(node));
+    }
+
+    @Test
+    void shouldRejectTransferByAnotherUserOrOrganization() {
+        FlowTask task = runningTask();
+        task.setAssignee(99L);
+        when(flowTaskDAO.selectById(11L)).thenReturn(task);
+        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        task.setAssignee(8L);
+        task.setOrgId(99L);
+        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        verifyNoInteractions(flowRuntimeService);
+        verify(flowTaskDAO, never()).insert(any(FlowTask.class));
+    }
+
+    @Test
+    void shouldRejectTransferWhenTaskChangesWhileWaitingForLock() {
+        FlowTask stale = runningTask();
+        FlowTask handled = runningTask();
+        handled.setStatus(FlowTaskStatusEnum.TRANSFERRED.getCode());
+        when(flowTaskDAO.selectById(11L)).thenReturn(stale, handled);
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        verify(flowTaskDAO, never()).insert(any(FlowTask.class));
+    }
+
+    @Test
+    void shouldRejectTransferForCancelledInstance() {
+        when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(cancelledInstance());
+        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        verify(flowTaskDAO, never()).insert(any(FlowTask.class));
+    }
+
+    @Test
+    void shouldRejectTransferToSelf() {
+        when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        FlowTaskTransferParam param = transferParam();
+        param.setAssignee(8L);
+        assertThrows(BizException.class, () -> service.transferTask(param));
+        verify(flowTaskDAO, never()).insert(any(FlowTask.class));
+    }
+
+    @Test
+    void shouldRejectTransferToInactiveOrOtherOrganizationUser() {
+        when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of());
+        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        verify(flowTaskDAO, never()).insert(any(FlowTask.class));
+    }
+
+    @Test
+    void shouldRejectTransferToExistingNodeApprover() {
+        when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of(10L, "李四"));
+        FlowTask other = runningTask();
+        other.setAssignee(10L);
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(other));
+        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        verify(flowTaskDAO, never()).insert(any(FlowTask.class));
+    }
+
+    @Test
+    void shouldRejectTransferToFutureOrderedApprover() {
+        FlowTask task = runningTask();
+        task.setApproveMode(FlowNodeEnum.ApproveMode.ORDER.getCode());
+        task.setAssigneeList(List.of(8L, 10L));
+        when(flowTaskDAO.selectById(11L)).thenReturn(task);
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of(10L, "李四"));
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(task));
+        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        verify(flowTaskDAO, never()).insert(any(FlowTask.class));
+    }
+
+    @Test
+    void shouldNotCreateRecipientTaskWhenConditionalUpdateFails() {
+        prepareTransfer(0);
+        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        verify(flowTaskDAO, never()).insert(any(FlowTask.class));
+    }
+
+    @Test
+    void shouldLinkConsecutiveTransfersToImmediateSource() {
+        FlowTask task = prepareTransfer();
+        task.setSourceTaskId(1L);
+        service.transferTask(transferParam());
+        ArgumentCaptor<FlowTask> captured = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(captured.capture());
+        assertEquals(11L, captured.getValue().getSourceTaskId());
+        assertEquals(1L, task.getSourceTaskId());
+    }
+
+    private FlowTask prepareTransfer() {
+        return prepareTransfer(1);
+    }
+
+    private FlowTask prepareTransfer(int updated) {
+        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(
+                new org.apache.ibatis.builder.MapperBuilderAssistant(
+                        new com.baomidou.mybatisplus.core.MybatisConfiguration(), "test"), FlowTask.class);
+        FlowTask task = runningTask();
+        task.setApproveMode(FlowNodeEnum.ApproveMode.ALL.getCode());
+        when(flowTaskDAO.selectById(11L)).thenReturn(task);
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        when(flowTaskDAO.update(any(FlowTask.class), any())).thenReturn(updated);
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(task));
+        when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of(10L, "李四"));
+        return task;
+    }
+
+    private FlowTaskTransferParam transferParam() {
+        FlowTaskTransferParam param = new FlowTaskTransferParam();
+        param.setTaskId(11L);
+        param.setAssignee(10L);
+        param.setComment(" 出差交接 ");
+        return param;
     }
 
     private FlowTask runningTask() {

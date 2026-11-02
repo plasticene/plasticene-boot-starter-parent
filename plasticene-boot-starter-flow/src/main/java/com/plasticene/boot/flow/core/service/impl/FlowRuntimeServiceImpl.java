@@ -17,6 +17,7 @@ import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
+import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
@@ -166,6 +167,10 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .map(task -> {
                     FlowTaskVO vo = toTaskVO(task, userMap);
                     vo.setTimeoutNotices(timeoutNotices.stream().filter(notice -> Objects.equals(notice.getTaskId(), task.getId())).toList());
+                    vo.setTransferable(Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
+                            && Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
+                            && Objects.equals(task.getAssignee(), loginUser.getId())
+                            && Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()));
                     vo.setWithdrawable(flowTaskService.canWithdrawTask(task, instance, definition, taskList));
                     return vo;
                 })
@@ -422,6 +427,10 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         vo.setAssigneeName(task.getAssignee() == null
                 ? "系统"
                 : userMap.getOrDefault(task.getAssignee(), String.valueOf(task.getAssignee())));
+        vo.setSourceTaskId(task.getSourceTaskId());
+        vo.setTransferTo(task.getTransferTo());
+        vo.setTransferToName(task.getTransferTo() == null ? null
+                : userMap.getOrDefault(task.getTransferTo(), String.valueOf(task.getTransferTo())));
         vo.setApproveType(task.getApproveType());
         vo.setApproveMode(task.getApproveMode());
         vo.setStatus(task.getStatus());

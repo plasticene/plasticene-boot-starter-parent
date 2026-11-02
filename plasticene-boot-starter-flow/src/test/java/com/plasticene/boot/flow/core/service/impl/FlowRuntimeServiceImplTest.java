@@ -288,6 +288,45 @@ class FlowRuntimeServiceImplTest {
     }
 
     @Test
+    void shouldReturnTransferChainAndOnlyAllowCurrentRecipientToProcess() {
+        FlowInstance instance = runningInstance(8L);
+        FlowDefinition definition = new FlowDefinition();
+        definition.setId(31L);
+        definition.setOrgId(10L);
+        FlowNode node = new FlowNode();
+        node.setKey("approve");
+        node.setType(1);
+        definition.setModelNode(node);
+        FlowTask history = new FlowTask();
+        history.setId(41L);
+        history.setNodeKey("approve");
+        history.setNodeType(1);
+        history.setAssignee(9L);
+        history.setTransferTo(8L);
+        history.setStatus(4);
+        FlowTask recipient = new FlowTask();
+        recipient.setId(42L);
+        recipient.setSourceTaskId(41L);
+        recipient.setNodeKey("approve");
+        recipient.setNodeType(1);
+        recipient.setAssignee(8L);
+        recipient.setStatus(0);
+        when(flowInstanceDAO.selectById(21L)).thenReturn(instance);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(flowTaskService.listTaskByInstanceId(21L)).thenReturn(List.of(history, recipient));
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "李四", 9L, "张三"));
+        when(processExecutor.calculateRouteTrace(node, Map.of())).thenReturn(List.of(node));
+        FlowInstanceDetailVO detail = service.getInstanceDetail(21L);
+        assertEquals("已转交", detail.getTasks().getFirst().getStatusName());
+        assertEquals("李四", detail.getTasks().getFirst().getTransferToName());
+        assertFalse(detail.getTasks().getFirst().getTransferable());
+        assertEquals(41L, detail.getTasks().getLast().getSourceTaskId());
+        assertTrue(detail.getTasks().getLast().getTransferable());
+        LoginUserHolder.get().setId(9L);
+        assertFalse(service.getInstanceDetail(21L).getTasks().getLast().getTransferable());
+    }
+
+    @Test
     void shouldRejectDetailWhenApplicationBelongsToAnotherOrganization() {
         FlowInstance instance = runningInstance(9L);
         instance.setOrgId(11L);

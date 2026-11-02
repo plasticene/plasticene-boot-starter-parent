@@ -11,7 +11,8 @@ public enum FlowTaskStatusEnum {
     RUNNING(0, "处理中"),
     APPROVE(1, "已审批"),
     REJECT(2, "拒绝"),
-    CANCEL(3, "已取消");
+    CANCEL(3, "已取消"),
+    TRANSFERRED(4, "已转交");
 
     private final Integer code;
     private final String name;

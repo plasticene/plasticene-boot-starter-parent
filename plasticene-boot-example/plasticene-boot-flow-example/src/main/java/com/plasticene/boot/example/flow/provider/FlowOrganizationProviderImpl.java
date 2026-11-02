@@ -46,6 +46,17 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
     }
 
     @Override
+    public Map<Long, String> getActiveUserMap() {
+        Result<List<User>> response = RestClient.create().get()
+                .uri("http://localhost:9000/api/user/list?status=1")
+                .header(TOKEN_KEY, getRequestToken())
+                .retrieve()
+                .body(new ParameterizedTypeReference<Result<List<User>>>() {});
+        return Optional.ofNullable(response).map(Result::data).orElse(List.of()).stream()
+                .collect(Collectors.toMap(User::id, User::nickname));
+    }
+
+    @Override
     public Map<Long, String> getDeptMap() {
         // 1. 创建 RestClient
         RestClient restClient = RestClient.create();

@@ -8,6 +8,7 @@ import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
 
@@ -89,6 +90,9 @@ public interface FlowTaskService extends IService<FlowTask> {
      * @param taskId 任务id
      */
     void withdrawTask(Long taskId);
+
+    /** 将当前待办转交给同组织有效用户，保留原任务记录。 */
+    void transferTask(FlowTaskTransferParam param);
 
     /**
      * 判断当前用户是否可以撤回任务

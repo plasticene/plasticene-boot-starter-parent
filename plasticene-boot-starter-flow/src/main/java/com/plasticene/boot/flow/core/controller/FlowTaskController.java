@@ -3,6 +3,7 @@ package com.plasticene.boot.flow.core.controller;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
@@ -58,6 +59,13 @@ public class FlowTaskController {
     @PostMapping("/reject")
     public ResponseVO<Void> rejectFlowTask(@RequestBody @Validated FlowTaskParam param) {
         flowTaskService.rejectTask(param);
+        return ResponseVO.success();
+    }
+
+    @Operation(summary = "转交当前审批待办")
+    @PostMapping("/transfer")
+    public ResponseVO<Void> transferFlowTask(@RequestBody @Validated FlowTaskTransferParam param) {
+        flowTaskService.transferTask(param);
         return ResponseVO.success();
     }
 

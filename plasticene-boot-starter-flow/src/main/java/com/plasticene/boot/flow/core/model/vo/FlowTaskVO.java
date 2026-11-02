@@ -28,11 +28,19 @@ public class FlowTaskVO {
     private Long assignee;
     @Schema(description = "处理人名称")
     private String assigneeName;
+    @Schema(description = "转交来源任务ID；非转交创建的任务为空")
+    private Long sourceTaskId;
+    @Schema(description = "转交接收人ID；未转交时为空")
+    private Long transferTo;
+    @Schema(description = "转交接收人名称；未转交时为空")
+    private String transferToName;
+    @Schema(description = "当前用户是否可转交此待办")
+    private Boolean transferable;
     @Schema(description = "审批类型")
     private Integer approveType;
     @Schema(description = "多人审批方式")
     private Integer approveMode;
-    @Schema(description = "任务状态 0：处理中 1：已完成 2：拒绝 3：已取消")
+    @Schema(description = "任务状态 0：处理中 1：已完成 2：拒绝 3：已取消 4：已转交")
     private Integer status;
     @Schema(description = "任务状态名称")
     private String statusName;

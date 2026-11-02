@@ -52,6 +52,15 @@ public class FlowTask extends BaseDO {
      */
     private Long assignee;
     /**
+     * 转交来源任务ID；非转交创建的任务为空。
+     */
+    private Long sourceTaskId;
+    /**
+     * 转交接收人ID；仅已转交记录有值，未转交时为空。
+     */
+    private Long transferTo;
+
+    /**
      * 审批类型 0：人工审批 1：自动通过 2：自动拒绝
      */
     private Integer approveType;
@@ -60,7 +69,7 @@ public class FlowTask extends BaseDO {
      */
     private Integer approveMode;
     /**
-     * 状态 0：处理中  1：已完成  2：拒绝  3：已取消
+     * 状态 0：处理中  1：已完成  2：拒绝  3：已取消  4：已转交（不代表审批通过）
      */
     private Integer status;
     /**

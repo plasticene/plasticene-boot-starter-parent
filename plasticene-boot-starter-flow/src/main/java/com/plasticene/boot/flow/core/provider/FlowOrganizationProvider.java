@@ -11,6 +11,14 @@ public interface FlowOrganizationProvider {
         return Map.of();
     }
 
+    /**
+     * 当前登录用户所属组织内启用用户；供转交校验使用，未接入时默认禁止转交。
+     * 实现方必须按组织隔离并过滤禁用、删除用户。
+     */
+    default Map<Long, String> getActiveUserMap() {
+        return Map.of();
+    }
+
     default Map<Long, String> getDeptMap() {
         return Map.of();
     }
