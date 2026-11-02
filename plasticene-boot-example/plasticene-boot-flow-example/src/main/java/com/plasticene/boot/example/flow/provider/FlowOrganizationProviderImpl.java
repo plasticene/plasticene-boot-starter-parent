@@ -35,7 +35,8 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
                 .uri("http://localhost:9000/api/user/list")
                 .header("accessToken", getRequestToken())
                 .retrieve()
-                .body(new ParameterizedTypeReference<Result<List<User>>>() {});
+                .body(new ParameterizedTypeReference<>() {
+                });
 
         // 3. 转换为 Map<id, nickname>
         return Optional.ofNullable(response)
@@ -51,7 +52,8 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
                 .uri("http://localhost:9000/api/user/list?status=1")
                 .header(TOKEN_KEY, getRequestToken())
                 .retrieve()
-                .body(new ParameterizedTypeReference<Result<List<User>>>() {});
+                .body(new ParameterizedTypeReference<>() {
+                });
         return Optional.ofNullable(response).map(Result::data).orElse(List.of()).stream()
                 .collect(Collectors.toMap(User::id, User::nickname));
     }
@@ -66,7 +68,8 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
                 .uri("http://localhost:9000/api/dept/list")
                 .header("accessToken", getRequestToken())
                 .retrieve()
-                .body(new ParameterizedTypeReference<Result<List<Dept>>>() {});
+                .body(new ParameterizedTypeReference<>() {
+                });
 
         // 3. 转换为 Map<id, nickname>
         return Optional.ofNullable(response)
@@ -86,7 +89,8 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
                 .uri("http://localhost:9000/api/role/list")
                 .header("accessToken", getRequestToken())
                 .retrieve()
-                .body(new ParameterizedTypeReference<Result<List<Role>>>() {});
+                .body(new ParameterizedTypeReference<>() {
+                });
 
         // 3. 转换为 Map<id, nickname>
         return Optional.ofNullable(response)
@@ -133,7 +137,7 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
         return token;
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) {
         RestTemplate restTemplate = new RestTemplate();
         String urlPattern = "https://ylink-uat.geniusafc.com/admin/voice-recognize/real-recognize/{id}";
         String id = "b2a823de-59f4-4f4e-a1d6-3da3a7ff18d2";
