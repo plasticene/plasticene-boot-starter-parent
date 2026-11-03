@@ -8,16 +8,18 @@ import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
+import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.entity.FlowTaskAddSign;
 import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
 import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
-import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
+import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.event.InstanceEvent;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
@@ -28,6 +30,7 @@ import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
+import com.plasticene.boot.flow.core.model.vo.FlowTaskAddSignVO;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskVO;
 import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.parser.FlowReturnPath;
@@ -172,6 +175,10 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                             && Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
                             && Objects.equals(task.getAssignee(), loginUser.getId())
                             && Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()));
+                    vo.setProcessable(vo.getTransferable());
+                    boolean groupTask = flowTaskService.isAddSignGroupTask(task);
+                    vo.setTransferable(Boolean.TRUE.equals(vo.getProcessable()) && !groupTask);
+                    vo.setAddSignable(Boolean.TRUE.equals(vo.getProcessable()) && !groupTask);
                     vo.setReturnable(Boolean.TRUE.equals(vo.getTransferable())
                             && !FlowReturnPath.targets(definition.getModelNode(), task.getNodeKey(), taskList).isEmpty());
                     if (task.getReturnTargetNodeKey() != null) {
@@ -209,6 +216,8 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .distinct()
                 .toList());
         detail.setTasks(taskVOList);
+        detail.setAddSigns(flowTaskService.listAddSigns(instanceId).stream()
+                .map(batch -> toAddSignVO(batch, userMap)).toList());
         return detail;
     }
 
@@ -438,6 +447,8 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         vo.setReturnTargetNodeKey(task.getReturnTargetNodeKey());
         vo.setReturnTaskId(task.getReturnTaskId());
         vo.setSourceTaskId(task.getSourceTaskId());
+        vo.setAddSignId(task.getAddSignId());
+        vo.setAssigneeList(task.getAssigneeList());
         vo.setTransferTo(task.getTransferTo());
         vo.setTransferToName(task.getTransferTo() == null ? null
                 : userMap.getOrDefault(task.getTransferTo(), String.valueOf(task.getTransferTo())));
@@ -458,6 +469,14 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
             LocalDateTime endTime = task.getEndTime() == null ? LocalDateTime.now() : task.getEndTime();
             vo.setDurationMillis(Math.max(0, Duration.between(task.getStartTime(), endTime).toMillis()));
         }
+        return vo;
+    }
+
+    private FlowTaskAddSignVO toAddSignVO(FlowTaskAddSign batch, Map<Long, String> users) {
+        FlowTaskAddSignVO vo = PtcBeanUtils.copy(batch, FlowTaskAddSignVO.class);
+        vo.setInitiatorName(users.getOrDefault(batch.getInitiatorId(), String.valueOf(batch.getInitiatorId())));
+        vo.setAssigneeNames(batch.getAssigneeIds().stream()
+                .map(id -> users.getOrDefault(id, String.valueOf(id))).toList());
         return vo;
     }
 

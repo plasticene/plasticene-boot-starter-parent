@@ -9,6 +9,7 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
+import com.plasticene.boot.flow.core.dao.FlowTaskAddSignDAO;
 import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
@@ -78,6 +79,7 @@ class FlowTaskReturnTest {
         definition.setExtraSetting(new FlowExtraSetting());
         login(8L, 9L);
         ReflectionTestUtils.setField(service, "flowTaskDAO", dao);
+        ReflectionTestUtils.setField(service, "flowTaskAddSignDAO", mock(FlowTaskAddSignDAO.class));
         ReflectionTestUtils.setField(service, "flowRuntimeService", runtime);
         ReflectionTestUtils.setField(service, "flowDefinitionService", definitions);
         ReflectionTestUtils.setField(service, "flowTimeoutNoticeDAO", notices);

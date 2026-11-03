@@ -13,7 +13,8 @@ public enum FlowTaskStatusEnum {
     REJECT(2, "拒绝"),
     CANCEL(3, "已取消"),
     TRANSFERRED(4, "已转交"),
-    RETURNED(5, "已退回");
+    RETURNED(5, "已退回"),
+    WAITING_ADD_SIGN(6, "等待加签");
 
     private final Integer code;
     private final String name;

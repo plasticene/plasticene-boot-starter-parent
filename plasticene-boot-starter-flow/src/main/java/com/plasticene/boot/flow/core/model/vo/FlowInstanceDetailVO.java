@@ -35,4 +35,7 @@ public class FlowInstanceDetailVO {
     private List<String> routeNodeKeys;
     @Schema(description = "实例任务流转记录")
     private List<FlowTaskVO> tasks;
+    @Schema(description = "实例加签批次记录")
+    private List<FlowTaskAddSignVO> addSigns;
 }
+

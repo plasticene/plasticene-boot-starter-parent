@@ -69,7 +69,7 @@ public class FlowTask extends BaseDO {
      */
     private Integer approveMode;
     /**
-     * 状态 0：处理中  1：已完成  2：拒绝  3：已取消  4：已转交（不代表审批通过） 5：已退回
+     * 任务状态：0处理中，1已审批，2拒绝，3已取消，4已转交，5已退回，6等待加签
      */
     private Integer status;
     /**
@@ -130,6 +130,7 @@ public class FlowTask extends BaseDO {
     private String returnTargetNodeKey;
     /** 使该记录失效的退回任务ID；为空表示仍有效。 */
     private Long returnTaskId;
-
+    /** 创建该任务的加签批次ID；非加签任务为空。 */
+    private Long addSignId;
 
 }

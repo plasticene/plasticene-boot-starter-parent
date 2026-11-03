@@ -40,7 +40,7 @@ public class FlowTaskVO {
     private Integer approveType;
     @Schema(description = "多人审批方式")
     private Integer approveMode;
-    @Schema(description = "任务状态 0：处理中 1：已完成 2：拒绝 3：已取消 4：已转交 5：已退回")
+    @Schema(description = "任务状态：0处理中，1已审批，2拒绝，3已取消，4已转交，5已退回，6等待加签")
     private Integer status;
     @Schema(description = "任务状态名称")
     private String statusName;
@@ -72,4 +72,13 @@ public class FlowTaskVO {
     private Long returnTaskId;
     @Schema(description = "当前用户是否可退回此待办")
     private Boolean returnable;
+    @Schema(description = "当前用户是否可审批此待办")
+    private Boolean processable;
+    @Schema(description = "当前用户是否可对此待办加签")
+    private Boolean addSignable;
+    @Schema(description = "创建该任务的加签批次ID；非加签任务为空")
+    private Long addSignId;
+    @Schema(description = "顺序审批人员队列，用于展示和排除已有审批人")
+    private List<Long> assigneeList;
 }
+

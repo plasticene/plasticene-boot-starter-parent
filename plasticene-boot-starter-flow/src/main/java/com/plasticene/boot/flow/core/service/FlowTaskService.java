@@ -6,7 +6,9 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.entity.FlowTaskAddSign;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.flow.core.model.param.FlowTaskAddSignParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
@@ -92,6 +94,15 @@ public interface FlowTaskService extends IService<FlowTask> {
      * @param taskId 任务id
      */
     void withdrawTask(Long taskId);
+
+    /** 对当前待办发起前加签、后加签或并加签。 */
+    void addSign(FlowTaskAddSignParam param);
+
+    /** 判断任务是否属于只能审批的前后加签组。 */
+    boolean isAddSignGroupTask(FlowTask task);
+
+    /** 查询实例加签记录；调用方须先校验实例组织权限。 */
+    List<FlowTaskAddSign> listAddSigns(Long instanceId);
 
     /** 将当前待办转交给同组织有效用户，保留原任务记录。 */
     void transferTask(FlowTaskTransferParam param);

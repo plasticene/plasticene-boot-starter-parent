@@ -12,12 +12,15 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
+import com.plasticene.boot.flow.core.dao.FlowTaskAddSignDAO;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.entity.FlowTaskAddSign;
 import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
+import com.plasticene.boot.flow.core.enums.FlowAddSignEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
@@ -26,6 +29,7 @@ import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
+import com.plasticene.boot.flow.core.model.param.FlowTaskAddSignParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
@@ -93,10 +97,13 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     @Resource
     private FlowTimeoutNoticeDAO flowTimeoutNoticeDAO;
 
+    @Resource
+    private FlowTaskAddSignDAO flowTaskAddSignDAO;
+
     @Override
     public PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query) {
         query.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
-        query.setStatuses(List.of(FlowTaskStatusEnum.RUNNING.getCode()));
+        query.setStatuses(List.of(FlowTaskStatusEnum.RUNNING.getCode(), FlowTaskStatusEnum.WAITING_ADD_SIGN.getCode()));
         return pageMyTask(query);
     }
 
@@ -397,68 +404,15 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             throw new BizException("意见不能为空");
         }
         Long instanceId = flowTask.getInstanceId();
-        String nodeKey = flowTask.getNodeKey();
-        Integer approveMode = flowTask.getApproveMode();
         FlowInstance flowInstance = flowRuntimeService.selectInstanceForUpdate(instanceId);
         flowTask = getExecutableTask(taskId, loginUser);
         validateRunningInstance(flowInstance, loginUser, flowTask);
-        // 完成任务
+        if (isAddSignGroupTask(flowTask)) {
+            approveAddSignTask(flowTask, loginUser, comment, flowInstance);
+            return;
+        }
         completeTask(taskId, loginUser, comment, FlowTaskStatusEnum.APPROVE);
-        // 会签
-        if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ALL.getCode())) {
-            boolean existed = existUncompletedTask(instanceId, nodeKey);
-            // 会签存在其他人未审批
-            if (existed) {
-                return;
-            }
-        }
-        // 或签
-        if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ANY.getCode())) {
-            // 再次查询任务
-            flowTask = flowTaskDAO.selectById(taskId);
-            if (Objects.equals(flowTask.getIsDelete(), CommonConstant.IS_DEL)) {
-                throw new BizException("当前节点已审批，不能再审");
-            }
-            // 或签只结束当前审批节点，不能删除其他并行分支的待办。
-            LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(FlowTask::getInstanceId, instanceId);
-            updateWrapper.eq(FlowTask::getNodeKey, nodeKey);
-            updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
-            updateWrapper.isNull(FlowTask::getReturnTaskId);
-            updateWrapper.set(FlowTask::getIsDelete, CommonConstant.IS_DEL);
-            flowTaskDAO.update(updateWrapper);
-        }
-        // 顺序审批
-        if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ORDER.getCode())) {
-            Long assignee = flowTask.getAssignee();
-            List<Long> assigneeList = flowTask.getAssigneeList();
-            int index = assigneeList.indexOf(assignee);
-            if (index < assigneeList.size() - 1) {
-                // 不是当前节点最后一个审批人，插入下一个审批人任务，不流入下个节点
-                flowTask.setId(null);
-                flowTask.setSourceTaskId(null);
-                flowTask.setTransferTo(null);
-                flowTask.setAssignee(assigneeList.get(index + 1));
-                flowTask.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
-                flowTask.setStartTime(LocalDateTime.now());
-                flowTask.setEndTime(null);
-                flowTask.setCreator(null);
-                flowTask.setUpdater(null);
-                flowTask.setCreateTime(null);
-                flowTask.setUpdateTime(null);
-                flowTask.setComment(null);
-                initializeTimeout(flowTask, flowTask.getTimeoutRule());
-                flowTaskDAO.insert(flowTask);
-                return;
-            }
-        }
-
-        // 根据流程模型查找当前节点并流转下一个节点
-        FlowDefinition flowDefinition = flowDefinitionService.getById(flowInstance.getDefinitionId());
-        FlowNode flowNode = flowDefinition.getModelNode();
-        FlowParser.makeParentNode(flowNode);
-        FlowNode currentNode = FlowParser.findNodeByKey(flowNode, nodeKey);
-        processExecutor.moveToNextNode(flowInstance, currentNode);
+        settleNodeApproval(flowTask, flowInstance);
     }
 
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
@@ -488,6 +442,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             throw new BizException("当前节点已审批，不能再审");
         }
         completeTask(taskId, loginUser, comment, FlowTaskStatusEnum.REJECT);
+        if (isAddSignGroupTask(flowTask)) {
+            finishAddSign(getAddSignBatch(flowTask), FlowAddSignEnum.State.REJECTED);
+        }
         delInstanceRunningTask(instanceId);
 
         // 终止流程实例
@@ -500,6 +457,78 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     @Override
+    public void addSign(FlowTaskAddSignParam param) {
+        LoginUser user = getLoginUser();
+        FlowTask task = getExecutableTask(param.getTaskId(), user);
+        FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(task.getInstanceId());
+        task = getExecutableTask(param.getTaskId(), user);
+        validateRunningInstance(instance, user, task);
+        requireOriginalNodeTask(task);
+        validateAddSign(param, task, user);
+        LocalDateTime now = LocalDateTime.now();
+        FlowTaskAddSign batch = new FlowTaskAddSign();
+        batch.setOrgId(task.getOrgId());
+        batch.setInstanceId(task.getInstanceId());
+        batch.setNodeKey(task.getNodeKey());
+        batch.setSourceTaskId(task.getId());
+        batch.setInitiatorId(user.getId());
+        batch.setSignType(param.getType());
+        batch.setApproveMode(param.getType() == FlowAddSignEnum.Type.PARALLEL
+                ? task.getApproveMode() : param.getApproveMode());
+        batch.setAssigneeIds(new ArrayList<>(param.getAssigneeIds()));
+        batch.setComment(param.getComment().trim());
+        batch.setCreateTime(now);
+        batch.setUpdateTime(now);
+        batch.setState(param.getType() == FlowAddSignEnum.Type.PARALLEL
+                ? FlowAddSignEnum.State.APPLIED : FlowAddSignEnum.State.RUNNING);
+        if (param.getType() == FlowAddSignEnum.Type.PARALLEL) {
+            batch.setEndTime(now);
+        } else {
+            batch.setPausedAt(now);
+        }
+        flowTaskAddSignDAO.insert(batch);
+        if (param.getType() == FlowAddSignEnum.Type.PARALLEL) {
+            if (Objects.equals(task.getApproveMode(), FlowNodeEnum.ApproveMode.ORDER.getCode())) {
+                List<Long> queue = new ArrayList<>(task.getAssigneeList());
+                queue.addAll(queue.indexOf(task.getAssignee()) + 1, batch.getAssigneeIds());
+                FlowTask update = new FlowTask();
+                update.setAssigneeList(queue);
+                flowTaskDAO.update(update, new LambdaUpdateWrapper<FlowTask>().eq(FlowTask::getId, task.getId()));
+            } else {
+                for (Long id : batch.getAssigneeIds()) {
+                    createAddSignTask(task, batch, id);
+                }
+            }
+            return;
+        }
+        int updated = flowTaskDAO.update(new LambdaUpdateWrapper<FlowTask>().eq(FlowTask::getId, task.getId())
+                .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
+                .set(FlowTask::getStatus, FlowTaskStatusEnum.WAITING_ADD_SIGN.getCode()));
+        if (updated != 1) {
+            throw new BizException("任务已发生变化，请刷新后重试");
+        }
+        cancelPendingReminders(List.of(task.getId()));
+        List<Long> starters = Objects.equals(batch.getApproveMode(), FlowNodeEnum.ApproveMode.ORDER.getCode())
+                ? List.of(batch.getAssigneeIds().getFirst()) : batch.getAssigneeIds();
+        for (Long id : starters) {
+            createAddSignTask(task, batch, id);
+        }
+    }
+
+    @Override
+    public boolean isAddSignGroupTask(FlowTask task) {
+        FlowTaskAddSign batch = getAddSignBatch(task);
+        return batch != null && batch.getSignType() != FlowAddSignEnum.Type.PARALLEL;
+    }
+
+    @Override
+    public List<FlowTaskAddSign> listAddSigns(Long instanceId) {
+        return flowTaskAddSignDAO.selectList(new LambdaQueryWrapper<FlowTaskAddSign>()
+                .eq(FlowTaskAddSign::getInstanceId, instanceId).orderByAsc(FlowTaskAddSign::getId));
+    }
+
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
     public void transferTask(FlowTaskTransferParam param) {
         LoginUser loginUser = getLoginUser();
         FlowTask task = getExecutableTask(param.getTaskId(), loginUser);
@@ -507,6 +536,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         // 与人工审批、取消和超时处理使用同一实例锁，锁内重读最新任务。
         task = getExecutableTask(param.getTaskId(), loginUser);
         validateRunningInstance(instance, loginUser, task);
+        requireOriginalNodeTask(task);
         Long assignee = param.getAssignee();
         if (Objects.equals(assignee, loginUser.getId())) {
             throw new BizException("不能转交给自己");
@@ -572,6 +602,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         // 再次判断任务状态是否可以执行
         task = getExecutableTask(taskId, user);
         validateRunningInstance(instance, user, task);
+        requireOriginalNodeTask(task);
         FlowNode root = getReturnModel(instance);
         // 获取可退回的目标节点
         return FlowReturnPath.targets(root, task.getNodeKey(), listTaskByInstanceId(instance.getId())).stream()
@@ -590,6 +621,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(task.getInstanceId());
         task = getExecutableTask(param.getTaskId(), user);
         validateRunningInstance(instance, user, task);
+        requireOriginalNodeTask(task);
         FlowNode root = getReturnModel(instance);
         List<FlowTask> history = listTaskByInstanceId(instance.getId());
         FlowNode target = FlowReturnPath.targets(root, task.getNodeKey(), history).stream()
@@ -604,6 +636,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         completeTask(returnTaskId, user, comment, FlowTaskStatusEnum.RETURNED);
         flowTaskDAO.update(new LambdaUpdateWrapper<FlowTask>()
                 .eq(FlowTask::getId, returnTaskId).set(FlowTask::getReturnTargetNodeKey, target.getKey()));
+        cancelRunningAddSigns(instance.getId(), affectedKeys);
         invalidateTasks(affected, returnTaskId, now);
         // 包含目标的并行网关仍保留其他分支的执行结果，只撤销重走分支的汇合贡献。
         FlowReturnPath.enclosingGateways(target, current).forEach((gatewayKey, completed) -> {
@@ -696,6 +729,20 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 || task.getEndTime() == null) {
             return false;
         }
+        List<FlowTaskAddSign> addSigns = listAddSigns(task.getInstanceId());
+        if (isAddSignGroupTask(task) || addSigns.stream()
+                .anyMatch(batch -> Objects.equals(batch.getSourceTaskId(), task.getId())
+                        && batch.getSignType() != FlowAddSignEnum.Type.PARALLEL)) {
+            return false;
+        }
+        // 后续任务已发起加签也属于已执行操作，不能撤回并丢弃其队列或留下悬挂的等待任务。
+        Set<Long> activeSources = instanceTasks.stream().filter(FlowReturnPath::isActive)
+                .filter(item -> Objects.equals(item.getIsDelete(), CommonConstant.IS_NOT_DEL))
+                .map(FlowTask::getId).collect(Collectors.toSet());
+        if (addSigns.stream().anyMatch(batch -> activeSources.contains(batch.getSourceTaskId())
+                && batch.getCreateTime() != null && !batch.getCreateTime().isBefore(task.getEndTime()))) {
+            return false;
+        }
         FlowExtraSetting setting = FlowExtraSetting.normalize(definition.getExtraSetting());
         if (!Boolean.TRUE.equals(setting.getAllowApproverWithdraw())) {
             return false;
@@ -739,6 +786,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
     @Override
     public void delInstanceRunningTask(Long instanceId) {
+        cancelRunningAddSigns(instanceId, null);
         LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(FlowTask::getInstanceId, instanceId);
         updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
@@ -749,6 +797,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
     @Override
     public void cancelInstanceRunningTask(Long instanceId) {
+        cancelRunningAddSigns(instanceId, null);
         FlowTask task = new FlowTask();
         task.setStatus(FlowTaskStatusEnum.CANCEL.getCode());
         task.setEndTime(LocalDateTime.now());
@@ -770,6 +819,254 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         return flowTaskDAO.selectList(queryWrapper);
     }
 
+
+    private void settleNodeApproval(FlowTask flowTask, FlowInstance flowInstance) {
+        Long taskId = flowTask.getId();
+        Long instanceId = flowTask.getInstanceId();
+        String nodeKey = flowTask.getNodeKey();
+        Integer approveMode = flowTask.getApproveMode();
+        // 会签
+        if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ALL.getCode())) {
+            boolean existed = existUncompletedTask(instanceId, nodeKey);
+            // 会签存在其他人未审批
+            if (existed) {
+                return;
+            }
+        }
+        // 或签
+        if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ANY.getCode())) {
+            cancelRunningAddSigns(instanceId, Set.of(nodeKey));
+            // 再次查询任务
+            flowTask = flowTaskDAO.selectById(taskId);
+            if (Objects.equals(flowTask.getIsDelete(), CommonConstant.IS_DEL)) {
+                throw new BizException("当前节点已审批，不能再审");
+            }
+            // 或签只结束当前审批节点，不能删除其他并行分支的待办。
+            LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(FlowTask::getInstanceId, instanceId);
+            updateWrapper.eq(FlowTask::getNodeKey, nodeKey);
+            updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
+            updateWrapper.isNull(FlowTask::getReturnTaskId);
+            updateWrapper.set(FlowTask::getIsDelete, CommonConstant.IS_DEL);
+            flowTaskDAO.update(updateWrapper);
+        }
+        // 顺序审批
+        if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ORDER.getCode())) {
+            Long assignee = flowTask.getAssignee();
+            List<Long> assigneeList = flowTask.getAssigneeList();
+            int index = assigneeList.indexOf(assignee);
+            if (index < assigneeList.size() - 1) {
+                // 不是当前节点最后一个审批人，插入下一个审批人任务，不流入下个节点
+                flowTask.setId(null);
+                flowTask.setSourceTaskId(null);
+                flowTask.setTransferTo(null);
+                flowTask.setAssignee(assigneeList.get(index + 1));
+                flowTask.setAddSignId(findParallelAddSignId(flowTask, flowTask.getAssignee()));
+                flowTask.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
+                flowTask.setStartTime(LocalDateTime.now());
+                flowTask.setEndTime(null);
+                flowTask.setCreator(null);
+                flowTask.setUpdater(null);
+                flowTask.setCreateTime(null);
+                flowTask.setUpdateTime(null);
+                flowTask.setComment(null);
+                initializeTimeout(flowTask, flowTask.getTimeoutRule());
+                flowTaskDAO.insert(flowTask);
+                return;
+            }
+        }
+
+        // 根据流程模型查找当前节点并流转下一个节点
+        FlowDefinition flowDefinition = flowDefinitionService.getById(flowInstance.getDefinitionId());
+        FlowNode flowNode = flowDefinition.getModelNode();
+        FlowParser.makeParentNode(flowNode);
+        FlowNode currentNode = FlowParser.findNodeByKey(flowNode, nodeKey);
+        processExecutor.moveToNextNode(flowInstance, currentNode);
+    }
+
+
+    private void validateAddSign(FlowTaskAddSignParam param, FlowTask task, LoginUser user) {
+        if (param.getType() == null || StrUtil.isBlank(param.getComment()) || param.getComment().trim().length() > 500) {
+            throw new BizException("请选择加签类型并填写1至500字加签原因");
+        }
+        List<Long> ids = param.getAssigneeIds();
+        if (CollUtil.isEmpty(ids) || ids.stream().anyMatch(id -> id == null || id <= 0)
+                || ids.stream().distinct().count() != ids.size()) {
+            throw new BizException("请选择不重复的有效加签人员");
+        }
+        if (param.getType() != FlowAddSignEnum.Type.PARALLEL
+                && Arrays.stream(FlowNodeEnum.ApproveMode.values()).noneMatch(mode -> Objects.equals(mode.getCode(), param.getApproveMode()))) {
+            throw new BizException("请选择加签审批方式");
+        }
+        Map<Long, String> activeUsers = flowOrganizationProvider.getActiveUserMap();
+        if (ids.contains(user.getId()) || ids.stream().anyMatch(id -> !activeUsers.containsKey(id))) {
+            throw new BizException("加签人员不能为本人，且须为本组织启用用户");
+        }
+        List<FlowTask> tasks = listTasksByInstanceIdAndNodeKey(task.getInstanceId(), task.getNodeKey());
+        Set<Long> existing = tasks.stream().map(FlowTask::getAssignee).filter(Objects::nonNull).collect(Collectors.toSet());
+        tasks.stream().map(FlowTask::getAssigneeList).filter(Objects::nonNull).forEach(existing::addAll);
+        if (ids.stream().anyMatch(existing::contains)) {
+            throw new BizException("不能选择当前节点已有或排队中的审批人");
+        }
+        if (Objects.equals(task.getApproveMode(), FlowNodeEnum.ApproveMode.ORDER.getCode())
+                && (task.getAssigneeList() == null || !task.getAssigneeList().contains(task.getAssignee()))) {
+            throw new BizException("顺序审批人员数据异常，不能加签");
+        }
+        if (listAddSigns(task.getInstanceId()).stream().anyMatch(batch -> Objects.equals(batch.getSourceTaskId(), task.getId())
+                && batch.getState() == FlowAddSignEnum.State.RUNNING)) {
+            throw new BizException("当前任务已在等待加签");
+        }
+    }
+
+    private FlowTaskAddSign getAddSignBatch(FlowTask task) {
+        if (task == null || task.getAddSignId() == null) {
+            return null;
+        }
+        FlowTaskAddSign batch = flowTaskAddSignDAO.selectById(task.getAddSignId());
+        if (batch == null || !Objects.equals(batch.getOrgId(), task.getOrgId())
+                || !Objects.equals(batch.getInstanceId(), task.getInstanceId())) {
+            throw new BizException("加签任务关联异常，请刷新后重试");
+        }
+        return batch;
+    }
+
+    private void requireOriginalNodeTask(FlowTask task) {
+        if (isAddSignGroupTask(task)) {
+            throw new BizException("前后加签任务仅支持通过或拒绝");
+        }
+    }
+
+    private void createAddSignTask(FlowTask source, FlowTaskAddSign batch, Long assignee) {
+        FlowTask task = PtcBeanUtils.copy(source, FlowTask.class);
+        resetTaskForAssignee(task, assignee);
+        task.setAddSignId(batch.getId());
+        task.setApproveMode(batch.getApproveMode());
+        task.setAssigneeList(batch.getSignType() == FlowAddSignEnum.Type.PARALLEL ? null : batch.getAssigneeIds());
+        initializeTimeout(task, source.getTimeoutRule());
+        flowTaskDAO.insert(task);
+    }
+
+    private void resetTaskForAssignee(FlowTask task, Long assignee) {
+        task.setId(null);
+        task.setSourceTaskId(null);
+        task.setTransferTo(null);
+        task.setReturnTaskId(null);
+        task.setReturnTargetNodeKey(null);
+        task.setAssignee(assignee);
+        task.setStatus(FlowTaskStatusEnum.RUNNING.getCode());
+        task.setIsDelete(CommonConstant.IS_NOT_DEL);
+        task.setStartTime(LocalDateTime.now());
+        task.setEndTime(null);
+        task.setComment(null);
+        task.setCreator(null);
+        task.setUpdater(null);
+        task.setCreateTime(null);
+        task.setUpdateTime(null);
+    }
+
+    private void approveAddSignTask(FlowTask task, LoginUser user, String comment, FlowInstance instance) {
+        FlowTaskAddSign batch = getAddSignBatch(task);
+        FlowTask source = flowTaskDAO.selectById(batch.getSourceTaskId());
+        if (batch.getState() != FlowAddSignEnum.State.RUNNING || source == null
+                || !Objects.equals(source.getStatus(), FlowTaskStatusEnum.WAITING_ADD_SIGN.getCode())
+                || !FlowReturnPath.isActive(source) || !Objects.equals(source.getIsDelete(), CommonConstant.IS_NOT_DEL)) {
+            throw new BizException("加签已结束，请刷新后查看");
+        }
+        completeTask(task.getId(), user, comment, FlowTaskStatusEnum.APPROVE);
+        if (Objects.equals(batch.getApproveMode(), FlowNodeEnum.ApproveMode.ALL.getCode())) {
+            List<FlowTask> members = flowTaskDAO.selectList(new LambdaQueryWrapper<FlowTask>()
+                    .eq(FlowTask::getAddSignId, batch.getId()).eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL));
+            if (members.stream().anyMatch(member -> !Objects.equals(member.getStatus(), FlowTaskStatusEnum.APPROVE.getCode()))) {
+                return;
+            }
+        } else if (Objects.equals(batch.getApproveMode(), FlowNodeEnum.ApproveMode.ANY.getCode())) {
+            cancelAddSignMembers(batch);
+        } else {
+            int index = batch.getAssigneeIds().indexOf(task.getAssignee());
+            if (index < 0) {
+                throw new BizException("加签顺序数据异常");
+            }
+            if (index + 1 < batch.getAssigneeIds().size()) {
+                createAddSignTask(source, batch, batch.getAssigneeIds().get(index + 1));
+                return;
+            }
+        }
+        finishAddSign(batch, FlowAddSignEnum.State.PASSED);
+        Duration paused = Duration.between(batch.getPausedAt(), LocalDateTime.now());
+        LambdaUpdateWrapper<FlowTask> resume = new LambdaUpdateWrapper<FlowTask>()
+                .eq(FlowTask::getId, source.getId()).eq(FlowTask::getStatus, FlowTaskStatusEnum.WAITING_ADD_SIGN.getCode())
+                .set(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
+        if (batch.getSignType() == FlowAddSignEnum.Type.BEFORE) {
+            resume.set(FlowTask::getDeadline, source.getDeadline() == null ? null : source.getDeadline().plus(paused));
+            resume.set(FlowTask::getNextRemindTime, source.getNextRemindTime() == null ? null : source.getNextRemindTime().plus(paused));
+        }
+        if (flowTaskDAO.update(resume) != 1) {
+            throw new BizException("原审批任务已发生变化，请刷新后重试");
+        }
+        if (batch.getSignType() == FlowAddSignEnum.Type.AFTER) {
+            LoginUser owner = new LoginUser();
+            owner.setId(source.getAssignee());
+            owner.setOrgId(source.getOrgId());
+            completeTask(source.getId(), owner, batch.getComment(), FlowTaskStatusEnum.APPROVE);
+            settleNodeApproval(source, instance);
+        }
+    }
+
+    private void finishAddSign(FlowTaskAddSign batch, FlowAddSignEnum.State state) {
+        batch.setState(state);
+        batch.setEndTime(LocalDateTime.now());
+        flowTaskAddSignDAO.updateById(batch);
+    }
+
+    private Long findParallelAddSignId(FlowTask task, Long assignee) {
+        Set<Long> sources = listTasksByInstanceIdAndNodeKey(task.getInstanceId(), task.getNodeKey()).stream()
+                .map(FlowTask::getId).collect(Collectors.toSet());
+        return listAddSigns(task.getInstanceId()).stream()
+                .filter(batch -> batch.getSignType() == FlowAddSignEnum.Type.PARALLEL
+                        && batch.getState() == FlowAddSignEnum.State.APPLIED
+                        && Objects.equals(batch.getNodeKey(), task.getNodeKey())
+                        && sources.contains(batch.getSourceTaskId()) && batch.getAssigneeIds().contains(assignee))
+                .map(FlowTaskAddSign::getId).findFirst().orElse(null);
+    }
+
+    private void cancelRunningAddSigns(Long instanceId, Set<String> nodeKeys) {
+        for (FlowTaskAddSign batch : listAddSigns(instanceId)) {
+            if (batch.getSignType() == FlowAddSignEnum.Type.PARALLEL
+                    || batch.getState() != FlowAddSignEnum.State.RUNNING && batch.getState() != FlowAddSignEnum.State.REJECTED
+                    || nodeKeys != null && !nodeKeys.contains(batch.getNodeKey())) {
+                continue;
+            }
+            if (batch.getState() == FlowAddSignEnum.State.RUNNING) {
+                cancelAddSignMembers(batch);
+                finishAddSign(batch, FlowAddSignEnum.State.CANCELLED);
+            }
+            flowTaskDAO.update(new LambdaUpdateWrapper<FlowTask>().eq(FlowTask::getId, batch.getSourceTaskId())
+                    .eq(FlowTask::getStatus, FlowTaskStatusEnum.WAITING_ADD_SIGN.getCode())
+                    .set(FlowTask::getStatus, FlowTaskStatusEnum.CANCEL.getCode())
+                    .set(FlowTask::getEndTime, LocalDateTime.now()).set(FlowTask::getNextRemindTime, null));
+            cancelPendingReminders(List.of(batch.getSourceTaskId()));
+        }
+    }
+
+    private void cancelAddSignMembers(FlowTaskAddSign batch) {
+        List<FlowTask> members = flowTaskDAO.selectList(new LambdaQueryWrapper<FlowTask>()
+                .eq(FlowTask::getAddSignId, batch.getId()).eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode()));
+        flowTaskDAO.update(new LambdaUpdateWrapper<FlowTask>().eq(FlowTask::getAddSignId, batch.getId())
+                .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
+                .set(FlowTask::getStatus, FlowTaskStatusEnum.CANCEL.getCode())
+                .set(FlowTask::getEndTime, LocalDateTime.now()).set(FlowTask::getNextRemindTime, null));
+        cancelPendingReminders(members.stream().map(FlowTask::getId).toList());
+    }
+
+    private void cancelPendingReminders(List<Long> taskIds) {
+        if (taskIds.isEmpty()) {
+            return;
+        }
+        flowTimeoutNoticeDAO.update(new LambdaUpdateWrapper<FlowTimeoutNotice>().in(FlowTimeoutNotice::getTaskId, taskIds)
+                .eq(FlowTimeoutNotice::getEventType, FlowTimeoutNoticeEnums.EventType.REMINDER.getCode())
+                .eq(FlowTimeoutNotice::getState, FlowTimeoutNoticeEnums.State.PENDING.getCode())
+                .set(FlowTimeoutNotice::getState, FlowTimeoutNoticeEnums.State.CANCELLED.getCode()));
+    }
 
     private void completeTask(Long taskId,
                               LoginUser loginUser,
@@ -796,6 +1093,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     private boolean existUncompletedTask(Long instanceId, String nodeKey) {
         List<FlowTask> flowTasks = listTasksByInstanceIdAndNodeKey(instanceId, nodeKey);
         return flowTasks.stream()
+                .filter(task -> !isAddSignGroupTask(task))
+                // 已退回记录属于历史轮次，不参与当前会签的完成判断。
+                .filter(task -> !Objects.equals(task.getStatus(), FlowTaskStatusEnum.RETURNED.getCode()))
                 .anyMatch(task -> !Objects.equals(task.getStatus(), FlowTaskStatusEnum.APPROVE.getCode())
                         && !Objects.equals(task.getStatus(), FlowTaskStatusEnum.TRANSFERRED.getCode()));
     }
@@ -906,7 +1206,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 .set(FlowTask::getReturnTaskId, returnTaskId)
                 .set(FlowTask::getNextRemindTime, null));
         flowTaskDAO.update(new LambdaUpdateWrapper<FlowTask>().in(FlowTask::getId, ids)
-                .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
+                .in(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode(), FlowTaskStatusEnum.WAITING_ADD_SIGN.getCode())
                 .set(FlowTask::getStatus, FlowTaskStatusEnum.CANCEL.getCode())
                 .set(FlowTask::getEndTime, now).set(FlowTask::getComment, "因流程退回取消待办"));
         flowTimeoutNoticeDAO.update(new LambdaUpdateWrapper<FlowTimeoutNotice>()

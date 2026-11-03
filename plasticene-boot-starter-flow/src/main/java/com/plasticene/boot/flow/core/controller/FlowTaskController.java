@@ -2,6 +2,7 @@ package com.plasticene.boot.flow.core.controller;
 
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.pojo.ResponseVO;
+import com.plasticene.boot.flow.core.model.param.FlowTaskAddSignParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
@@ -63,6 +64,13 @@ public class FlowTaskController {
     @PostMapping("/reject")
     public ResponseVO<Void> rejectFlowTask(@RequestBody @Validated FlowTaskParam param) {
         flowTaskService.rejectTask(param);
+        return ResponseVO.success();
+    }
+
+    @Operation(summary = "加签当前审批待办")
+    @PostMapping("/add-sign")
+    public ResponseVO<Void> addSign(@RequestBody @Validated FlowTaskAddSignParam param) {
+        flowTaskService.addSign(param);
         return ResponseVO.success();
     }
 

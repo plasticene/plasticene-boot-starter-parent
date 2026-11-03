@@ -6,6 +6,7 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
+import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
@@ -70,6 +71,8 @@ class FlowRuntimeServiceImplTest {
     private FlowTaskService flowTaskService;
     @Mock
     private FlowOrganizationProvider flowOrganizationProvider;
+    @Mock
+    private FlowTimeoutNoticeDAO timeoutNoticeDAO;
     @InjectMocks
     private FlowRuntimeServiceImpl service;
 
@@ -84,6 +87,36 @@ class FlowRuntimeServiceImplTest {
     @AfterEach
     void clearLoginUser() {
         LoginUserHolder.remove();
+    }
+
+    @Test
+    void shouldSeparateGroupApprovalPermissionFromTransferAndAddSignCapabilities() {
+        FlowInstance instance = runningInstance(8L);
+        FlowDefinition definition = new FlowDefinition();
+        definition.setOrgId(10L);
+        FlowNode node = new FlowNode();
+        node.setKey("approve"); node.setType(1); node.setApproveType(0);
+        definition.setModelNode(node);
+        FlowTask task = new FlowTask();
+        task.setId(41L); task.setNodeKey("approve"); task.setNodeType(1);
+        task.setAssignee(8L); task.setStatus(0); task.setAddSignId(51L);
+        FlowTask waiting = new FlowTask();
+        waiting.setId(40L); waiting.setNodeKey("approve"); waiting.setNodeType(1);
+        waiting.setAssignee(8L); waiting.setStatus(6);
+        when(flowInstanceDAO.selectById(21L)).thenReturn(instance);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(flowTaskService.listTaskByInstanceId(21L)).thenReturn(List.of(waiting, task));
+        when(flowTaskService.isAddSignGroupTask(any())).thenAnswer(call -> call.<FlowTask>getArgument(0).getAddSignId() != null);
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "加签人"));
+        when(processExecutor.calculateRouteTrace(node, Map.of())).thenReturn(List.of(node));
+        var detail = service.getInstanceDetail(21L);
+        var child = detail.getTasks().getLast();
+        assertTrue(child.getProcessable());
+        assertFalse(child.getTransferable());
+        assertFalse(child.getAddSignable());
+        assertFalse(child.getReturnable());
+        assertFalse(detail.getTasks().getFirst().getProcessable());
+        assertEquals("等待加签", detail.getTasks().getFirst().getStatusName());
     }
 
     @Test

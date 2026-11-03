@@ -8,6 +8,7 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
+import com.plasticene.boot.flow.core.dao.FlowTaskAddSignDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
@@ -78,6 +79,8 @@ class FlowTaskServiceImplTest {
     private CategoryService categoryService;
     @Mock
     private FlowOrganizationProvider flowOrganizationProvider;
+    @Mock
+    private FlowTaskAddSignDAO flowTaskAddSignDAO;
     @InjectMocks
     private FlowTaskServiceImpl service;
 
