@@ -288,6 +288,57 @@ class FlowRuntimeServiceImplTest {
     }
 
     @Test
+    void shouldExposeOnlyValidRoundCapabilitiesAndSerializeReturnTargetWithoutParentCycles() throws Exception {
+        FlowInstance instance = runningInstance(8L);
+        FlowDefinition definition = new FlowDefinition();
+        definition.setOrgId(10L);
+        FlowNode previous = new FlowNode();
+        previous.setKey("previous");
+        previous.setName("部门审批");
+        previous.setType(1);
+        previous.setApproveType(0);
+        FlowNode current = new FlowNode();
+        current.setKey("current");
+        current.setType(1);
+        current.setApproveType(0);
+        previous.setChildNode(current);
+        definition.setModelNode(previous);
+        FlowTask approved = new FlowTask();
+        approved.setId(40L);
+        approved.setNodeKey("previous");
+        approved.setStatus(1);
+        approved.setApproveType(0);
+        FlowTask pending = new FlowTask();
+        pending.setId(41L);
+        pending.setNodeKey("current");
+        pending.setNodeType(1);
+        pending.setAssignee(8L);
+        pending.setStatus(0);
+        FlowTask returned = new FlowTask();
+        returned.setId(39L);
+        returned.setNodeKey("current");
+        returned.setNodeType(1);
+        returned.setAssignee(8L);
+        returned.setStatus(5);
+        returned.setReturnTargetNodeKey("previous");
+        returned.setReturnTaskId(39L);
+        when(flowInstanceDAO.selectById(21L)).thenReturn(instance);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(flowTaskService.listTaskByInstanceId(21L)).thenReturn(List.of(returned, approved, pending));
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "李四"));
+        when(processExecutor.calculateRouteTrace(previous, Map.of())).thenReturn(List.of(previous, current));
+        FlowInstanceDetailVO detail = service.getInstanceDetail(21L);
+        assertTrue(detail.getTasks().getLast().getReturnable());
+        assertFalse(detail.getTasks().getFirst().getReturnable());
+        assertFalse(detail.getTasks().getFirst().getTransferable());
+        assertEquals("部门审批", detail.getTasks().getFirst().getReturnTargetNodeName());
+        assertEquals(39L, detail.getTasks().getFirst().getReturnTaskId());
+        String json = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().writeValueAsString(detail);
+        assertFalse(json.contains("parentNode"));
+        assertTrue(json.contains("returnable"));
+    }
+
+    @Test
     void shouldReturnTransferChainAndOnlyAllowCurrentRecipientToProcess() {
         FlowInstance instance = runningInstance(8L);
         FlowDefinition definition = new FlowDefinition();

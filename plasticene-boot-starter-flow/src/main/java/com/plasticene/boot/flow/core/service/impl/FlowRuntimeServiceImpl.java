@@ -30,6 +30,7 @@ import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskVO;
 import com.plasticene.boot.flow.core.parser.FlowParser;
+import com.plasticene.boot.flow.core.parser.FlowReturnPath;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
@@ -167,10 +168,16 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .map(task -> {
                     FlowTaskVO vo = toTaskVO(task, userMap);
                     vo.setTimeoutNotices(timeoutNotices.stream().filter(notice -> Objects.equals(notice.getTaskId(), task.getId())).toList());
-                    vo.setTransferable(Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
+                    vo.setTransferable(FlowReturnPath.isActive(task) && Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
                             && Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
                             && Objects.equals(task.getAssignee(), loginUser.getId())
                             && Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()));
+                    vo.setReturnable(Boolean.TRUE.equals(vo.getTransferable())
+                            && !FlowReturnPath.targets(definition.getModelNode(), task.getNodeKey(), taskList).isEmpty());
+                    if (task.getReturnTargetNodeKey() != null) {
+                        FlowNode target = FlowParser.findNodeByKey(definition.getModelNode(), task.getReturnTargetNodeKey());
+                        vo.setReturnTargetNodeName(target == null ? task.getReturnTargetNodeKey() : target.getName());
+                    }
                     vo.setWithdrawable(flowTaskService.canWithdrawTask(task, instance, definition, taskList));
                     return vo;
                 })
@@ -179,6 +186,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
         FlowInstanceVO instanceVO = toInstanceVO(instance, definition);
         LocalDateTime currentNodeStartTime = taskList.stream()
+                .filter(FlowReturnPath::isActive)
                 .filter(task -> Objects.equals(task.getNodeKey(), instance.getCurrentNodeKey()))
                 .map(FlowTask::getStartTime)
                 .filter(Objects::nonNull)
@@ -427,6 +435,8 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         vo.setAssigneeName(task.getAssignee() == null
                 ? "系统"
                 : userMap.getOrDefault(task.getAssignee(), String.valueOf(task.getAssignee())));
+        vo.setReturnTargetNodeKey(task.getReturnTargetNodeKey());
+        vo.setReturnTaskId(task.getReturnTaskId());
         vo.setSourceTaskId(task.getSourceTaskId());
         vo.setTransferTo(task.getTransferTo());
         vo.setTransferToName(task.getTransferTo() == null ? null

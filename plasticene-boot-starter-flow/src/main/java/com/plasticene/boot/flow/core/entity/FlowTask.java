@@ -69,7 +69,7 @@ public class FlowTask extends BaseDO {
      */
     private Integer approveMode;
     /**
-     * 状态 0：处理中  1：已完成  2：拒绝  3：已取消  4：已转交（不代表审批通过）
+     * 状态 0：处理中  1：已完成  2：拒绝  3：已取消  4：已转交（不代表审批通过） 5：已退回
      */
     private Integer status;
     /**
@@ -125,5 +125,11 @@ public class FlowTask extends BaseDO {
      * 是否由系统超时自动处理：false 否，true 是；用于区分人工审批与系统决定。
      */
     private Boolean timeoutHandled;
+
+    /** 退回目标节点key；仅退回操作记录有值。 */
+    private String returnTargetNodeKey;
+    /** 使该记录失效的退回任务ID；为空表示仍有效。 */
+    private Long returnTaskId;
+
 
 }

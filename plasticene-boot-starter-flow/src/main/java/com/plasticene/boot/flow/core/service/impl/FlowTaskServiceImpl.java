@@ -13,21 +13,27 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
+import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
+import com.plasticene.boot.flow.core.enums.FlowTimeoutNoticeEnums;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
+import com.plasticene.boot.flow.core.model.vo.FlowTaskReturnTargetVO;
 import com.plasticene.boot.flow.core.parser.FlowParser;
+import com.plasticene.boot.flow.core.parser.FlowReturnPath;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
 import com.plasticene.boot.flow.core.service.CategoryService;
@@ -62,7 +68,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             FlowTaskStatusEnum.APPROVE.getCode(),
             FlowTaskStatusEnum.REJECT.getCode(),
             FlowTaskStatusEnum.CANCEL.getCode(),
-            FlowTaskStatusEnum.TRANSFERRED.getCode()
+            FlowTaskStatusEnum.TRANSFERRED.getCode(),
+            FlowTaskStatusEnum.RETURNED.getCode()
     );
     private static final List<Integer> INSTANCE_STATUSES = Arrays.stream(FlowInstanceStatusEnum.values())
             .map(FlowInstanceStatusEnum::getCode)
@@ -83,6 +90,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     private CategoryService categoryService;
     @Resource
     private FlowOrganizationProvider flowOrganizationProvider;
+    @Resource
+    private FlowTimeoutNoticeDAO flowTimeoutNoticeDAO;
 
     @Override
     public PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query) {
@@ -100,7 +109,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         } else {
             boolean invalidStatus = statuses.stream().anyMatch(status -> !DONE_STATUSES.contains(status));
             if (invalidStatus) {
-                throw new BizException("已办任务状态仅支持已完成、拒绝、已取消或已转交");
+                throw new BizException("已办任务状态仅支持已完成、拒绝、已取消、已转交或已退回");
             }
             query.setStatuses(statuses.stream().distinct().toList());
         }
@@ -391,6 +400,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         String nodeKey = flowTask.getNodeKey();
         Integer approveMode = flowTask.getApproveMode();
         FlowInstance flowInstance = flowRuntimeService.selectInstanceForUpdate(instanceId);
+        flowTask = getExecutableTask(taskId, loginUser);
         validateRunningInstance(flowInstance, loginUser, flowTask);
         // 完成任务
         completeTask(taskId, loginUser, comment, FlowTaskStatusEnum.APPROVE);
@@ -414,6 +424,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             updateWrapper.eq(FlowTask::getInstanceId, instanceId);
             updateWrapper.eq(FlowTask::getNodeKey, nodeKey);
             updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
+            updateWrapper.isNull(FlowTask::getReturnTaskId);
             updateWrapper.set(FlowTask::getIsDelete, CommonConstant.IS_DEL);
             flowTaskDAO.update(updateWrapper);
         }
@@ -469,6 +480,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         Long instanceId = flowTask.getInstanceId();
         String nodeKey = flowTask.getNodeKey();
         FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(instanceId);
+        flowTask = getExecutableTask(taskId, loginUser);
         validateRunningInstance(instance, loginUser, flowTask);
         // 再次查询任务
         flowTask = flowTaskDAO.selectById(taskId);
@@ -523,6 +535,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         history.setTransferTo(assignee);
         int updated = flowTaskDAO.update(history, new LambdaUpdateWrapper<FlowTask>()
                 .eq(FlowTask::getId, task.getId())
+                .isNull(FlowTask::getReturnTaskId)
                 .eq(FlowTask::getOrgId, loginUser.getOrgId())
                 .eq(FlowTask::getAssignee, loginUser.getId())
                 .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
@@ -548,6 +561,73 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         flowTaskDAO.insert(next);
     }
 
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public List<FlowTaskReturnTargetVO> listReturnTargets(Long taskId) {
+        LoginUser user = getLoginUser();
+        // 先判断任务状态是否可以执行
+        FlowTask task = getExecutableTask(taskId, user);
+        // 获取实例锁
+        FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(task.getInstanceId());
+        // 再次判断任务状态是否可以执行
+        task = getExecutableTask(taskId, user);
+        validateRunningInstance(instance, user, task);
+        FlowNode root = getReturnModel(instance);
+        // 获取可退回的目标节点
+        return FlowReturnPath.targets(root, task.getNodeKey(), listTaskByInstanceId(instance.getId())).stream()
+                .map(node -> new FlowTaskReturnTargetVO(node.getKey(), node.getName())).toList();
+    }
+
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public void returnTask(FlowTaskReturnParam param) {
+        String comment = param.getComment() == null ? "" : param.getComment().trim();
+        if (comment.isEmpty() || comment.length() > 500) {
+            throw new BizException("退回原因须为1至500字");
+        }
+        LoginUser user = getLoginUser();
+        FlowTask task = getExecutableTask(param.getTaskId(), user);
+        FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(task.getInstanceId());
+        task = getExecutableTask(param.getTaskId(), user);
+        validateRunningInstance(instance, user, task);
+        FlowNode root = getReturnModel(instance);
+        List<FlowTask> history = listTaskByInstanceId(instance.getId());
+        FlowNode target = FlowReturnPath.targets(root, task.getNodeKey(), history).stream()
+                .filter(node -> Objects.equals(node.getKey(), param.getTargetNodeKey())).findFirst()
+                .orElseThrow(() -> new BizException("退回目标不是有效的已完成前序人工审批节点，请刷新后重试"));
+        FlowNode current = FlowParser.findNodeByKey(root, task.getNodeKey());
+        Set<String> affectedKeys = FlowReturnPath.reachable(target);
+        List<FlowTask> affected = history.stream().filter(FlowReturnPath::isActive)
+                .filter(item -> affectedKeys.contains(item.getNodeKey())).toList();
+        Long returnTaskId = task.getId();
+        LocalDateTime now = LocalDateTime.now();
+        completeTask(returnTaskId, user, comment, FlowTaskStatusEnum.RETURNED);
+        flowTaskDAO.update(new LambdaUpdateWrapper<FlowTask>()
+                .eq(FlowTask::getId, returnTaskId).set(FlowTask::getReturnTargetNodeKey, target.getKey()));
+        invalidateTasks(affected, returnTaskId, now);
+        // 包含目标的并行网关仍保留其他分支的执行结果，只撤销重走分支的汇合贡献。
+        FlowReturnPath.enclosingGateways(target, current).forEach((gatewayKey, completed) -> {
+            FlowTask gateway = history.stream().filter(FlowReturnPath::isActive)
+                    .filter(item -> Objects.equals(item.getNodeKey(), gatewayKey)).findFirst()
+                    .orElseThrow(() -> new BizException("并行网关执行记录不存在"));
+            int count = gateway.getCompletedBranch() == null ? 0 : gateway.getCompletedBranch();
+            if (completed && count < 1) {
+                throw new BizException("并行网关完成计数异常");
+            }
+            // 先复制再失效，历史网关的计数不可被后续审批覆盖。
+            FlowTask next = PtcBeanUtils.copy(gateway, FlowTask.class);
+            next.setId(null);
+            next.setCreator(null);
+            next.setUpdater(null);
+            next.setCreateTime(null);
+            next.setUpdateTime(null);
+            next.setCompletedBranch(count - (completed ? 1 : 0));
+            invalidateTasks(List.of(gateway), returnTaskId, now);
+            flowTaskDAO.insert(next);
+        });
+        processExecutor.executeNode(instance, target);
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void withdrawTask(Long taskId) {
@@ -571,6 +651,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         boolean sameNode = Objects.equals(instance.getCurrentNodeKey(), task.getNodeKey());
         if (!sameNode || Objects.equals(task.getApproveMode(), FlowNodeEnum.ApproveMode.ORDER.getCode())) {
             LambdaUpdateWrapper<FlowTask> cancelRunningWrapper = new LambdaUpdateWrapper<>();
+            cancelRunningWrapper.isNull(FlowTask::getReturnTaskId);
             cancelRunningWrapper.eq(FlowTask::getInstanceId, instance.getId())
                     .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
                     .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL)
@@ -579,6 +660,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         }
 
         LambdaUpdateWrapper<FlowTask> withdrawWrapper = new LambdaUpdateWrapper<>();
+        withdrawWrapper.isNull(FlowTask::getReturnTaskId);
         withdrawWrapper.eq(FlowTask::getId, taskId)
                 .eq(FlowTask::getStatus, FlowTaskStatusEnum.APPROVE.getCode())
                 .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL)
@@ -610,6 +692,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 || !Objects.equals(task.getStatus(), FlowTaskStatusEnum.APPROVE.getCode())
                 || !Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL)
                 || Boolean.TRUE.equals(task.getTimeoutHandled())
+                || !FlowReturnPath.isActive(task)
                 || task.getEndTime() == null) {
             return false;
         }
@@ -618,6 +701,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             return false;
         }
         boolean laterApprovalHandled = instanceTasks.stream()
+                .filter(FlowReturnPath::isActive)
                 .filter(item -> !Objects.equals(item.getId(), task.getId()))
                 .filter(item -> Objects.equals(item.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()))
                 .filter(item -> Objects.equals(item.getStatus(), FlowTaskStatusEnum.APPROVE.getCode())
@@ -631,6 +715,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             return false;
         }
         List<FlowTask> runningTasks = instanceTasks.stream()
+                .filter(FlowReturnPath::isActive)
                 .filter(item -> Objects.equals(item.getStatus(), FlowTaskStatusEnum.RUNNING.getCode()))
                 .filter(item -> Objects.equals(item.getIsDelete(), CommonConstant.IS_NOT_DEL))
                 .toList();
@@ -646,6 +731,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         LambdaQueryWrapper<FlowTask> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(FlowTask::getInstanceId, instanceId);
         queryWrapper.eq(FlowTask::getNodeKey, nodeKey);
+        queryWrapper.isNull(FlowTask::getReturnTaskId);
+        queryWrapper.eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
         FlowTask flowTask = flowTaskDAO.selectOne(queryWrapper);
         return flowTask.getCompletedBranch();
     }
@@ -655,6 +742,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(FlowTask::getInstanceId, instanceId);
         updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
+        updateWrapper.isNull(FlowTask::getReturnTaskId);
         updateWrapper.set(FlowTask::getIsDelete, CommonConstant.IS_DEL);
         flowTaskDAO.update(updateWrapper);
     }
@@ -669,6 +757,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         updateWrapper.eq(FlowTask::getInstanceId, instanceId);
         updateWrapper.eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
         updateWrapper.eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
+        updateWrapper.isNull(FlowTask::getReturnTaskId);
         flowTaskDAO.update(task, updateWrapper);
     }
 
@@ -694,6 +783,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(FlowTask::getId, taskId).eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode());
         updateWrapper.eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
+        updateWrapper.isNull(FlowTask::getReturnTaskId);
         updateWrapper.eq(FlowTask::getOrgId, loginUser.getOrgId());
         updateWrapper.eq(FlowTask::getAssignee, loginUser.getId());
         updateWrapper.eq(FlowTask::getNodeType, FlowNodeEnum.Type.APPROVE.getCode());
@@ -714,6 +804,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         PtcLambdaQueryWrapper<FlowTask> queryWrapper = new PtcLambdaQueryWrapper<>();
         queryWrapper.eq(FlowTask::getInstanceId, instanceId);
         queryWrapper.eq(FlowTask::getNodeKey, nodeKey);
+        queryWrapper.isNull(FlowTask::getReturnTaskId);
+        queryWrapper.eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL);
         return flowTaskDAO.selectList(queryWrapper);
     }
 
@@ -723,7 +815,14 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         if (Objects.equals(strategy, FlowExtraSetting.ApproverDeduplication.NONE)) {
             return Set.of();
         }
-        List<FlowTask> history = listTaskByInstanceId(instance.getId()).stream()
+        List<FlowTask> allTasks = listTaskByInstanceId(instance.getId());
+        // 重走节点必须重新审批，即使相同人员曾在其他节点审批过。
+        if (allTasks.stream().anyMatch(task -> Objects.equals(task.getNodeKey(), currentNode.getKey())
+                && !FlowReturnPath.isActive(task))) {
+            return Set.of();
+        }
+        List<FlowTask> history = allTasks.stream()
+                .filter(FlowReturnPath::isActive)
                 .filter(task -> Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()))
                 .filter(task -> Objects.equals(task.getStatus(), FlowTaskStatusEnum.APPROVE.getCode()))
                 .filter(task -> task.getAssignee() != null)
@@ -787,6 +886,36 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 .orElse(null);
     }
 
+    private FlowNode getReturnModel(FlowInstance instance) {
+        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+        if (definition == null || !Objects.equals(definition.getOrgId(), instance.getOrgId())) {
+            throw new BizException("流程发布定义不存在");
+        }
+        FlowNode root = definition.getModelNode();
+        FlowParser.makeParentNode(root);
+        return root;
+    }
+
+    private void invalidateTasks(List<FlowTask> tasks, Long returnTaskId, LocalDateTime now) {
+        if (tasks.isEmpty()) {
+            return;
+        }
+        List<Long> ids = tasks.stream().map(FlowTask::getId).toList();
+        flowTaskDAO.update(new LambdaUpdateWrapper<FlowTask>().in(FlowTask::getId, ids)
+                .isNull(FlowTask::getReturnTaskId)
+                .set(FlowTask::getReturnTaskId, returnTaskId)
+                .set(FlowTask::getNextRemindTime, null));
+        flowTaskDAO.update(new LambdaUpdateWrapper<FlowTask>().in(FlowTask::getId, ids)
+                .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
+                .set(FlowTask::getStatus, FlowTaskStatusEnum.CANCEL.getCode())
+                .set(FlowTask::getEndTime, now).set(FlowTask::getComment, "因流程退回取消待办"));
+        flowTimeoutNoticeDAO.update(new LambdaUpdateWrapper<FlowTimeoutNotice>()
+                .in(FlowTimeoutNotice::getTaskId, ids)
+                .eq(FlowTimeoutNotice::getEventType, FlowTimeoutNoticeEnums.EventType.REMINDER.getCode())
+                .eq(FlowTimeoutNotice::getState, FlowTimeoutNoticeEnums.State.PENDING.getCode())
+                .set(FlowTimeoutNotice::getState, FlowTimeoutNoticeEnums.State.CANCELLED.getCode()));
+    }
+
     private FlowTask getExecutableTask(Long taskId, LoginUser loginUser) {
         FlowTask task = flowTaskDAO.selectById(taskId);
         if (task == null
@@ -795,7 +924,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 || !Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode())) {
             throw new BizException("任务不存在或无权处理");
         }
-        if (!Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
+        if (!FlowReturnPath.isActive(task)
+                || !Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
                 || !Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL)) {
             throw new BizException(Boolean.TRUE.equals(task.getTimeoutHandled())
                     ? "任务已超时自动处理，请刷新后查看" : "任务已经处理过，请勿重复处理");

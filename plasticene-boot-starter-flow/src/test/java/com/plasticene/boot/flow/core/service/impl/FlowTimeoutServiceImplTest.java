@@ -58,7 +58,8 @@ class FlowTimeoutServiceImplTest {
     void setUp() {
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "test"), FlowTask.class);
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "test"), FlowTimeoutNotice.class);
-        service = new FlowTimeoutServiceImpl(dao, runtime, tasks);
+        service = spy(new FlowTimeoutServiceImpl(dao, runtime, tasks));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "flowTimeoutNotification", channel);
         task = new FlowTask();
         task.setId(11L);
         task.setOrgId(9L);
@@ -211,6 +212,28 @@ class FlowTimeoutServiceImplTest {
         assertEquals("PENDING", notice.getState());
         verifyNoInteractions(channel);
         verify(dao, never()).update(any());
+    }
+
+    @Test
+    void shouldIgnoreInvalidatedTaskEvenIfScannerLoadedItBeforeReturn() {
+        task.setReturnTaskId(42L);
+        task.setDeadline(NOW);
+        prepareDueTask();
+        service.handleDueTask(task, NOW);
+        verify(tasks, never()).approveTask(any(), any());
+        verify(dao, never()).insert(any(FlowTimeoutNotice.class));
+    }
+
+    @Test
+    void shouldCancelInvalidatedReminderAfterAcquiringInstanceBeforeNoticeLock() {
+        FlowTimeoutNotice notice = prepareNotice(EventType.REMINDER, State.PENDING, 0);
+        task.setReturnTaskId(42L);
+        service.sendNotification(31L, NOW);
+        var order = inOrder(runtime, dao);
+        order.verify(runtime).selectInstanceForUpdate(21L);
+        order.verify(dao).lock(31L);
+        assertEquals("CANCELLED", notice.getState());
+        verifyNoInteractions(channel);
     }
 
     private void prepareDueTask() {

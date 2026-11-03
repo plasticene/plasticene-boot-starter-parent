@@ -40,6 +40,7 @@ public class FlowTimeoutScheduler {
                     .gt(FlowTask::getId, startId)
                     .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
                     .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL)
+                    .isNull(FlowTask::getReturnTaskId)
                     .and(q -> q.le(FlowTask::getDeadline, now).or().le(FlowTask::getNextRemindTime, now))
                     .orderByAsc(FlowTask::getId)
                     .last("LIMIT " + SCAN_BATCH_SIZE));

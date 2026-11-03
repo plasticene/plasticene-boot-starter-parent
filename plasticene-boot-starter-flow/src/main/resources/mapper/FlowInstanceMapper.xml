@@ -88,6 +88,8 @@
         INNER JOIN flow_task ft ON ft.instance_id = fi.id
             AND ft.org_id = fi.org_id
             AND ft.node_key = fi.current_node_key
+            AND ft.is_delete = 0
+            AND ft.return_task_id IS NULL
         WHERE fi.org_id = #{orgId}
           AND fi.id IN
         <foreach collection="instanceIds" item="instanceId" open="(" separator="," close=")">

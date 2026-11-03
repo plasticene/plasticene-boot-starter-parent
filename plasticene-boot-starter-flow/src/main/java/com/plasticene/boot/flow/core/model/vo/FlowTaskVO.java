@@ -40,7 +40,7 @@ public class FlowTaskVO {
     private Integer approveType;
     @Schema(description = "多人审批方式")
     private Integer approveMode;
-    @Schema(description = "任务状态 0：处理中 1：已完成 2：拒绝 3：已取消 4：已转交")
+    @Schema(description = "任务状态 0：处理中 1：已完成 2：拒绝 3：已取消 4：已转交 5：已退回")
     private Integer status;
     @Schema(description = "任务状态名称")
     private String statusName;
@@ -64,4 +64,12 @@ public class FlowTaskVO {
     private String timeoutAction;
     @Schema(description = "是否由系统超时处理")
     private Boolean timeoutHandled;
+    @Schema(description = "退回目标节点key")
+    private String returnTargetNodeKey;
+    @Schema(description = "退回目标节点名称")
+    private String returnTargetNodeName;
+    @Schema(description = "使该记录失效的退回任务ID；为空表示仍有效")
+    private Long returnTaskId;
+    @Schema(description = "当前用户是否可退回此待办")
+    private Boolean returnable;
 }

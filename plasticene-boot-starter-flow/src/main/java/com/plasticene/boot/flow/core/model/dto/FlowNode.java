@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -134,6 +135,7 @@ public class FlowNode {
      * 父节点 逻辑字段后端用
      */
     @Schema(description = "父节点  后端使用，前端不需要传", hidden = true)
+    @JsonIgnore
     private FlowNode parentNode;
 
     /**

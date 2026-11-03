@@ -96,6 +96,12 @@ public class FlowTimeoutServiceImpl extends ServiceImpl<FlowTimeoutNoticeDAO, Fl
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     @Override
     public void sendNotification(Long noticeId, LocalDateTime now) {
+        // 与退回使用相同锁顺序：实例在前，通知在后，避免互相等待。
+        FlowTimeoutNotice snapshot = flowTimeoutNoticeDAO.selectById(noticeId);
+        if (snapshot == null) {
+            return;
+        }
+        flowRuntimeService.selectInstanceForUpdate(snapshot.getInstanceId());
         // 获取通知记录并加锁
         FlowTimeoutNotice notice = flowTimeoutNoticeDAO.lock(noticeId);
         // 该通知记录已经被处理过了
@@ -178,6 +184,7 @@ public class FlowTimeoutServiceImpl extends ServiceImpl<FlowTimeoutNoticeDAO, Fl
 
     private boolean isFinished(FlowTask task) {
         return task == null
+                || task.getReturnTaskId() != null
                 || !Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
                 || !Objects.equals(task.getIsDelete(), CommonConstant.IS_NOT_DEL)
                 || !Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode());

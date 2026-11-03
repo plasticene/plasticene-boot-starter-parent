@@ -159,7 +159,8 @@ class FlowTaskServiceImplTest {
                 FlowTaskStatusEnum.APPROVE.getCode(),
                 FlowTaskStatusEnum.REJECT.getCode(),
                 FlowTaskStatusEnum.CANCEL.getCode(),
-                FlowTaskStatusEnum.TRANSFERRED.getCode()
+                FlowTaskStatusEnum.TRANSFERRED.getCode(),
+                FlowTaskStatusEnum.RETURNED.getCode()
         ), query.getStatuses());
         verify(flowTaskDAO).pageTask(any(), eq(query));
     }

@@ -3,14 +3,16 @@ package com.plasticene.boot.flow.core.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
-import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
+import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.model.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
+import com.plasticene.boot.flow.core.model.vo.FlowTaskReturnTargetVO;
 
 import java.util.List;
 
@@ -93,6 +95,12 @@ public interface FlowTaskService extends IService<FlowTask> {
 
     /** 将当前待办转交给同组织有效用户，保留原任务记录。 */
     void transferTask(FlowTaskTransferParam param);
+
+    /** 查询本人待办可退回的前序人工审批节点。 */
+    List<FlowTaskReturnTargetVO> listReturnTargets(Long taskId);
+
+    /** 退回并重新创建目标审批节点待办。 */
+    void returnTask(FlowTaskReturnParam param);
 
     /**
      * 判断当前用户是否可以撤回任务
