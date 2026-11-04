@@ -40,5 +40,7 @@ public class FlowInstanceDetailVO {
     private List<FlowTaskVO> tasks;
     @Schema(description = "实例加签批次记录")
     private List<FlowTaskAddSignVO> addSigns;
+    @Schema(description = "当前用户有权查看的表单变更记录")
+    private List<FlowFormChangeRecordVO> formChangeRecords;
 }
 

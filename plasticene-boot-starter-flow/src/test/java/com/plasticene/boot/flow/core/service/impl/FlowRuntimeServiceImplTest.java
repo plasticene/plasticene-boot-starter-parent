@@ -73,6 +73,8 @@ class FlowRuntimeServiceImplTest {
     private FlowOrganizationProvider flowOrganizationProvider;
     @Mock
     private FlowTimeoutNoticeDAO timeoutNoticeDAO;
+    @Mock
+    private com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO formChangeRecordDAO;
     @InjectMocks
     private FlowRuntimeServiceImpl service;
 
@@ -87,6 +89,51 @@ class FlowRuntimeServiceImplTest {
     @AfterEach
     void clearLoginUser() {
         LoginUserHolder.remove();
+    }
+
+    @Test
+    void shouldFilterHistoricalFieldsUsingCurrentTaskPermissions() {
+        var instance = runningInstance(8L);
+        FlowDefinition definition = new FlowDefinition();
+        definition.setOrgId(10L);
+        FlowNode node = new FlowNode();
+        node.setKey("approve");
+        node.setType(1);
+        var hidden = new com.plasticene.boot.flow.core.model.dto.FlowFieldPermission();
+        hidden.setField("secret");
+        hidden.setPermission(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.HIDDEN);
+        node.setFieldsPermission(List.of(hidden));
+        definition.setModelNode(node);
+        definition.setFormConfig(Map.of("rule", List.of(
+                Map.of("field", "amount", "title", "金额"), Map.of("field", "secret", "title", "秘密"))));
+        FlowTask task = new FlowTask();
+        task.setId(41L);
+        task.setNodeKey("approve");
+        task.setNodeType(1);
+        task.setAssignee(8L);
+        task.setStatus(0);
+        when(flowInstanceDAO.selectById(21L)).thenReturn(instance);
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(flowTaskService.listTaskByInstanceId(21L)).thenReturn(List.of(task));
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
+        when(processExecutor.calculateRouteTrace(node, Map.of())).thenReturn(List.of(node));
+        var changes = com.plasticene.boot.flow.core.utils.FlowFormChanges.diff(definition.getFormConfig(),
+                Map.of(), Map.of("amount", 100, "secret", "private"));
+        var mixed = new com.plasticene.boot.flow.core.entity.FlowFormChangeRecord();
+        mixed.setId(2L);
+        mixed.setFieldDetails(changes);
+        var allHidden = new com.plasticene.boot.flow.core.entity.FlowFormChangeRecord();
+        allHidden.setId(1L);
+        allHidden.setFieldDetails(List.of(changes.getLast()));
+        when(formChangeRecordDAO.selectList(any())).thenReturn(List.of(mixed, allHidden));
+        var records = service.getInstanceDetail(21L, 41L).getFormChangeRecords();
+        assertEquals(1, records.size());
+        assertEquals(1, records.getFirst().getFieldDetails().size());
+        assertEquals("amount", records.getFirst().getFieldDetails().getFirst().getField());
+        assertEquals(2, mixed.getFieldDetails().size());
+        hidden.setField("amount");
+        assertEquals("secret", service.getInstanceDetail(21L, 41L).getFormChangeRecords()
+                .getFirst().getFieldDetails().getFirst().getField());
     }
 
     @Test

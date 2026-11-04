@@ -1,6 +1,10 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO;
+import com.plasticene.boot.flow.core.entity.FlowFormChangeRecord;
+import com.plasticene.boot.flow.core.model.vo.FlowFormChangeRecordVO;
+import com.plasticene.boot.flow.core.utils.FlowFormChanges;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -80,6 +84,9 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     private FlowOrganizationProvider flowOrganizationProvider;
     @Resource
     private FlowTimeoutNoticeDAO timeoutNoticeDAO;
+    @Resource
+    private FlowFormChangeRecordDAO formChangeRecordDAO;
+
 
 
     @Transactional(rollbackFor = Exception.class)
@@ -216,6 +223,15 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         detail.setVersion(definition.getVersion());
         var permissions = FlowFormPermissions.resolve(definition, instance, taskList, loginUser.getId(), taskId);
         detail.setFieldPermissions(permissions);
+        detail.setFormChangeRecords(formChangeRecordDAO.selectList(new LambdaQueryWrapper<FlowFormChangeRecord>()
+                .eq(FlowFormChangeRecord::getOrgId, instance.getOrgId())
+                .eq(FlowFormChangeRecord::getInstanceId, instanceId)
+                .orderByDesc(FlowFormChangeRecord::getOperationTime, FlowFormChangeRecord::getId)).stream()
+                .map(record -> {
+                    FlowFormChangeRecordVO vo = PtcBeanUtils.copy(record, FlowFormChangeRecordVO.class);
+                    vo.setFieldDetails(FlowFormChanges.visible(record.getFieldDetails(), permissions));
+                    return vo;
+                }).filter(record -> !record.getFieldDetails().isEmpty()).toList());
         detail.setFormConfig(FlowFormPermissions.filterConfig(definition.getFormConfig(), permissions));
         detail.setFormData(FlowFormPermissions.filterData(variables, permissions));
         detail.setModelNode(definition.getModelNode());

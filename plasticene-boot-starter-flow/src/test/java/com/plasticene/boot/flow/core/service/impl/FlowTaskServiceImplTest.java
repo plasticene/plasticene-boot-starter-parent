@@ -81,6 +81,8 @@ class FlowTaskServiceImplTest {
     private FlowOrganizationProvider flowOrganizationProvider;
     @Mock
     private FlowTaskAddSignDAO flowTaskAddSignDAO;
+    @Mock
+    private com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO formChangeRecordDAO;
     @InjectMocks
     private FlowTaskServiceImpl service;
 
@@ -807,7 +809,16 @@ class FlowTaskServiceImplTest {
         var param = new com.plasticene.boot.flow.core.model.param.FlowTaskFormParam();
         param.setTaskId(11L); param.setFormData(Map.of("reason", "new"));
         when(flowRuntimeService.updateById(any(FlowInstance.class))).thenReturn(true);
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
+        when(formChangeRecordDAO.insert(any(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class))).thenReturn(1);
         service.saveForm(param);
+        var recordCaptor = ArgumentCaptor.forClass(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class);
+        verify(formChangeRecordDAO).insert(recordCaptor.capture());
+        var record = recordCaptor.getValue();
+        assertEquals("张三", record.getOperatorName());
+        assertEquals(21L, record.getInstanceId());
+        assertEquals("old", record.getFieldDetails().getFirst().getOldValue());
+        assertEquals("new", record.getFieldDetails().getFirst().getNewValue());
         ArgumentCaptor<FlowInstance> captor = ArgumentCaptor.forClass(FlowInstance.class);
         verify(flowRuntimeService).updateById(captor.capture());
         assertEquals(Map.of("reason", "new", "internal", 123), captor.getValue().getVarMap());
@@ -825,6 +836,78 @@ class FlowTaskServiceImplTest {
         param.setTaskId(11L); param.setFormData(Map.of("reason", "new"));
         assertThrows(BizException.class, () -> service.saveForm(param));
         verify(flowRuntimeService, never()).updateById(any(FlowInstance.class));
+    }
+
+    @Test
+    void shouldReadCurrentLockedValueForConsecutiveSaves() {
+        var param = prepareFormChange();
+        var instance = flowRuntimeService.selectInstanceForUpdate(21L);
+        when(flowRuntimeService.updateById(any(FlowInstance.class))).thenAnswer(call -> {
+            instance.setVarMap(call.<FlowInstance>getArgument(0).getVarMap());
+            return true;
+        });
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
+        when(formChangeRecordDAO.insert(any(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class))).thenReturn(1);
+        service.saveForm(param);
+        param.setFormData(Map.of("reason", "latest"));
+        service.saveForm(param);
+        var captured = ArgumentCaptor.forClass(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class);
+        verify(formChangeRecordDAO, times(2)).insert(captured.capture());
+        assertEquals("old", captured.getAllValues().getFirst().getFieldDetails().getFirst().getOldValue());
+        assertEquals("new", captured.getAllValues().getLast().getFieldDetails().getFirst().getOldValue());
+        assertEquals("latest", captured.getAllValues().getLast().getFieldDetails().getFirst().getNewValue());
+    }
+
+    @Test
+    void shouldNotWriteRecordForUnchangedForm() {
+        var param = prepareFormChange();
+        param.setFormData(Map.of("reason", "old"));
+        service.saveForm(param);
+        verifyNoInteractions(formChangeRecordDAO);
+        verify(flowRuntimeService, never()).updateById(any(FlowInstance.class));
+    }
+
+    @Test
+    void shouldNotWriteRecordForUnauthorizedOrFailedSave() {
+        var param = prepareFormChange();
+        param.setFormData(Map.of("internal", "bad"));
+        assertThrows(BizException.class, () -> service.saveForm(param));
+        verifyNoInteractions(formChangeRecordDAO);
+        param.setFormData(Map.of("reason", "new"));
+        when(flowRuntimeService.updateById(any(FlowInstance.class))).thenReturn(false);
+        assertThrows(BizException.class, () -> service.saveForm(param));
+        verifyNoInteractions(formChangeRecordDAO);
+    }
+
+    @Test
+    void shouldPropagateRecordFailureSoTransactionRollsBack() throws Exception {
+        var param = prepareFormChange();
+        when(flowRuntimeService.updateById(any(FlowInstance.class))).thenReturn(true);
+        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
+        when(formChangeRecordDAO.insert(any(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class)))
+                .thenThrow(new IllegalStateException("insert failed"));
+        assertThrows(IllegalStateException.class, () -> service.saveForm(param));
+        var transaction = FlowTaskServiceImpl.class.getMethod("saveForm", param.getClass())
+                .getAnnotation(org.springframework.transaction.annotation.Transactional.class);
+        assertTrue(java.util.Arrays.asList(transaction.rollbackFor()).contains(Exception.class));
+    }
+
+    private com.plasticene.boot.flow.core.model.param.FlowTaskFormParam prepareFormChange() {
+        when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
+        FlowInstance instance = runningInstance();
+        instance.setVarMap(Map.of("reason", "old"));
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(instance);
+        prepareOperationDefinition();
+        var definition = flowDefinitionService.getById(31L);
+        definition.setFormConfig(Map.of("rule", List.of(Map.of("field", "reason", "title", "原因"))));
+        var permission = new com.plasticene.boot.flow.core.model.dto.FlowFieldPermission();
+        permission.setField("reason");
+        permission.setPermission(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.WRITE);
+        definition.getModelNode().setFieldsPermission(List.of(permission));
+        var param = new com.plasticene.boot.flow.core.model.param.FlowTaskFormParam();
+        param.setTaskId(11L);
+        param.setFormData(Map.of("reason", "new"));
+        return param;
     }
 
     private FlowTask prepareTransfer() {

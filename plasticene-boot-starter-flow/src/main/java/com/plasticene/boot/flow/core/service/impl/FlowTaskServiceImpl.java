@@ -1,6 +1,9 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import com.plasticene.boot.flow.core.utils.FlowFormPermissions;
+import com.plasticene.boot.flow.core.utils.FlowFormChanges;
+import com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO;
+import com.plasticene.boot.flow.core.entity.FlowFormChangeRecord;
 import com.plasticene.boot.flow.core.model.param.FlowTaskFormParam;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
@@ -102,6 +105,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
     @Resource
     private FlowTaskAddSignDAO flowTaskAddSignDAO;
+
+    @Resource
+    private FlowFormChangeRecordDAO formChangeRecordDAO;
 
     @Override
     public PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query) {
@@ -406,11 +412,28 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 definition, instance, List.of(task), user.getId(), task.getId());
         var variables = FlowFormPermissions.mergeChanges(
                 instance.getVarMap(), param.getFormData(), permissions);
+        var changes = FlowFormChanges.diff(definition.getFormConfig(), instance.getVarMap(), variables);
+        if (changes.isEmpty()) {
+            return;
+        }
         FlowInstance update = new FlowInstance();
         update.setId(instance.getId());
         update.setVarMap(variables);
         if (!flowRuntimeService.updateById(update)) {
             throw new BizException("表单保存失败，请刷新后重试");
+        }
+        FlowFormChangeRecord record = new FlowFormChangeRecord();
+        record.setOrgId(instance.getOrgId());
+        record.setInstanceId(instance.getId());
+        record.setTaskId(task.getId());
+        record.setNodeKey(task.getNodeKey());
+        record.setNodeName(FlowParser.findNodeByKey(definition.getModelNode(), task.getNodeKey()).getName());
+        record.setOperatorId(user.getId());
+        record.setOperatorName(flowOrganizationProvider.getUserMap().getOrDefault(user.getId(), String.valueOf(user.getId())));
+        record.setOperationTime(LocalDateTime.now());
+        record.setFieldDetails(changes);
+        if (formChangeRecordDAO.insert(record) != 1) {
+            throw new BizException("表单变更记录保存失败，请刷新后重试");
         }
     }
 
