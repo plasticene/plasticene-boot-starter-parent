@@ -726,6 +726,7 @@ class FlowTaskServiceImplTest {
 
     @Test
     void shouldRejectTransferToSelf() {
+        prepareOperationDefinition();
         when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
         FlowTaskTransferParam param = transferParam();
@@ -736,6 +737,7 @@ class FlowTaskServiceImplTest {
 
     @Test
     void shouldRejectTransferToInactiveOrOtherOrganizationUser() {
+        prepareOperationDefinition();
         when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
         when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of());
@@ -745,6 +747,7 @@ class FlowTaskServiceImplTest {
 
     @Test
     void shouldRejectTransferToExistingNodeApprover() {
+        prepareOperationDefinition();
         when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
         when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of(10L, "李四"));
@@ -757,6 +760,7 @@ class FlowTaskServiceImplTest {
 
     @Test
     void shouldRejectTransferToFutureOrderedApprover() {
+        prepareOperationDefinition();
         FlowTask task = runningTask();
         task.setApproveMode(FlowNodeEnum.ApproveMode.ORDER.getCode());
         task.setAssigneeList(List.of(8L, 10L));
@@ -801,7 +805,29 @@ class FlowTaskServiceImplTest {
         when(flowTaskDAO.update(any(FlowTask.class), any())).thenReturn(updated);
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(task));
         when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of(10L, "李四"));
+        prepareOperationDefinition();
         return task;
+    }
+
+    private void prepareOperationDefinition() {
+        FlowDefinition definition = new FlowDefinition();
+        definition.setOrgId(9L);
+        definition.setModelNode(approveNode("approve"));
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+    }
+
+    @Test
+    void shouldRejectTransferWhenPublishedNodeDisablesIt() {
+        when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        prepareOperationDefinition();
+        flowDefinitionService.getById(31L).getModelNode().setAllowTransfer(false);
+
+        BizException error = assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+
+        assertEquals("当前审批节点不允许转交", error.getMessage());
+        verify(flowTaskDAO, never()).insert(any(FlowTask.class));
+        verify(flowTaskDAO, never()).update(any(FlowTask.class), any());
     }
 
     private FlowTaskTransferParam transferParam() {

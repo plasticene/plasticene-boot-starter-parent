@@ -390,6 +390,20 @@ class FlowTaskAddSignTest {
         verify(executor).executeNode(instance, previous);
     }
 
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(FlowAddSignEnum.Type.class)
+    void shouldRejectEveryAddSignTypeWhenPublishedNodeDisablesIt(FlowAddSignEnum.Type type) {
+        definitions.getById(31L).getModelNode().setAllowAddSign(false);
+
+        BizException error = assertThrows(BizException.class,
+                () -> service.addSign(request(1L, type, 0, List.of(10L))));
+
+        assertEquals("当前审批节点不允许加签", error.getMessage());
+        assertTrue(batches.isEmpty());
+        assertEquals(0, rows.get(1L).getStatus());
+        verify(signs, never()).insert(any(FlowTaskAddSign.class));
+    }
+
     private FlowTaskAddSignParam request(Long taskId, FlowAddSignEnum.Type type, Integer mode, List<Long> ids) {
         FlowTaskAddSignParam param = new FlowTaskAddSignParam();
         param.setTaskId(taskId); param.setType(type); param.setApproveMode(mode); param.setAssigneeIds(ids); param.setComment("  补充审核  ");

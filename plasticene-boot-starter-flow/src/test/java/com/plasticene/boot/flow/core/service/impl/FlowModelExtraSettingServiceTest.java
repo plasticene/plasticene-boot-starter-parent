@@ -121,6 +121,35 @@ class FlowModelExtraSettingServiceTest {
         assertEquals(3, captor.getValue().getVersion());
     }
 
+    @Test
+    void shouldPreserveNodeOperationPermissionsThroughDraftAndPublishedJson() throws Exception {
+        FlowNode root = new FlowNode();
+        root.setKey("start");
+        FlowNode approval = new FlowNode();
+        approval.setKey("approve");
+        approval.setAllowTransfer(false);
+        approval.setAllowReturn(true);
+        approval.setAllowAddSign(false);
+        root.setChildNode(approval);
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        FlowModelParam param = new FlowModelParam();
+        param.setId(11L);
+        param.setModelNode(mapper.readValue(mapper.writeValueAsString(root), FlowNode.class));
+        service.update(param);
+        ArgumentCaptor<FlowModel> draft = ArgumentCaptor.forClass(FlowModel.class);
+        verify(flowModelDAO).updateById(draft.capture());
+        when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(draft.getValue());
+
+        service.publish(11L);
+
+        ArgumentCaptor<FlowDefinition> published = ArgumentCaptor.forClass(FlowDefinition.class);
+        verify(flowDefinitionService).save(published.capture());
+        FlowNode restored = mapper.readValue(mapper.writeValueAsString(published.getValue().getModelNode()), FlowNode.class);
+        assertEquals(false, restored.getChildNode().getAllowTransfer());
+        assertEquals(true, restored.getChildNode().getAllowReturn());
+        assertEquals(false, restored.getChildNode().getAllowAddSign());
+    }
+
     private FlowModelParam timeoutParam() {
         FlowModelParam param = new FlowModelParam();
         param.setId(11L);

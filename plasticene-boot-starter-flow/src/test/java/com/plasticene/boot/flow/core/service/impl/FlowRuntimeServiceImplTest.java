@@ -369,6 +369,23 @@ class FlowRuntimeServiceImplTest {
         String json = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().writeValueAsString(detail);
         assertFalse(json.contains("parentNode"));
         assertTrue(json.contains("returnable"));
+
+        current.setAllowTransfer(false);
+        current.setAllowAddSign(false);
+        var restricted = service.getInstanceDetail(21L).getTasks().getLast();
+        assertTrue(restricted.getProcessable());
+        assertFalse(restricted.getTransferable());
+        assertFalse(restricted.getAddSignable());
+        assertTrue(restricted.getReturnable());
+
+        current.setAllowReturn(false);
+        current.setAllowTransfer(true);
+        current.setAllowAddSign(true);
+        var independent = service.getInstanceDetail(21L).getTasks().getLast();
+        assertTrue(independent.getProcessable());
+        assertTrue(independent.getTransferable());
+        assertTrue(independent.getAddSignable());
+        assertFalse(independent.getReturnable());
     }
 
     @Test

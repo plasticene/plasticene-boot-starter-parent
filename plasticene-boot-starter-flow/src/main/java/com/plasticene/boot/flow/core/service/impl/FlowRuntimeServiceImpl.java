@@ -171,15 +171,16 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .map(task -> {
                     FlowTaskVO vo = toTaskVO(task, userMap);
                     vo.setTimeoutNotices(timeoutNotices.stream().filter(notice -> Objects.equals(notice.getTaskId(), task.getId())).toList());
-                    vo.setTransferable(FlowReturnPath.isActive(task) && Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
+                    vo.setProcessable(FlowReturnPath.isActive(task) && Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
                             && Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
                             && Objects.equals(task.getAssignee(), loginUser.getId())
                             && Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()));
-                    vo.setProcessable(vo.getTransferable());
                     boolean groupTask = flowTaskService.isAddSignGroupTask(task);
-                    vo.setTransferable(Boolean.TRUE.equals(vo.getProcessable()) && !groupTask);
-                    vo.setAddSignable(Boolean.TRUE.equals(vo.getProcessable()) && !groupTask);
-                    vo.setReturnable(Boolean.TRUE.equals(vo.getTransferable())
+                    FlowNode node = FlowParser.findNodeByKey(definition.getModelNode(), task.getNodeKey());
+                    boolean canOperate = Boolean.TRUE.equals(vo.getProcessable()) && !groupTask && node != null;
+                    vo.setTransferable(canOperate && !Boolean.FALSE.equals(node.getAllowTransfer()));
+                    vo.setAddSignable(canOperate && !Boolean.FALSE.equals(node.getAllowAddSign()));
+                    vo.setReturnable(canOperate && !Boolean.FALSE.equals(node.getAllowReturn())
                             && !FlowReturnPath.targets(definition.getModelNode(), task.getNodeKey(), taskList).isEmpty());
                     if (task.getReturnTargetNodeKey() != null) {
                         FlowNode target = FlowParser.findNodeByKey(definition.getModelNode(), task.getReturnTargetNodeKey());

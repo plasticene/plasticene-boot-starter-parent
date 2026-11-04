@@ -149,5 +149,15 @@ public class FlowNode {
     @Schema(description = "节点自定义超时规则，仅在 timeoutMode 为 CUSTOM 时生效。")
     private FlowTimeoutRule timeoutRule;
 
+    /** 是否允许转交；缺省允许。 */
+    @Schema(description = "是否允许转交；缺省允许")
+    private Boolean allowTransfer;
+    /** 是否允许退回；缺省允许。 */
+    @Schema(description = "是否允许退回；缺省允许")
+    private Boolean allowReturn;
+    /** 是否允许加签；缺省允许。 */
+    @Schema(description = "是否允许加签；缺省允许")
+    private Boolean allowAddSign;
+
 }
 

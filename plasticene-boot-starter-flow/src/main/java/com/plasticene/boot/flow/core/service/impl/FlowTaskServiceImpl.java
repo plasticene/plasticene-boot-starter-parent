@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -464,6 +465,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         task = getExecutableTask(param.getTaskId(), user);
         validateRunningInstance(instance, user, task);
         requireOriginalNodeTask(task);
+        requireNodeOperation(getReturnModel(instance), task, FlowNode::getAllowAddSign, "加签");
         validateAddSign(param, task, user);
         LocalDateTime now = LocalDateTime.now();
         FlowTaskAddSign batch = new FlowTaskAddSign();
@@ -537,6 +539,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         task = getExecutableTask(param.getTaskId(), loginUser);
         validateRunningInstance(instance, loginUser, task);
         requireOriginalNodeTask(task);
+        requireNodeOperation(getReturnModel(instance), task, FlowNode::getAllowTransfer, "转交");
         Long assignee = param.getAssignee();
         if (Objects.equals(assignee, loginUser.getId())) {
             throw new BizException("不能转交给自己");
@@ -604,6 +607,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         validateRunningInstance(instance, user, task);
         requireOriginalNodeTask(task);
         FlowNode root = getReturnModel(instance);
+        requireNodeOperation(root, task, FlowNode::getAllowReturn, "退回");
         // 获取可退回的目标节点
         return FlowReturnPath.targets(root, task.getNodeKey(), listTaskByInstanceId(instance.getId())).stream()
                 .map(node -> new FlowTaskReturnTargetVO(node.getKey(), node.getName())).toList();
@@ -623,6 +627,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         validateRunningInstance(instance, user, task);
         requireOriginalNodeTask(task);
         FlowNode root = getReturnModel(instance);
+        requireNodeOperation(root, task, FlowNode::getAllowReturn, "退回");
         List<FlowTask> history = listTaskByInstanceId(instance.getId());
         FlowNode target = FlowReturnPath.targets(root, task.getNodeKey(), history).stream()
                 .filter(node -> Objects.equals(node.getKey(), param.getTargetNodeKey())).findFirst()
@@ -1184,6 +1189,17 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 .filter(status -> Objects.equals(status.getCode(), code))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private void requireNodeOperation(FlowNode root, FlowTask task,
+                                      Function<FlowNode, Boolean> permission, String operation) {
+        FlowNode node = FlowParser.findNodeByKey(root, task.getNodeKey());
+        if (node == null) {
+            throw new BizException("审批节点不存在");
+        }
+        if (Boolean.FALSE.equals(permission.apply(node))) {
+            throw new BizException("当前审批节点不允许" + operation);
+        }
     }
 
     private FlowNode getReturnModel(FlowInstance instance) {

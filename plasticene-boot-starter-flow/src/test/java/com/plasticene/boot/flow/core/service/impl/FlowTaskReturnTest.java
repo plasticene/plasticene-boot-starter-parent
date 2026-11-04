@@ -163,6 +163,39 @@ class FlowTaskReturnTest {
     }
 
     @Test
+    void shouldRejectReturnAndTargetQueryWhenPublishedNodeDisablesReturn() {
+        FlowNode a = approval("a"), b = approval("b");
+        b.setAllowReturn(false);
+        a.setChildNode(b);
+        start(a);
+        approve("a");
+        Long taskId = pending("b").getId();
+
+        assertEquals("当前审批节点不允许退回", assertThrows(BizException.class,
+                () -> service.listReturnTargets(taskId)).getMessage());
+        assertEquals("当前审批节点不允许退回", assertThrows(BizException.class,
+                () -> back("b", "a")).getMessage());
+        assertEquals(List.of("b"), pendingKeys());
+        assertEquals(0, rows.get(taskId).getStatus());
+    }
+
+    @Test
+    void shouldAllowReturnWithTransferAndAddSignDisabled() {
+        FlowNode a = approval("a"), b = approval("b");
+        b.setAllowTransfer(false);
+        b.setAllowAddSign(false);
+        b.setAllowReturn(true);
+        a.setChildNode(b);
+        start(a);
+        approve("a");
+
+        assertEquals(List.of("a"), service.listReturnTargets(pending("b").getId()).stream()
+                .map(target -> target.getNodeKey()).toList());
+        back("b", "a");
+        assertEquals(List.of("a"), pendingKeys());
+    }
+
+    @Test
     void returnAfterJoinMustPreserveSiblingAndSkippedBranchContribution() {
         FlowNode b = approval("b"), c = approval("c"), d = approval("d");
         FlowNode gateway = parallel("g", branch("left", b), branch("right", c));
