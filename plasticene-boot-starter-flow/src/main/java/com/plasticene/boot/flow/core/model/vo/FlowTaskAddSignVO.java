@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.model.vo;
 
 import com.plasticene.boot.flow.core.enums.FlowAddSignEnum;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -13,30 +14,30 @@ import java.util.List;
  */
 @Data
 public class FlowTaskAddSignVO {
-    /** 加签批次ID。 */
+    @Schema(description = "加签批次ID")
     private Long id;
-    /** 发起加签的原审批任务ID。 */
+    @Schema(description = "发起加签的原审批任务ID")
     private Long sourceTaskId;
-    /** 所属审批节点key。 */
+    @Schema(description = "所属审批节点key")
     private String nodeKey;
-    /** 加签发起人ID。 */
+    @Schema(description = "加签发起人ID")
     private Long initiatorId;
-    /** 加签发起人名称。 */
+    @Schema(description = "加签发起人名称")
     private String initiatorName;
-    /** 加签类型。 */
+    @Schema(description = "加签类型")
     private FlowAddSignEnum.Type signType;
-    /** 加签审批方式。 */
+    @Schema(description = "加签审批方式")
     private Integer approveMode;
-    /** 加签人员ID有序列表。 */
+    @Schema(description = "加签人员ID有序列表")
     private List<Long> assigneeIds;
-    /** 与人员ID顺序一致的名称列表。 */
+    @Schema(description = "与人员ID顺序一致的名称列表")
     private List<String> assigneeNames;
-    /** 加签原因。 */
+    @Schema(description = "加签原因")
     private String comment;
-    /** 加签批次状态。 */
+    @Schema(description = "加签批次状态")
     private FlowAddSignEnum.State state;
-    /** 发起时间。 */
+    @Schema(description = "发起时间")
     private LocalDateTime createTime;
-    /** 批次结束时间。 */
+    @Schema(description = "批次结束时间")
     private LocalDateTime endTime;
 }
