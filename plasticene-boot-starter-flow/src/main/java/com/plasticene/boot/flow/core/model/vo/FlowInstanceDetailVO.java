@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.model.vo;
 
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.flow.core.model.dto.FlowFieldPermission;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -29,6 +30,8 @@ public class FlowInstanceDetailVO {
     private Map<String, Object> formConfig;
     @Schema(description = "实例提交的表单数据")
     private Map<String, Object> formData;
+    @Schema(description = "当前用户在本次详情上下文中的有效字段权限")
+    private Map<String, FlowFieldPermission.Permission> fieldPermissions;
     @Schema(description = "实例使用的流程模型快照")
     private FlowNode modelNode;
     @Schema(description = "根据实例表单数据计算的实际路径节点key")

@@ -25,6 +25,7 @@ import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowInstanceNodeTimeDTO;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.flow.core.utils.FlowFormPermissions;
 import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceStatisticsVO;
@@ -148,6 +149,11 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
     @Override
     public FlowInstanceDetailVO getInstanceDetail(Long instanceId) {
+        return getInstanceDetail(instanceId, null);
+    }
+
+    @Override
+    public FlowInstanceDetailVO getInstanceDetail(Long instanceId, Long taskId) {
         if (instanceId == null) {
             throw new BizException("流程实例id不能为空");
         }
@@ -208,8 +214,10 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         detail.setStartUserId(instance.getUserId());
         detail.setStartUserName(userMap.getOrDefault(instance.getUserId(), String.valueOf(instance.getUserId())));
         detail.setVersion(definition.getVersion());
-        detail.setFormConfig(definition.getFormConfig());
-        detail.setFormData(variables);
+        var permissions = FlowFormPermissions.resolve(definition, instance, taskList, loginUser.getId(), taskId);
+        detail.setFieldPermissions(permissions);
+        detail.setFormConfig(FlowFormPermissions.filterConfig(definition.getFormConfig(), permissions));
+        detail.setFormData(FlowFormPermissions.filterData(variables, permissions));
         detail.setModelNode(definition.getModelNode());
         detail.setRouteNodeKeys(processExecutor.calculateRouteTrace(definition.getModelNode(), variables).stream()
                 .map(FlowNode::getKey)

@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.service;
 
+import com.plasticene.boot.flow.core.model.param.FlowTaskFormParam;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
@@ -23,6 +24,11 @@ import java.util.List;
  * @date 2025/9/2
  */
 public interface FlowTaskService extends IService<FlowTask> {
+
+    /**
+     * 仅保存当前可办理任务的可编辑字段，不执行审批。
+     */
+    void saveForm(FlowTaskFormParam param);
 
     /**
      * 分页查询当前用户待办任务

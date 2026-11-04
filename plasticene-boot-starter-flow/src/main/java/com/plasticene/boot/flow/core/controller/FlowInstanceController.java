@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -80,8 +81,9 @@ public class FlowInstanceController {
 
     @Operation(summary = "查询流程实例详情")
     @GetMapping("/{instanceId}")
-    public ResponseVO<FlowInstanceDetailVO> getInstanceDetail(@PathVariable("instanceId") Long instanceId) {
-        return ResponseVO.success(flowRuntimeService.getInstanceDetail(instanceId));
+    public ResponseVO<FlowInstanceDetailVO> getInstanceDetail(@PathVariable("instanceId") Long instanceId,
+            @RequestParam(value = "taskId", required = false) Long taskId) {
+        return ResponseVO.success(flowRuntimeService.getInstanceDetail(instanceId, taskId));
     }
 
     @Operation(summary = "取消当前用户发起的流程实例")

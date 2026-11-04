@@ -293,6 +293,7 @@ class FlowRuntimeServiceImplTest {
         definition.setOrgId(10L);
         definition.setName("办公设备购买");
         definition.setCode("buy_091401");
+        definition.setFormConfig(Map.of("rule", List.of(Map.of("field", "amount", "title", "金额"))));
         definition.setVersion(2);
         FlowNode startNode = new FlowNode();
         startNode.setKey("start");

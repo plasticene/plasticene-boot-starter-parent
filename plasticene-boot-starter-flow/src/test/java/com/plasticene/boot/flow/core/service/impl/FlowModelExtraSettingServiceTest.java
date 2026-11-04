@@ -130,6 +130,11 @@ class FlowModelExtraSettingServiceTest {
         approval.setAllowTransfer(false);
         approval.setAllowReturn(true);
         approval.setAllowAddSign(false);
+        var fieldPermission = new com.plasticene.boot.flow.core.model.dto.FlowFieldPermission();
+        fieldPermission.setField("reason");
+        fieldPermission.setTitle("原因");
+        fieldPermission.setPermission(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.WRITE);
+        approval.setFieldsPermission(java.util.List.of(fieldPermission));
         root.setChildNode(approval);
         var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
         FlowModelParam param = new FlowModelParam();
@@ -148,6 +153,7 @@ class FlowModelExtraSettingServiceTest {
         assertEquals(false, restored.getChildNode().getAllowTransfer());
         assertEquals(true, restored.getChildNode().getAllowReturn());
         assertEquals(false, restored.getChildNode().getAllowAddSign());
+        assertEquals(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.WRITE, restored.getChildNode().getFieldsPermission().getFirst().getPermission());
     }
 
     private FlowModelParam timeoutParam() {

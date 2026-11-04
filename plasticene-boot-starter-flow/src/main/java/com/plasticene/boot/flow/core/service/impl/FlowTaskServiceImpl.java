@@ -1,5 +1,7 @@
 package com.plasticene.boot.flow.core.service.impl;
 
+import com.plasticene.boot.flow.core.utils.FlowFormPermissions;
+import com.plasticene.boot.flow.core.model.param.FlowTaskFormParam;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -386,6 +388,30 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         task.setEndTime(LocalDateTime.now());
         task.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
         flowTaskDAO.insert(task);
+    }
+
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public void saveForm(FlowTaskFormParam param) {
+        LoginUser user = getLoginUser();
+        FlowTask task = getExecutableTask(param.getTaskId(), user);
+        FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(task.getInstanceId());
+        task = getExecutableTask(param.getTaskId(), user);
+        validateRunningInstance(instance, user, task);
+        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+        if (definition == null || !Objects.equals(definition.getOrgId(), user.getOrgId())) {
+            throw new BizException("流程发布定义不存在");
+        }
+        var permissions = FlowFormPermissions.resolve(
+                definition, instance, List.of(task), user.getId(), task.getId());
+        var variables = FlowFormPermissions.mergeChanges(
+                instance.getVarMap(), param.getFormData(), permissions);
+        FlowInstance update = new FlowInstance();
+        update.setId(instance.getId());
+        update.setVarMap(variables);
+        if (!flowRuntimeService.updateById(update)) {
+            throw new BizException("表单保存失败，请刷新后重试");
+        }
     }
 
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)

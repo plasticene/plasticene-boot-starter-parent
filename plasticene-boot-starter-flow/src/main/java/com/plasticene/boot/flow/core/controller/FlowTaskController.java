@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.controller;
 
+import com.plasticene.boot.flow.core.model.param.FlowTaskFormParam;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.flow.core.model.param.FlowTaskAddSignParam;
@@ -51,6 +52,13 @@ public class FlowTaskController {
     @GetMapping("/my/copy/page")
     public ResponseVO<PageResult<FlowTaskPageVO>> pageMyCopy(@Validated FlowTaskQuery query) {
         return ResponseVO.success(flowTaskService.pageMyCopy(query));
+    }
+
+    @Operation(summary = "保存当前审批任务的表单修改")
+    @PostMapping("/form")
+    public ResponseVO<Void> saveForm(@RequestBody @Validated FlowTaskFormParam param) {
+        flowTaskService.saveForm(param);
+        return ResponseVO.success();
     }
 
     @Operation(summary = "审批流程实例任务")

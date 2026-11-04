@@ -790,6 +790,43 @@ class FlowTaskServiceImplTest {
         assertEquals(1L, task.getSourceTaskId());
     }
 
+    @Test
+    void shouldSaveFormWithoutCompletingTaskAndPreserveOtherFields() {
+        FlowTask task = runningTask();
+        task.setSourceTaskId(2L); task.setAddSignId(3L);
+        FlowInstance instance = runningInstance();
+        instance.setVarMap(Map.of("reason", "old", "internal", 123));
+        when(flowTaskDAO.selectById(11L)).thenReturn(task);
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(instance);
+        prepareOperationDefinition();
+        var definition = flowDefinitionService.getById(31L);
+        definition.setFormConfig(Map.of("rule", List.of(Map.of("field", "reason", "title", "原因"))));
+        var permission = new com.plasticene.boot.flow.core.model.dto.FlowFieldPermission();
+        permission.setField("reason"); permission.setPermission(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.WRITE);
+        definition.getModelNode().setFieldsPermission(List.of(permission));
+        var param = new com.plasticene.boot.flow.core.model.param.FlowTaskFormParam();
+        param.setTaskId(11L); param.setFormData(Map.of("reason", "new"));
+        when(flowRuntimeService.updateById(any(FlowInstance.class))).thenReturn(true);
+        service.saveForm(param);
+        ArgumentCaptor<FlowInstance> captor = ArgumentCaptor.forClass(FlowInstance.class);
+        verify(flowRuntimeService).updateById(captor.capture());
+        assertEquals(Map.of("reason", "new", "internal", 123), captor.getValue().getVarMap());
+        verify(flowTaskDAO, never()).update(any(FlowTask.class), any());
+        verifyNoInteractions(processExecutor);
+    }
+
+    @Test
+    void shouldRejectSaveIfTaskChangedWhileWaitingForInstanceLock() {
+        FlowTask before = runningTask();
+        FlowTask after = runningTask(); after.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
+        when(flowTaskDAO.selectById(11L)).thenReturn(before, after);
+        when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
+        var param = new com.plasticene.boot.flow.core.model.param.FlowTaskFormParam();
+        param.setTaskId(11L); param.setFormData(Map.of("reason", "new"));
+        assertThrows(BizException.class, () -> service.saveForm(param));
+        verify(flowRuntimeService, never()).updateById(any(FlowInstance.class));
+    }
+
     private FlowTask prepareTransfer() {
         return prepareTransfer(1);
     }

@@ -149,6 +149,10 @@ public class FlowNode {
     @Schema(description = "节点自定义超时规则，仅在 timeoutMode 为 CUSTOM 时生效。")
     private FlowTimeoutRule timeoutRule;
 
+    /** 当前节点表单字段权限；缺省使用节点默认权限。 */
+    @Schema(description = "当前节点表单字段权限；发起人默认编辑，审批和抄送默认只读")
+    private List<FlowFieldPermission> fieldsPermission;
+
     /** 是否允许转交；缺省允许。 */
     @Schema(description = "是否允许转交；缺省允许")
     private Boolean allowTransfer;

@@ -81,6 +81,13 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
     FlowInstanceDetailVO getInstanceDetail(Long instanceId);
 
     /**
+     * 按具体任务计算详情字段权限；不传任务时仅返回本人可读范围。
+     * @param instanceId 实例id
+     * @param taskId 任务id
+     */
+    FlowInstanceDetailVO getInstanceDetail(Long instanceId, Long taskId);
+
+    /**
      * 取消发起的流程实例
      * @param instanceId 实例id
      */
