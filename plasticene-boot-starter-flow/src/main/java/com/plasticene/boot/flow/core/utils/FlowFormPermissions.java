@@ -69,7 +69,9 @@ public final class FlowFormPermissions {
         }
         Map<String, Object> result = new LinkedHashMap<>(current == null ? Map.of() : current);
         changes.forEach((field, value) -> {
-            if (permissions.get(field) != WRITE) throw new BizException("无权修改表单字段：" + field);
+            if (permissions.get(field) != WRITE) {
+                throw new BizException("无权修改表单字段：" + field);
+            }
             result.put(field, value);
         });
         return result;
@@ -80,7 +82,9 @@ public final class FlowFormPermissions {
             Map<String, FlowFieldPermission.Permission> permissions) {
         Map<String, Object> result = new LinkedHashMap<>();
         permissions.forEach((field, value) -> {
-            if (value != HIDDEN && data.containsKey(field)) result.put(field, data.get(field));
+            if (value != HIDDEN && data.containsKey(field)) {
+                result.put(field, data.get(field));
+            }
         });
         return result;
     }
@@ -88,7 +92,9 @@ public final class FlowFormPermissions {
     /** 移除隐藏规则及配置中的默认字段值；使用副本，避免修改发布快照。 */
     public static Map<String, Object> filterConfig(Map<String, Object> config,
             Map<String, FlowFieldPermission.Permission> permissions) {
-        if (config == null) return null;
+        if (config == null) {
+            return null;
+        }
         Map<String, Object> copy = MAPPER.convertValue(config, new TypeReference<>() { });
         copy.put("rule", filterRules(rules(copy), permissions));
         if (copy.get("option") instanceof Map<?, ?> option) {
@@ -98,13 +104,17 @@ public final class FlowFormPermissions {
     }
 
     private static FlowFieldPermission.Permission permission(FlowNode node, String field, boolean editable) {
-        if (node == null) return HIDDEN;
+        if (node == null) {
+            return HIDDEN;
+        }
         FlowFieldPermission.Permission value = Objects.equals(node.getType(), FlowNodeEnum.Type.START.getCode()) ? WRITE : READ;
         if (node.getFieldsPermission() != null) {
             value = node.getFieldsPermission().stream().filter(item -> field.equals(item.getField()))
                     .map(FlowFieldPermission::getPermission).findFirst().orElse(value);
         }
-        if (value == WRITE && (!editable || !Objects.equals(node.getType(), FlowNodeEnum.Type.APPROVE.getCode()))) return READ;
+        if (value == WRITE && (!editable || !Objects.equals(node.getType(), FlowNodeEnum.Type.APPROVE.getCode()))) {
+            return READ;
+        }
         return value;
     }
 
@@ -116,10 +126,16 @@ public final class FlowFormPermissions {
 
     private static void collect(List<?> rules, Map<String, String> result) {
         for (Object raw : rules) {
-            if (raw == null || raw instanceof String text && !text.trim().startsWith("{")) continue;
+            if (raw == null || raw instanceof String text && !text.trim().startsWith("{")) {
+                continue;
+            }
             Map<String, Object> rule = rule(raw);
-            if (rule.get("field") instanceof String field && rule.get("title") != null) result.put(field, String.valueOf(rule.get("title")));
-            if (rule.get("children") instanceof List<?> children) collect(children, result);
+            if (rule.get("field") instanceof String field && rule.get("title") != null) {
+                result.put(field, String.valueOf(rule.get("title")));
+            }
+            if (rule.get("children") instanceof List<?> children) {
+                collect(children, result);
+            }
         }
     }
 
@@ -144,12 +160,18 @@ public final class FlowFormPermissions {
                 continue;
             }
             Map<String, Object> item = rule(raw);
-            if (item == null) continue;
+            if (item == null) {
+                continue;
+            }
             if (item.get("field") instanceof String field) {
-                if (permissions.getOrDefault(field, HIDDEN) == HIDDEN) continue;
+                if (permissions.getOrDefault(field, HIDDEN) == HIDDEN) {
+                    continue;
+                }
                 item.remove("value");
             }
-            if (item.get("children") instanceof List<?> children) item.put("children", filterRules(children, permissions));
+            if (item.get("children") instanceof List<?> children) {
+                item.put("children", filterRules(children, permissions));
+            }
             if (item.get("control") instanceof List<?> controls) {
                 for (Object control : controls) {
                     if (control instanceof Map<?, ?> entry && entry.get("rule") instanceof List<?> nested) {
