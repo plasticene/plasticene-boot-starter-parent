@@ -24,6 +24,11 @@ public class Category extends BaseDO {
      */
     private String name;
     /**
+     * 前端内置图标标识，空值使用默认图标
+     */
+    private String icon;
+
+    /**
      * 分组code
      */
     private String code;

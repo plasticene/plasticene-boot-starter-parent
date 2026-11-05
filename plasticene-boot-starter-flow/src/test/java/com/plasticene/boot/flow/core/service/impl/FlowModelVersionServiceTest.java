@@ -9,8 +9,10 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowDefinitionDAO;
 import com.plasticene.boot.flow.core.dao.FlowModelDAO;
+import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowModel;
+import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
 import com.plasticene.boot.flow.core.model.vo.FlowDefinitionVO;
@@ -49,6 +51,8 @@ class FlowModelVersionServiceTest {
     private FlowOrganizationProvider organization;
     @Mock
     private CategoryService categories;
+    @Mock
+    private FlowInstanceDAO instances;
     @InjectMocks
     private FlowDefinitionServiceImpl service;
 
@@ -58,7 +62,9 @@ class FlowModelVersionServiceTest {
         user.setId(8L);
         user.setOrgId(100L);
         LoginUserHolder.set(user);
-        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "version"), FlowDefinition.class);
+        for (Class<?> entity : List.of(FlowDefinition.class, FlowModel.class, FlowInstance.class)) {
+            TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "version"), entity);
+        }
     }
 
     @AfterEach
@@ -104,6 +110,7 @@ class FlowModelVersionServiceTest {
         model.setStatus(-1);
         when(models.selectById(11L)).thenReturn(model);
         FlowDefinition old = definition(21L, 2);
+        old.setIcon("flow:expense");
         old.setStartUserType(3);
         old.setStartRoleIds(List.of(18L));
         old.setStartUserIds(List.of(8L));
@@ -123,6 +130,7 @@ class FlowModelVersionServiceTest {
 
         FlowDefinitionVO snapshot = service.getModelVersion(11L, 21L);
 
+        assertEquals("flow:expense", snapshot.getIcon());
         assertEquals(21L, snapshot.getDefinitionId());
         assertEquals(11L, snapshot.getModelId());
         assertEquals("财务", snapshot.getCategoryName());
@@ -190,6 +198,28 @@ class FlowModelVersionServiceTest {
         assertThrows(BizException.class, () -> service.getStartableDefinition(31L));
         assertSame(deleted, service.getById(31L));
         assertFalse(TableInfoHelper.getTableInfo(FlowDefinition.class).isWithLogicDelete());
+    }
+
+    @Test
+    void shouldUsePublishedIconInCatalogWhileDraftHasDifferentIcon() {
+        FlowModel model = model(100L);
+        model.setIcon("flow:form");
+        model.setCategory("finance");
+        FlowDefinition published = definition(31L, 3);
+        published.setIsDelete(0);
+        published.setStartUserType(0);
+        published.setIcon("flow:expense");
+        when(models.selectList(any(Wrapper.class))).thenReturn(List.of(model));
+        when(categories.getCategoryMap()).thenReturn(Map.of("finance", "财务"));
+        when(instances.selectList(any(Wrapper.class))).thenReturn(List.of());
+        FlowDefinitionServiceImpl catalogService = spy(service);
+        doReturn(List.of(published)).when(catalogService).listByIds(List.of(31L));
+
+        var catalog = catalogService.getStartableCatalog();
+
+        assertEquals(1, catalog.getModels().size());
+        assertEquals("flow:expense", catalog.getModels().get(0).getIcon());
+        assertEquals("flow:form", model.getIcon());
     }
 
     private FlowModel model(Long orgId) {

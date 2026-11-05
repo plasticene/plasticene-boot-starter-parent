@@ -32,6 +32,10 @@ public class FlowForm extends BaseDO {
      */
     private String name;
 
+    /** 前端内置图标标识，空值使用默认图标 */
+    private String icon;
+
+
     /**
      * 状态 0：关闭  1：开启
      */

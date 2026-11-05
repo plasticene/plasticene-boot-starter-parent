@@ -131,7 +131,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Override
     public PageResult<FlowModelVO> page(FlowModelQuery query) {
         PtcLambdaQueryWrapper<FlowModel> queryWrapper = buildQueryWrapper(query);
-        queryWrapper.select(FlowModel::getId, FlowModel::getName, FlowModel::getCode, FlowModel::getCategory,
+        queryWrapper.select(FlowModel::getId, FlowModel::getName, FlowModel::getIcon, FlowModel::getCode, FlowModel::getCategory,
                 FlowModel::getStatus, FlowModel::getStartUserType, FlowModel::getStartUserIds,
                 FlowModel::getStartRoleIds, FlowModel::getStartDeptIds, FlowModel::getManagerUserIds,
                 FlowModel::getRemark, FlowModel::getActiveDefinitionId, FlowModel::getActiveVersion,

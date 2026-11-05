@@ -86,6 +86,7 @@ class FlowFormServiceImplTest {
     @ValueSource(booleans = {true, false})
     void shouldSaveValidSerializedFieldsWithoutChangingStoredFormat(boolean create) {
         var param = param(List.of("{\"type\":\"select\",\"field\":\"choice\",\"title\":\"选择\",\"options\":[{\"label\":\"零\",\"value\":0},{\"label\":\"否\",\"value\":false}]}"));
+        param.setIcon("flow:form");
         var captured = ArgumentCaptor.forClass(FlowForm.class);
         if (create) {
             when(flowFormDAO.insert(any(FlowForm.class))).thenAnswer(call -> {
@@ -100,6 +101,7 @@ class FlowFormServiceImplTest {
             verify(flowFormDAO).updateById(captured.capture());
             assertEquals(11L, captured.getValue().getId());
         }
+        assertEquals("flow:form", captured.getValue().getIcon());
         assertEquals(param.getFormConfig(), captured.getValue().getFormConfig());
         assertEquals("测试表单", captured.getValue().getName());
         assertEquals("office", captured.getValue().getCategory());

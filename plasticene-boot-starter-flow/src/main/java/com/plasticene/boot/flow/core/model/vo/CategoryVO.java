@@ -17,6 +17,8 @@ public class CategoryVO {
     private Long orgId;
     @Schema(description = "分组名称")
     private String name;
+    @Schema(description = "前端内置图标标识，空值使用默认图标")
+    private String icon;
     @Schema(description = "分组code")
     private String code;
     @Schema(description = "分组顺序")

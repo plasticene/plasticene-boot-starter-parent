@@ -46,6 +46,11 @@ public class FlowModel extends BaseDO {
     @TableField("name")
     private String name;
 
+    /** 前端内置图标标识，空值使用默认图标 */
+    @TableField("icon")
+    private String icon;
+
+
     /** 流程分类 */
     @TableField("category")
     private String category;

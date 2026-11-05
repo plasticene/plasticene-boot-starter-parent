@@ -85,7 +85,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         // 构造可发起的流程模型分类
         Map<String, String> categoryMap = categoryService.getCategoryMap();
         List<FlowStartableModelVO> voList = models.stream()
-                .map(model -> toStartableModelVO(model, categoryMap))
+                .map(model -> toStartableModelVO(model, definitionMap.get(model.getActiveDefinitionId()), categoryMap))
                 .toList();
         Map<Long, FlowStartableModelVO> modelMap = voList.stream()
                 .collect(Collectors.toMap(FlowStartableModelVO::getModelId, Function.identity()));
@@ -227,12 +227,13 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         return recentModelIds;
     }
 
-    private FlowStartableModelVO toStartableModelVO(FlowModel model, Map<String, String> categoryMap) {
+    private FlowStartableModelVO toStartableModelVO(FlowModel model, FlowDefinition definition, Map<String, String> categoryMap) {
         FlowStartableModelVO vo = new FlowStartableModelVO();
         vo.setModelId(model.getId());
         vo.setDefinitionId(model.getActiveDefinitionId());
         vo.setCode(model.getCode());
         vo.setName(model.getName());
+        vo.setIcon(definition.getIcon());
         vo.setCategory(model.getCategory());
         vo.setCategoryName(categoryMap.get(model.getCategory()));
         vo.setRemark(model.getRemark());

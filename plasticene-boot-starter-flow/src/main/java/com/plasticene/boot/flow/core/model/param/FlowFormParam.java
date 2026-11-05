@@ -23,6 +23,9 @@ public class FlowFormParam {
     @Schema(description = "表单名称")
     @NotBlank(message = "表单名称不能为空", groups = Insert.class)
     private String name;
+    @Schema(description = "前端内置图标标识，空值使用默认图标")
+    @Size(max = 64, message = "图标标识长度不能超过64个字符", groups = {Insert.class, Update.class})
+    private String icon;
     @Schema(description = "状态 0：关闭  1：开启")
     private Integer status;
     @Schema(description = "备注")

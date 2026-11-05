@@ -99,6 +99,7 @@ class FlowModelExtraSettingServiceTest {
     void shouldCopyExtraSettingToPublishedDefinition() {
         FlowModel model = new FlowModel();
         model.setId(11L);
+        model.setIcon("flow:expense");
         model.setModelNode(new FlowNode());
         FlowExtraSetting setting = new FlowExtraSetting();
         setting.setAllowSubmitterCancel(false);
@@ -119,6 +120,7 @@ class FlowModelExtraSettingServiceTest {
         assertEquals(FlowExtraSetting.ApproverDeduplication.ONCE_PER_PROCESS,
                 snapshot.getApproverDeduplication());
         assertEquals(3, captor.getValue().getVersion());
+        assertEquals("flow:expense", captor.getValue().getIcon());
     }
 
     @Test

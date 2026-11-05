@@ -39,6 +39,9 @@ public class FlowModelParam {
     @NotBlank(message = "流程名称不能为空", groups = Insert.class)
     @Size(max = 32, message = "名称长度不能超过32个字符")
     private String name;
+    @Schema(description = "前端内置图标标识，空值使用默认图标")
+    @Size(max = 64, message = "图标标识长度不能超过64个字符", groups = {Insert.class, Update.class})
+    private String icon;
     @Schema(description = "流程分类标识")
     @NotBlank(message = "流程分类不能为空", groups = Insert.class)
     @Size(max = 16, message = "分类长度不能超过16个字符", groups = Insert.class)

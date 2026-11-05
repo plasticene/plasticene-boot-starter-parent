@@ -17,6 +17,8 @@ public class FlowFormVO {
     private Long id;
     @Schema(description = "表单名称")
     private String name;
+    @Schema(description = "前端内置图标标识，空值使用默认图标")
+    private String icon;
     @Schema(description = "状态 0：关闭  1：开启")
     private Integer status;
     @Schema(description = "备注")

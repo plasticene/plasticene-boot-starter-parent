@@ -25,6 +25,8 @@ public class FlowModelDTO {
     private String code;
     @Schema(description = "流程名称")
     private String name;
+    @Schema(description = "前端内置图标标识，空值使用默认图标")
+    private String icon;
     @Schema(description = "流程分类")
     private String category;
     @Schema(description = "流程状态  0：草稿  1：发布  -1：停用")
