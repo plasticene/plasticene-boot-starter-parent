@@ -175,6 +175,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         flowDefinition.setExtraSetting(FlowExtraSetting.normalize(flowDefinition.getExtraSetting()));
         flowDefinition.setId(null);
         flowDefinition.setModelId(id);
+        // 由插入时的审计填充记录本次发布人，不能沿用模型最初创建者。
+        flowDefinition.setCreator(null);
+        flowDefinition.setUpdater(null);
         flowDefinition.setCreateTime(LocalDateTime.now());
         flowDefinition.setUpdateTime(LocalDateTime.now());
         flowDefinition.setPublishTime(LocalDateTime.now());

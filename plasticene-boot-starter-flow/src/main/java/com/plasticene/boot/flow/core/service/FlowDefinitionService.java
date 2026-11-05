@@ -5,6 +5,8 @@ import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.model.vo.FlowDefinitionVO;
 import com.plasticene.boot.flow.core.model.vo.FlowStartCatalogVO;
 
+import java.util.List;
+
 /**
  * @author ZFJ
  * @since 2026/4/15
@@ -38,4 +40,14 @@ public interface FlowDefinitionService extends IService<FlowDefinition> {
      * @return 可发起的流程定义
      */
     FlowDefinition getStartableDefinition(Long definitionId);
+
+    /**
+     * 查询当前组织中指定模型的发布历史，按版本倒序。
+     */
+    List<FlowDefinitionVO> listModelVersions(Long modelId);
+
+    /**
+     * 查询当前组织中指定模型的发布快照，不改变当前生效版本。
+     */
+    FlowDefinitionVO getModelVersion(Long modelId, Long definitionId);
 }

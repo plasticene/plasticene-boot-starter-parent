@@ -14,6 +14,7 @@ import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.enums.FlowModelEnums;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.vo.FlowDefinitionVO;
+import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.model.vo.FlowStartCatalogVO;
 import com.plasticene.boot.flow.core.model.vo.FlowStartableModelVO;
 import com.plasticene.boot.flow.core.service.CategoryService;
@@ -41,6 +42,8 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
     private CategoryService categoryService;
     @Resource
     private FlowInstanceDAO flowInstanceDAO;
+    @Resource
+    private FlowOrganizationProvider flowOrganizationProvider;
 
 
     @Override
@@ -128,6 +131,57 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
             throw new BizException("当前用户无权发起该流程");
         }
         return definition;
+    }
+
+    @Override
+    public List<FlowDefinitionVO> listModelVersions(Long modelId) {
+        FlowModel model = requireHistoryModel(modelId);
+        PtcLambdaQueryWrapper<FlowDefinition> query = new PtcLambdaQueryWrapper<>();
+        query.select(FlowDefinition::getId, FlowDefinition::getVersion,
+                        FlowDefinition::getPublishTime, FlowDefinition::getCreator)
+                .eq(FlowDefinition::getModelId, modelId)
+                .eq(FlowDefinition::getOrgId, model.getOrgId())
+                .eq(FlowDefinition::getIsDelete, 0)
+                .orderByDesc(FlowDefinition::getVersion);
+        List<FlowDefinition> definitions = flowDefinitionDAO.selectList(query);
+        Map<Long, String> users = flowOrganizationProvider.getUserMap();
+        return definitions.stream().map(definition -> {
+            FlowDefinitionVO vo = PtcBeanUtils.copy(definition, FlowDefinitionVO.class);
+            vo.setDefinitionId(definition.getId());
+            vo.setModelId(modelId);
+            vo.setActive(Objects.equals(model.getActiveDefinitionId(), definition.getId()));
+            vo.setPublisherName(definition.getCreator() == null ? "未知发布人"
+                    : users.getOrDefault(definition.getCreator(), String.valueOf(definition.getCreator())));
+            return vo;
+        }).toList();
+    }
+
+    @Override
+    public FlowDefinitionVO getModelVersion(Long modelId, Long definitionId) {
+        FlowModel model = requireHistoryModel(modelId);
+        PtcLambdaQueryWrapper<FlowDefinition> query = new PtcLambdaQueryWrapper<>();
+        query.eq(FlowDefinition::getId, definitionId)
+                .eq(FlowDefinition::getModelId, modelId)
+                .eq(FlowDefinition::getOrgId, model.getOrgId())
+                .eq(FlowDefinition::getIsDelete, 0);
+        FlowDefinition definition = flowDefinitionDAO.selectOne(query);
+        if (definition == null) {
+            throw new BizException("流程发布版本不存在");
+        }
+        FlowDefinitionVO vo = PtcBeanUtils.copy(definition, FlowDefinitionVO.class);
+        vo.setDefinitionId(definition.getId());
+        vo.setCategoryName(categoryService.getCategoryMap().get(definition.getCategory()));
+        vo.setExtraSetting(FlowExtraSetting.normalize(vo.getExtraSetting()));
+        return vo;
+    }
+
+    private FlowModel requireHistoryModel(Long modelId) {
+        FlowModel model = flowModelDAO.selectById(modelId);
+        if (model == null || Objects.equals(model.getIsDelete(), 1)
+                || !Objects.equals(model.getOrgId(), LoginUserHolder.get().getOrgId())) {
+            throw new BizException("流程模型不存在");
+        }
+        return model;
     }
 
     private Set<Long> findRecentModelIds(LoginUser loginUser, Map<Long, FlowStartableModelVO> modelMap) {

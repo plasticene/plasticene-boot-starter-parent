@@ -45,7 +45,7 @@ public class FlowModelParam {
     private String category;
     @Schema(description = "流程状态  0：草稿  1：发布  -1：停用")
     private Integer status;
-    @Schema(description = "流程表单配置快照")
+    @Schema(description = "流程表单配置快照；更新时省略保持原值，空对象清空表单")
     private Map<String, Object> formConfig;
     @Schema(description = "流程更多设置")
     private FlowExtraSetting extraSetting;

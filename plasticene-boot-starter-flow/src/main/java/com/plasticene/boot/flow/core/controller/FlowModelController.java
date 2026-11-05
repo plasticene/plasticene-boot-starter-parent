@@ -89,6 +89,19 @@ public class FlowModelController {
         return ResponseVO.success(flowDefinitionService.getFlowDefinition(definitionId));
     }
 
+    @Operation(summary = "查询流程模型发布历史")
+    @GetMapping("/{id}/versions")
+    public ResponseVO<List<FlowDefinitionVO>> listVersions(@PathVariable("id") Long id) {
+        return ResponseVO.success(flowDefinitionService.listModelVersions(id));
+    }
+
+    @Operation(summary = "查看流程模型发布快照")
+    @GetMapping("/{id}/versions/{definitionId}")
+    public ResponseVO<FlowDefinitionVO> getVersion(@PathVariable("id") Long id,
+                                                        @PathVariable("definitionId") Long definitionId) {
+        return ResponseVO.success(flowDefinitionService.getModelVersion(id, definitionId));
+    }
+
     @Operation(summary = "开关工作流-流程模型")
     @PutMapping("/enable")
     public ResponseVO<Void> enable(@RequestBody @Validated FlowModelEnableParam param) {
