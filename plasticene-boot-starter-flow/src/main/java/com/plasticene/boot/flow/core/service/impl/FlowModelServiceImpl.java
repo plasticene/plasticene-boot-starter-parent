@@ -24,6 +24,7 @@ import com.plasticene.boot.flow.core.model.vo.FlowModelVO;
 import com.plasticene.boot.flow.core.service.CategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowModelService;
+import com.plasticene.boot.flow.core.utils.FlowFormConfig;
 import com.plasticene.boot.flow.core.validator.FlowNodeValidator;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
@@ -58,6 +59,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Transactional(rollbackFor = Exception.class)
     @Override
     public Long create(FlowModelParam param) {
+        FlowFormConfig.validate(param.getFormConfig());
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
         flowModel.setExtraSetting(FlowExtraSetting.normalize(flowModel.getExtraSetting()));
         if (flowModel.getExtraSetting().getTimeoutRule() != null) {
@@ -72,6 +74,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void update(FlowModelParam param) {
+        FlowFormConfig.validate(param.getFormConfig());
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
         if (flowModel.getExtraSetting() != null) {
             flowModel.setExtraSetting(FlowExtraSetting.normalize(flowModel.getExtraSetting()));
@@ -166,7 +169,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         Assert.notNull(flowModel, "流程模型不存在");
         // 2.发布前校验流程模型是否合法
         FlowNode modelNode = flowModel.getModelNode();
-        flowNodeValidator.validate(modelNode);
+        flowNodeValidator.validate(modelNode, FlowFormConfig.referenceFields(flowModel.getFormConfig()));
         // 3.生成发布流程定义快照
         FlowDefinition flowDefinition = PtcBeanUtils.copy(flowModel, FlowDefinition.class);
         flowDefinition.setExtraSetting(FlowExtraSetting.normalize(flowDefinition.getExtraSetting()));

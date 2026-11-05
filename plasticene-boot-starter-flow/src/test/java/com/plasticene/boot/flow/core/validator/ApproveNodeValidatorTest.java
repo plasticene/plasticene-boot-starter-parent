@@ -66,12 +66,12 @@ class ApproveNodeValidatorTest {
         branch.setChildNode(nested);
 
         child.setTimeoutMode(FlowTimeoutRule.Mode.CUSTOM);
-        assertThrows(BizException.class, () -> treeValidator.validate(root));
+        assertThrows(BizException.class, () -> treeValidator.validate(root, java.util.Set.of()));
         child.setTimeoutRule(new FlowTimeoutRule());
         nested.setTimeoutMode(FlowTimeoutRule.Mode.CUSTOM);
-        assertThrows(BizException.class, () -> treeValidator.validate(root));
+        assertThrows(BizException.class, () -> treeValidator.validate(root, java.util.Set.of()));
         nested.setTimeoutRule(new FlowTimeoutRule());
-        assertDoesNotThrow(() -> treeValidator.validate(root));
+        assertDoesNotThrow(() -> treeValidator.validate(root, java.util.Set.of()));
     }
 
     private FlowNode approveNode(String key) {

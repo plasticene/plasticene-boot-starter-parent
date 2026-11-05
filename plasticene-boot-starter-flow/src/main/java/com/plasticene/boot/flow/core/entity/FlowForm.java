@@ -9,17 +9,18 @@ import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.List;
+import java.util.Map;
 
 /**
+ * 保存独立流程表单及设计器配置。
  * @author ZFJ
- * @since 2026/2/24
+ * @since 2026-11-05
  */
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-@TableName(value = "form", autoResultMap = true)
-public class Form extends BaseDO {
+@TableName(value = "flow_form", autoResultMap = true)
+public class FlowForm extends BaseDO {
     @TableId(type = IdType.AUTO)
     private Long id;
     /**
@@ -41,14 +42,9 @@ public class Form extends BaseDO {
      */
     private String remark;
 
-    /**
-     * 表单配置
-     */
-    private String conf;
-
-    /**
-     * 表单字段
-     */
+    /** 表单配置，包含 option 选项和 rule 规则。 */
     @TableField(typeHandler = JacksonTypeHandler.class)
-    private List<String> fields;
+    private Map<String, Object> formConfig;
+    /** 表单分类编码，关联流程分类。 */
+    private String category;
 }

@@ -69,18 +69,18 @@ class ConditionNodeValidatorTest {
         condition.setIsDefault(true);
         fallback.setCondition(condition);
         gateway.setConditionNodes(java.util.List.of(ordinary, fallback));
-        assertDoesNotThrow(() -> treeValidator.validate(gateway));
+        assertDoesNotThrow(() -> treeValidator.validate(gateway, java.util.Set.of()));
         gateway.setConditionNodes(java.util.List.of(ordinary));
-        assertThrows(BizException.class, () -> treeValidator.validate(gateway));
+        assertThrows(BizException.class, () -> treeValidator.validate(gateway, java.util.Set.of()));
         gateway.setConditionNodes(java.util.List.of(fallback, ordinary));
-        assertThrows(BizException.class, () -> treeValidator.validate(gateway));
+        assertThrows(BizException.class, () -> treeValidator.validate(gateway, java.util.Set.of()));
         FlowNode duplicate = conditionNode("duplicate");
         duplicate.setCondition(condition);
         gateway.setConditionNodes(java.util.List.of(ordinary, duplicate, fallback));
-        assertThrows(BizException.class, () -> treeValidator.validate(gateway));
+        assertThrows(BizException.class, () -> treeValidator.validate(gateway, java.util.Set.of()));
         gateway.setConditionNodes(java.util.List.of(ordinary, fallback));
         condition.setType(0);
-        assertThrows(BizException.class, () -> treeValidator.validate(gateway));
+        assertThrows(BizException.class, () -> treeValidator.validate(gateway, java.util.Set.of()));
     }
 
     private FlowNode conditionNode(String key) {

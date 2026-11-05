@@ -52,16 +52,20 @@ public final class FlowFormChanges {
         if (value == null || "".equals(value)) {
             return null;
         }
-        if (value instanceof Number number) {
-            return new BigDecimal(number.toString()).stripTrailingZeros();
-        }
-        if (value instanceof List<?> list) {
-            return list.isEmpty() ? null : list.stream().map(FlowFormChanges::canonical).toList();
-        }
-        if (value instanceof Map<?, ?> map) {
-            Map<String, Object> result = new TreeMap<>();
-            map.forEach((key, item) -> result.put(String.valueOf(key), canonical(item)));
-            return result;
+        switch (value) {
+            case Number number -> {
+                return new BigDecimal(number.toString()).stripTrailingZeros();
+            }
+            case List<?> list -> {
+                return list.isEmpty() ? null : list.stream().map(FlowFormChanges::canonical).toList();
+            }
+            case Map<?, ?> map -> {
+                Map<String, Object> result = new TreeMap<>();
+                map.forEach((key, item) -> result.put(String.valueOf(key), canonical(item)));
+                return result;
+            }
+            default -> {
+            }
         }
         return value;
     }

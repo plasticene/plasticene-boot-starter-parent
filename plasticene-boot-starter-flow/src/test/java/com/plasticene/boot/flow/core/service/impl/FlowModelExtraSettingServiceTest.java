@@ -109,7 +109,7 @@ class FlowModelExtraSettingServiceTest {
         when(flowDefinitionService.getMaxVersion(11L)).thenReturn(2);
 
         service.publish(11L);
-        verify(flowNodeValidator).validate(model.getModelNode());
+        verify(flowNodeValidator).validate(model.getModelNode(), java.util.Set.of());
 
         ArgumentCaptor<FlowDefinition> captor = ArgumentCaptor.forClass(FlowDefinition.class);
         verify(flowDefinitionService).save(captor.capture());
@@ -154,6 +154,28 @@ class FlowModelExtraSettingServiceTest {
         assertEquals(true, restored.getChildNode().getAllowReturn());
         assertEquals(false, restored.getChildNode().getAllowAddSign());
         assertEquals(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.WRITE, restored.getChildNode().getFieldsPermission().getFirst().getPermission());
+    }
+
+    @Test
+    void shouldRejectInvalidFormOnSaveWithoutTraversingDraftNodes() {
+        var param = new FlowModelParam();
+        param.setFormConfig(java.util.Map.of("rule", java.util.List.of(
+                java.util.Map.of("type", "input", "field", "name", "title", ""))));
+        assertThrows(BizException.class, () -> service.create(param));
+        assertThrows(BizException.class, () -> service.update(param));
+        verifyNoInteractions(flowModelDAO, flowNodeValidator);
+    }
+
+    @Test
+    void shouldOnlyPassEligibleFieldsWhenPublishingWithoutRevalidatingForm() {
+        var model = new FlowModel();
+        model.setModelNode(new FlowNode());
+        model.setFormConfig(java.util.Map.of("rule", java.util.List.of(
+                java.util.Map.of("type", "select", "field", "choice", "title", ""),
+                java.util.Map.of("type", "subForm", "field", "detail", "title", "分组"))));
+        when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(model);
+        service.publish(11L);
+        verify(flowNodeValidator).validate(model.getModelNode(), java.util.Set.of("choice"));
     }
 
     private FlowModelParam timeoutParam() {
