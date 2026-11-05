@@ -28,6 +28,7 @@ import com.plasticene.boot.flow.core.utils.FlowFormConfig;
 import com.plasticene.boot.flow.core.validator.FlowNodeValidator;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -67,7 +68,12 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         }
         flowModel.setOrgId(LoginUserHolder.get().getOrgId());
         flowModel.setIsEdited(CommonConstant.IS_ON);
-        flowModelDAO.insert(flowModel);
+        validateCodeUnique(flowModel.getCode(), null);
+        try {
+            flowModelDAO.insert(flowModel);
+        } catch (DuplicateKeyException exception) {
+            throw new BizException("流程标识已存在");
+        }
         return flowModel.getId();
     }
 
@@ -83,7 +89,12 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
             }
         }
         flowModel.setIsEdited(CommonConstant.IS_ON);
-        flowModelDAO.updateById(flowModel);
+        validateCodeUnique(flowModel.getCode(), flowModel.getId());
+        try {
+            flowModelDAO.updateById(flowModel);
+        } catch (DuplicateKeyException exception) {
+            throw new BizException("流程标识已存在");
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -92,7 +103,29 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         if (CollUtil.isEmpty(idList)) {
             return;
         }
-        flowModelDAO.deleteByIds(idList);
+        Long orgId = LoginUserHolder.get().getOrgId();
+        List<Long> modelIds = new java.util.ArrayList<>();
+        // 与发布操作使用相同的行锁，防止删除期间新增未标记的发布版本。
+        for (Long modelId : idList.stream().distinct().sorted().toList()) {
+            FlowModel model = flowModelDAO.selectFlowModelForUpdate(modelId);
+            if (model == null) {
+                continue;
+            }
+            if (!Objects.equals(model.getOrgId(), orgId)) {
+                throw new BizException("流程模型不存在");
+            }
+            modelIds.add(modelId);
+        }
+        if (modelIds.isEmpty()) {
+            return;
+        }
+        // 不使用 @TableLogic，已有实例仍需按版本 ID 读取快照。
+        LambdaUpdateWrapper<FlowDefinition> versions = new LambdaUpdateWrapper<>();
+        versions.in(FlowDefinition::getModelId, modelIds)
+                .eq(FlowDefinition::getOrgId, orgId)
+                .set(FlowDefinition::getIsDelete, CommonConstant.IS_DEL);
+        flowDefinitionService.update(versions);
+        flowModelDAO.deleteByIds(modelIds);
     }
 
     @Override
@@ -175,6 +208,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         flowDefinition.setExtraSetting(FlowExtraSetting.normalize(flowDefinition.getExtraSetting()));
         flowDefinition.setId(null);
         flowDefinition.setModelId(id);
+        flowDefinition.setIsDelete(CommonConstant.IS_NOT_DEL);
         // 由插入时的审计填充记录本次发布人，不能沿用模型最初创建者。
         flowDefinition.setCreator(null);
         flowDefinition.setUpdater(null);
@@ -207,6 +241,16 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
                         .or()
                         .like(FlowModel::getCode, query.getKeyword()));
         return queryWrapper;
+    }
+
+    private void validateCodeUnique(String code, Long excludeId) {
+        // 局部更新未传标识时保持原值。
+        if (code == null) {
+            return;
+        }
+        if (flowModelDAO.countByCode(LoginUserHolder.get().getOrgId(), code, excludeId) > 0) {
+            throw new BizException("流程标识已存在");
+        }
     }
 }
 

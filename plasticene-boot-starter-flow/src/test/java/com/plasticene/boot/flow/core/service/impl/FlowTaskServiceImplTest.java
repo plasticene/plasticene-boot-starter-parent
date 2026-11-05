@@ -31,6 +31,8 @@ import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -460,8 +462,9 @@ class FlowTaskServiceImplTest {
         assertTrue(service.canWithdrawTask(approved, instance, definition, List.of(approved, pending)));
     }
 
-    @Test
-    void shouldWithdrawApprovalAndRestoreOriginalTask() {
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void shouldWithdrawApprovalAndRestoreOriginalTask(int deleted) {
         FlowTask approved = completedApproval(11L, "first", 8L,
                 FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(1));
         approved.setOrgId(9L);
@@ -474,6 +477,7 @@ class FlowTaskServiceImplTest {
         FlowInstance instance = runningInstance();
         instance.setCurrentNodeKey("second");
         FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, true);
+        definition.setIsDelete(deleted);
         when(flowTaskDAO.selectById(11L)).thenReturn(approved);
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(instance);
         when(flowDefinitionService.getById(31L)).thenReturn(definition);

@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
@@ -74,6 +75,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
                 .filter(model -> {
                     FlowDefinition definition = definitionMap.get(model.getActiveDefinitionId());
                     return definition != null
+                            && Objects.equals(definition.getIsDelete(), CommonConstant.IS_NOT_DEL)
                             && Objects.equals(definition.getModelId(), model.getId())
                             && Objects.equals(definition.getOrgId(), loginUser.getOrgId())
                             && canStart(definition, loginUser);
@@ -177,8 +179,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
 
     private FlowModel requireHistoryModel(Long modelId) {
         FlowModel model = flowModelDAO.selectById(modelId);
-        if (model == null || Objects.equals(model.getIsDelete(), 1)
-                || !Objects.equals(model.getOrgId(), LoginUserHolder.get().getOrgId())) {
+        if (model == null || !Objects.equals(model.getOrgId(), LoginUserHolder.get().getOrgId())) {
             throw new BizException("流程模型不存在");
         }
         return model;

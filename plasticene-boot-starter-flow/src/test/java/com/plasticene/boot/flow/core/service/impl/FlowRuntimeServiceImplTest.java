@@ -27,6 +27,8 @@ import com.plasticene.boot.flow.core.service.FlowTaskService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -268,13 +270,15 @@ class FlowRuntimeServiceImplTest {
         verify(flowInstanceDAO).statisticsInstance(query, false);
     }
 
-    @Test
-    void shouldCancelOwnRunningApplication() {
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void shouldCancelOwnRunningApplication(int deleted) {
         FlowInstance instance = runningInstance(8L);
         FlowNode currentNode = new FlowNode();
         currentNode.setKey("approve");
         currentNode.setName("负责人审批");
         FlowDefinition definition = new FlowDefinition();
+        definition.setIsDelete(deleted);
         definition.setModelNode(currentNode);
         when(flowInstanceDAO.selectInstanceForUpdate(21L)).thenReturn(instance);
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
@@ -330,12 +334,14 @@ class FlowRuntimeServiceImplTest {
         verify(flowInstanceDAO, never()).updateById(any(FlowInstance.class));
     }
 
-    @Test
-    void shouldReturnOwnApplicationDetailWithRouteAndTasks() {
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void shouldReturnOwnApplicationDetailWithRouteAndTasks(int deleted) {
         FlowInstance instance = runningInstance(8L);
         instance.setCategory("purchase");
         instance.setVarMap(Map.of("amount", 68000));
         FlowDefinition definition = new FlowDefinition();
+        definition.setIsDelete(deleted);
         definition.setId(31L);
         definition.setOrgId(10L);
         definition.setName("办公设备购买");

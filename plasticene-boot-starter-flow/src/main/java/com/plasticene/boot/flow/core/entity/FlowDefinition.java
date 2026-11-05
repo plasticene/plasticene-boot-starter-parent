@@ -90,7 +90,7 @@ public class FlowDefinition extends BaseDO {
     @TableField("remark")
     private String remark;
 
-    /** 是否删除 0：否  1：是 */
+    /** 是否删除 0：否  1：是；删除后保留快照供已有实例使用 */
     @TableField("is_delete")
     private Integer isDelete;
 

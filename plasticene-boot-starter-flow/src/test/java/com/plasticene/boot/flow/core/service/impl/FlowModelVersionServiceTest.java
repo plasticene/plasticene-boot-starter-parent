@@ -137,13 +137,11 @@ class FlowModelVersionServiceTest {
     }
 
     @Test
-    void shouldRejectOtherOrganizationOrDeletedModelBeforeReadingDefinitions() {
+    void shouldRejectOtherOrganizationOrMissingModelBeforeReadingDefinitions() {
         when(models.selectById(11L)).thenReturn(model(200L));
         assertThrows(BizException.class, () -> service.listModelVersions(11L));
         assertThrows(BizException.class, () -> service.getModelVersion(11L, 21L));
-        FlowModel deleted = model(100L);
-        deleted.setIsDelete(1);
-        when(models.selectById(11L)).thenReturn(deleted);
+        when(models.selectById(11L)).thenReturn(null);
         assertThrows(BizException.class, () -> service.listModelVersions(11L));
         verifyNoInteractions(definitions);
     }
@@ -178,6 +176,20 @@ class FlowModelVersionServiceTest {
         modelService.update(cleared);
         verify(models, times(2)).updateById(any(FlowModel.class));
         verify(models, never()).update(any(FlowModel.class), any(Wrapper.class));
+    }
+
+    @Test
+    void shouldRejectDeletedDefinitionForNewInstancesButKeepSnapshotReadable() {
+        FlowModel model = model(100L);
+        when(models.selectOne(any(Wrapper.class))).thenReturn(model);
+        FlowDefinition deleted = definition(31L, 3);
+        deleted.setIsDelete(1);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "baseMapper", definitions);
+        when(definitions.selectById(31L)).thenReturn(deleted);
+
+        assertThrows(BizException.class, () -> service.getStartableDefinition(31L));
+        assertSame(deleted, service.getById(31L));
+        assertFalse(TableInfoHelper.getTableInfo(FlowDefinition.class).isWithLogicDelete());
     }
 
     private FlowModel model(Long orgId) {

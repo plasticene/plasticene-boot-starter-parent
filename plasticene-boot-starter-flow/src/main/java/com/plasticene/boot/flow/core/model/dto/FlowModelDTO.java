@@ -53,6 +53,4 @@ public class FlowModelDTO {
     private List<Long> managerUserIds;
     @Schema(description = "说明")
     private String remark;
-    @Schema(description = "是否删除 0：否  1：是")
-    private Integer isDelete;
 }
