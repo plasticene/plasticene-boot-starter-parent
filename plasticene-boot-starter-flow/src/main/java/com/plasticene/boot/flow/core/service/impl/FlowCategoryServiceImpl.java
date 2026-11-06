@@ -1,7 +1,6 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.constant.CommonConstant;
@@ -20,7 +19,6 @@ import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
