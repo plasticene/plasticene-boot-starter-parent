@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
@@ -12,7 +13,7 @@ import com.plasticene.boot.flow.core.model.param.FlowFormParam;
 import com.plasticene.boot.flow.core.model.query.FlowFormQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowFormVO;
 import com.plasticene.boot.flow.core.service.FlowFormService;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.utils.FlowFormConfig;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
@@ -32,7 +33,7 @@ public class FlowFormServiceImpl extends ServiceImpl<FlowFormDAO, FlowForm> impl
     @Resource
     private FlowFormDAO flowFormDAO;
     @Resource
-    private CategoryService categoryService;
+    private FlowCategoryService flowCategoryService;
 
 
     @Override
@@ -100,7 +101,7 @@ public class FlowFormServiceImpl extends ServiceImpl<FlowFormDAO, FlowForm> impl
         if (CollUtil.isEmpty(forms)) {
             return;
         }
-        Map<String, String> categories = categoryService.getCategoryMap();
+        Map<String, String> categories = flowCategoryService.getCategoryMap();
         forms.forEach(form -> form.setCategoryName(form.getCategory() == null ? "" :
                 categories.getOrDefault(form.getCategory(), form.getCategory())));
     }

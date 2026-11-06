@@ -17,7 +17,7 @@ import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
 import com.plasticene.boot.flow.core.model.vo.FlowDefinitionVO;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.AfterEach;
@@ -50,7 +50,7 @@ class FlowModelVersionServiceTest {
     @Mock
     private FlowOrganizationProvider organization;
     @Mock
-    private CategoryService categories;
+    private FlowCategoryService flowCategoryService;
     @Mock
     private FlowInstanceDAO instances;
     @InjectMocks
@@ -126,7 +126,7 @@ class FlowModelVersionServiceTest {
             assertTrue(query.getParamNameValuePairs().containsValue(100L));
             return old;
         });
-        when(categories.getCategoryMap()).thenReturn(Map.of("finance", "财务"));
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("finance", "财务"));
 
         FlowDefinitionVO snapshot = service.getModelVersion(11L, 21L);
 
@@ -159,7 +159,7 @@ class FlowModelVersionServiceTest {
         when(models.selectById(11L)).thenReturn(model(100L));
         when(definitions.selectOne(any(Wrapper.class))).thenReturn(null);
         assertThrows(BizException.class, () -> service.getModelVersion(11L, 99L));
-        verifyNoInteractions(categories);
+        verifyNoInteractions(flowCategoryService);
     }
 
     @Test
@@ -210,7 +210,7 @@ class FlowModelVersionServiceTest {
         published.setStartUserType(0);
         published.setIcon("flow:expense");
         when(models.selectList(any(Wrapper.class))).thenReturn(List.of(model));
-        when(categories.getCategoryMap()).thenReturn(Map.of("finance", "财务"));
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("finance", "财务"));
         when(instances.selectList(any(Wrapper.class))).thenReturn(List.of());
         FlowDefinitionServiceImpl catalogService = spy(service);
         doReturn(List.of(published)).when(catalogService).listByIds(List.of(31L));

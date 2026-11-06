@@ -50,7 +50,7 @@ import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.parser.FlowReturnPath;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
@@ -102,7 +102,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     @Resource
     private FlowDefinitionService flowDefinitionService;
     @Resource
-    private CategoryService categoryService;
+    private FlowCategoryService flowCategoryService;
     @Resource
     private FlowOrganizationProvider flowOrganizationProvider;
     @Resource
@@ -159,7 +159,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         query.setOrgId(loginUser.getOrgId());
         IPage<FlowTaskPageVO> page = flowTaskDAO.pageTask(MybatisUtils.buildPage(query), query);
 
-        Map<String, String> categoryMap = categoryService.getCategoryMap();
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap();
         Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
         LocalDateTime now = LocalDateTime.now();
         page.getRecords().forEach(vo -> enrichTaskPageVO(vo, categoryMap, userMap, now));

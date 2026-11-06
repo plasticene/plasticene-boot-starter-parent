@@ -2,6 +2,7 @@ package com.plasticene.boot.flow.core.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,7 +13,8 @@ import lombok.EqualsAndHashCode;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class Category extends BaseDO {
+@TableName("flow_category")
+public class FlowCategory extends BaseDO {
     @TableId(type = IdType.AUTO)
     private Long id;
     /**
@@ -20,7 +22,7 @@ public class Category extends BaseDO {
      */
     private Long orgId;
     /**
-     * 分组名称
+     * 分类名称
      */
     private String name;
     /**
@@ -29,9 +31,13 @@ public class Category extends BaseDO {
     private String icon;
 
     /**
-     * 分组code
+     * 分类标识，同一公司内唯一、不区分大小写
      */
     private String code;
+    /**
+     * 分类描述
+     */
+    private String description;
     /**
      * 序号
      */

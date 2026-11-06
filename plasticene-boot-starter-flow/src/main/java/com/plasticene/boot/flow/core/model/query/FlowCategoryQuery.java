@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.model.query;
 
 import com.plasticene.boot.common.pojo.PageQuery;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -10,6 +11,9 @@ import lombok.EqualsAndHashCode;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class CategoryQuery extends PageQuery {
+public class FlowCategoryQuery extends PageQuery {
+    @Schema(description = "分类名称，模糊匹配")
     private String name;
+    @Schema(description = "分类标识，不区分大小写精确匹配")
+    private String code;
 }

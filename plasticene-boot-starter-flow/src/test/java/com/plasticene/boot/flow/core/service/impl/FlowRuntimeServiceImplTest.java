@@ -23,7 +23,7 @@ import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import org.junit.jupiter.api.AfterEach;
@@ -69,7 +69,7 @@ class FlowRuntimeServiceImplTest {
     @Mock
     private FlowDefinitionService flowDefinitionService;
     @Mock
-    private CategoryService categoryService;
+    private FlowCategoryService flowCategoryService;
     @Mock
     private FlowTaskService flowTaskService;
     @Mock
@@ -229,7 +229,7 @@ class FlowRuntimeServiceImplTest {
         page.setRecords(List.of(vo));
         page.setTotal(1);
         when(flowInstanceDAO.pageInstance(any(), eq(query), eq(true))).thenReturn(page);
-        when(categoryService.getCategoryMap()).thenReturn(Map.of("admin", "行政审批"));
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("admin", "行政审批"));
         when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
 
         PageResult<FlowInstanceVO> result = service.page(query);
@@ -253,7 +253,7 @@ class FlowRuntimeServiceImplTest {
         page.setRecords(List.of(vo));
         page.setTotal(1);
         when(flowInstanceDAO.pageInstance(any(), eq(query), eq(true))).thenReturn(page);
-        when(categoryService.getCategoryMap()).thenReturn(Map.of());
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of());
 
         PageResult<FlowInstanceVO> result = service.page(query);
 
@@ -281,7 +281,7 @@ class FlowRuntimeServiceImplTest {
         nodeTime.setStartTime(startTime.plusSeconds(240));
         when(flowInstanceDAO.pageInstance(any(), eq(query), eq(true))).thenReturn(page);
         when(flowInstanceDAO.listCurrentNodeStartTimes(10L, List.of(21L))).thenReturn(List.of(nodeTime));
-        when(categoryService.getCategoryMap()).thenReturn(Map.of());
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of());
         when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(9L, "李四"));
 
         PageResult<FlowInstanceVO> result = service.page(query);
@@ -406,7 +406,7 @@ class FlowRuntimeServiceImplTest {
         task.setStatus(1);
         when(flowInstanceDAO.selectById(21L)).thenReturn(instance);
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
-        when(categoryService.getCategoryMap()).thenReturn(Map.of("purchase", "采购"));
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("purchase", "采购"));
         when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
         when(flowTaskService.listTaskByInstanceId(21L)).thenReturn(List.of(task));
         when(processExecutor.calculateRouteTrace(startNode, instance.getVarMap())).thenReturn(List.of(startNode));
@@ -554,7 +554,7 @@ class FlowRuntimeServiceImplTest {
         when(flowInstanceDAO.selectById(21L)).thenReturn(instance);
         when(flowTaskService.listTaskByInstanceId(21L)).thenReturn(List.of());
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
-        when(categoryService.getCategoryMap()).thenReturn(Map.of());
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of());
         when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "当前用户", 9L, "流程发起人"));
         when(processExecutor.calculateRouteTrace(startNode, Map.of())).thenReturn(List.of(startNode));
 

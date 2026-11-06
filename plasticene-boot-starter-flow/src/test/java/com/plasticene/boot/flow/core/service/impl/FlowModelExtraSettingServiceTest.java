@@ -8,7 +8,7 @@ import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.validator.FlowNodeValidator;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ class FlowModelExtraSettingServiceTest {
     @Mock
     private FlowModelDAO flowModelDAO;
     @Mock
-    private CategoryService categoryService;
+    private FlowCategoryService flowCategoryService;
     @Mock
     private FlowNodeValidator flowNodeValidator;
     @Mock

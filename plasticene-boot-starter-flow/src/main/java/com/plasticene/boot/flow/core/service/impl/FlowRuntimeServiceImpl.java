@@ -41,7 +41,7 @@ import com.plasticene.boot.flow.core.model.vo.FlowTaskVO;
 import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.parser.FlowReturnPath;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
@@ -76,7 +76,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Resource
     private FlowDefinitionService flowDefinitionService;
     @Resource
-    private CategoryService categoryService;
+    private FlowCategoryService flowCategoryService;
     @Resource
     @Lazy
     private FlowTaskService flowTaskService;
@@ -135,7 +135,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         normalizeQuery(query);
         IPage<FlowInstanceVO> page = flowInstanceDAO.pageInstance(MybatisUtils.buildPage(query), query, true);
         List<FlowInstanceVO> records = page.getRecords();
-        Map<String, String> categoryMap = categoryService.getCategoryMap();
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap();
         Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
         Map<Long, FlowDefinition> definitionMap = getDefinitionMap(records);
         Map<Long, LocalDateTime> nodeStartTimeMap = getCurrentNodeStartTimeMap(query.getOrgId(), records);
@@ -212,7 +212,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .filter(Objects::nonNull)
                 .min(LocalDateTime::compareTo)
                 .orElse(null);
-        enrichInstanceVO(instanceVO, categoryService.getCategoryMap(), userMap,
+        enrichInstanceVO(instanceVO, flowCategoryService.getCategoryMap(), userMap,
                 currentNodeStartTime, LocalDateTime.now(), allowSubmitterCancel(definition));
 
         FlowInstanceDetailVO detail = new FlowInstanceDetailVO();

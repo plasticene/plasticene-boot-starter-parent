@@ -25,7 +25,7 @@ import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import org.junit.jupiter.api.AfterEach;
@@ -78,7 +78,7 @@ class FlowTaskServiceImplTest {
     @Mock
     private FlowDefinitionService flowDefinitionService;
     @Mock
-    private CategoryService categoryService;
+    private FlowCategoryService flowCategoryService;
     @Mock
     private FlowOrganizationProvider flowOrganizationProvider;
     @Mock
@@ -158,7 +158,7 @@ class FlowTaskServiceImplTest {
         page.setRecords(List.of(vo));
         page.setTotal(1);
         when(flowTaskDAO.pageTask(any(), eq(query))).thenReturn(page);
-        when(categoryService.getCategoryMap()).thenReturn(Map.of("purchase", "采购管理"));
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("purchase", "采购管理"));
         when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(7L, "张敏"));
 
         PageResult<FlowTaskPageVO> result = service.pageMyDone(query);
@@ -239,7 +239,7 @@ class FlowTaskServiceImplTest {
         page.setRecords(List.of(vo));
         page.setTotal(1);
         when(flowTaskDAO.pageTask(any(), eq(query))).thenReturn(page);
-        when(categoryService.getCategoryMap()).thenReturn(Map.of("purchase", "采购管理"));
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("purchase", "采购管理"));
         when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(7L, "张敏"));
 
         PageResult<FlowTaskPageVO> result = service.pageMyCopy(query);

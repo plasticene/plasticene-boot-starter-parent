@@ -10,17 +10,19 @@ import java.time.LocalDateTime;
  * @date 2025/11/19
  */
 @Data
-public class CategoryVO {
+public class FlowCategoryVO {
     @Schema(description = "主键")
     private Long id;
     @Schema(description = "公司id")
     private Long orgId;
-    @Schema(description = "分组名称")
+    @Schema(description = "分类名称")
     private String name;
     @Schema(description = "前端内置图标标识，空值使用默认图标")
     private String icon;
-    @Schema(description = "分组code")
+    @Schema(description = "分类标识，同一公司内唯一、不区分大小写")
     private String code;
+    @Schema(description = "分类描述，最多100字")
+    private String description;
     @Schema(description = "分组顺序")
     private Integer seq;
     @Schema(description = "是否系统内置  0：否  1：是")

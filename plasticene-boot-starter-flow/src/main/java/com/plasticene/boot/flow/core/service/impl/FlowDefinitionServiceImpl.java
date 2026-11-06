@@ -18,7 +18,7 @@ import com.plasticene.boot.flow.core.model.vo.FlowDefinitionVO;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.model.vo.FlowStartCatalogVO;
 import com.plasticene.boot.flow.core.model.vo.FlowStartableModelVO;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
@@ -40,7 +40,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
     @Resource
     private FlowModelDAO flowModelDAO;
     @Resource
-    private CategoryService categoryService;
+    private FlowCategoryService flowCategoryService;
     @Resource
     private FlowInstanceDAO flowInstanceDAO;
     @Resource
@@ -83,7 +83,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
                 .toList();
 
         // 构造可发起的流程模型分类
-        Map<String, String> categoryMap = categoryService.getCategoryMap();
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap();
         List<FlowStartableModelVO> voList = models.stream()
                 .map(model -> toStartableModelVO(model, definitionMap.get(model.getActiveDefinitionId()), categoryMap))
                 .toList();
@@ -100,7 +100,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
     @Override
     public FlowDefinitionVO getFlowDefinition(Long definitionId) {
         FlowDefinition flowDefinition = getStartableDefinition(definitionId);
-        Map<String, String> categoryMap = categoryService.getCategoryMap();
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap();
         FlowDefinitionVO vo = PtcBeanUtils.copy(flowDefinition, FlowDefinitionVO.class);
         vo.setDefinitionId(flowDefinition.getId());
         vo.setCategoryName(categoryMap.get(flowDefinition.getCategory()));
@@ -172,7 +172,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         }
         FlowDefinitionVO vo = PtcBeanUtils.copy(definition, FlowDefinitionVO.class);
         vo.setDefinitionId(definition.getId());
-        vo.setCategoryName(categoryService.getCategoryMap().get(definition.getCategory()));
+        vo.setCategoryName(flowCategoryService.getCategoryMap().get(definition.getCategory()));
         vo.setExtraSetting(FlowExtraSetting.normalize(vo.getExtraSetting()));
         return vo;
     }

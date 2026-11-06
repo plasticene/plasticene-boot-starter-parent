@@ -21,7 +21,7 @@ import com.plasticene.boot.flow.core.model.param.FlowModelParam;
 import com.plasticene.boot.flow.core.model.query.FlowModelQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowModelStatisticsVO;
 import com.plasticene.boot.flow.core.model.vo.FlowModelVO;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowModelService;
 import com.plasticene.boot.flow.core.utils.FlowFormConfig;
@@ -51,7 +51,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Resource
     private FlowModelDAO flowModelDAO;
     @Resource
-    private CategoryService categoryService;
+    private FlowCategoryService flowCategoryService;
     @Resource
     private FlowNodeValidator flowNodeValidator;
     @Resource
@@ -139,7 +139,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         queryWrapper.orderByDesc(FlowModel::getId);
         PageResult<FlowModel> result = flowModelDAO.selectPage(query, queryWrapper);
         List<FlowModelVO> voList = PtcBeanUtils.copyList(result.getList(), FlowModelVO.class);
-        Map<String, String> categoryMap = categoryService.getCategoryMap();
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap();
         voList.forEach(vo -> vo.setCategoryName(categoryMap.get(vo.getCategory())));
         return new PageResult<>(voList, result.getTotal(), result.getPages());
     }
@@ -247,6 +247,14 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         // 局部更新未传标识时保持原值。
         if (code == null) {
             return;
+        }
+        if (code.length() < 5) {
+            FlowModel existing = excludeId == null ? null : flowModelDAO.selectById(excludeId);
+            if (code.isEmpty() || existing == null
+                    || !Objects.equals(existing.getOrgId(), LoginUserHolder.get().getOrgId())
+                    || !Objects.equals(existing.getCode(), code)) {
+                throw new BizException("流程标识至少5位");
+            }
         }
         if (flowModelDAO.countByCode(LoginUserHolder.get().getOrgId(), code, excludeId) > 0) {
             throw new BizException("流程标识已存在");

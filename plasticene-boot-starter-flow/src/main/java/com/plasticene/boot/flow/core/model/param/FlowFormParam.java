@@ -34,6 +34,6 @@ public class FlowFormParam {
     private Map<String, Object> formConfig;
     @Schema(description = "表单分类编码，关联流程分类")
     @NotBlank(message = "表单分类不能为空", groups = Insert.class)
-    @Size(max = 16, message = "分类长度不能超过16个字符")
+    @Size(max = 32, message = "分类长度不能超过32个字符", groups = {Insert.class, Update.class})
     private String category;
 }

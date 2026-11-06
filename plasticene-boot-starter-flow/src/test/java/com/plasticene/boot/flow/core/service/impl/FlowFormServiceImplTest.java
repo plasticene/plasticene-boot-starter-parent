@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.flow.core.model.query.FlowFormQuery;
-import com.plasticene.boot.flow.core.service.CategoryService;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
@@ -41,7 +41,7 @@ class FlowFormServiceImplTest {
     @Mock
     private FlowFormDAO flowFormDAO;
     @Mock
-    private CategoryService categoryService;
+    private FlowCategoryService flowCategoryService;
     @InjectMocks
     private FlowFormServiceImpl service;
 
@@ -142,7 +142,7 @@ class FlowFormServiceImplTest {
         }
         var form = new FlowForm();
         form.setCategory("office");
-        when(categoryService.getCategoryMap()).thenReturn(Map.of("office", "办公"));
+        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("office", "办公"));
         when(flowFormDAO.selectPage(eq(query), any(PtcLambdaQueryWrapper.class)))
                 .thenAnswer(call -> {
                     PtcLambdaQueryWrapper<FlowForm> wrapper = call.getArgument(1);
