@@ -1,7 +1,6 @@
 package com.plasticene.boot.flow.core.event;
 
 import com.plasticene.boot.flow.core.entity.FlowInstance;
-import lombok.Value;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
