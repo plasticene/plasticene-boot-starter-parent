@@ -11,7 +11,9 @@ import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
-import com.plasticene.boot.flow.core.event.InstanceEvent;
+import com.plasticene.boot.flow.core.event.FlowInstanceEvent;
+import com.plasticene.boot.flow.core.event.FlowEventPublisher;
+import com.plasticene.boot.flow.core.event.FlowEventType;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowInstanceNodeTimeDTO;
@@ -34,7 +36,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationContext;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -64,7 +65,7 @@ class FlowRuntimeServiceImplTest {
     @Mock
     private ProcessExecutor processExecutor;
     @Mock
-    private ApplicationContext applicationContext;
+    private FlowEventPublisher flowEventPublisher;
     @Mock
     private FlowDefinitionService flowDefinitionService;
     @Mock
@@ -91,6 +92,52 @@ class FlowRuntimeServiceImplTest {
     @AfterEach
     void clearLoginUser() {
         LoginUserHolder.remove();
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = FlowInstanceStatusEnum.class,
+            names = {"APPROVE", "REJECT", "CANCEL"})
+    void shouldPublishDistinctTerminalInstanceEvents(FlowInstanceStatusEnum status) {
+        FlowInstance instance = runningInstance(8L);
+        FlowNode node = new FlowNode();
+        node.setKey("approve");
+        node.setName("审批");
+        service.endInstance(instance, node, status);
+        ArgumentCaptor<FlowInstanceEvent> captor = ArgumentCaptor.forClass(FlowInstanceEvent.class);
+        verify(flowEventPublisher).publish(captor.capture());
+        FlowEventType expected = switch (status) {
+            case APPROVE -> FlowEventType.INSTANCE_APPROVED;
+            case REJECT -> FlowEventType.INSTANCE_REJECTED;
+            case CANCEL -> FlowEventType.INSTANCE_CANCELLED;
+            default -> throw new AssertionError(status);
+        };
+        assertEquals(expected, captor.getValue().eventType());
+        assertEquals(status.getCode(), captor.getValue().status());
+        assertEquals(instance.getId(), captor.getValue().instanceId());
+    }
+
+    @Test
+    void shouldPublishStartedSnapshotBeforeExecutingNodes() {
+        FlowDefinition definition = new FlowDefinition();
+        definition.setOrgId(10L);
+        definition.setCategory("leave");
+        FlowNode node = new FlowNode();
+        node.setKey("start");
+        definition.setModelNode(node);
+        when(flowDefinitionService.getStartableDefinition(31L)).thenReturn(definition);
+        when(flowInstanceDAO.insert(any(FlowInstance.class))).thenAnswer(call -> {
+            call.<FlowInstance>getArgument(0).setId(21L);
+            return 1;
+        });
+        service.startFlowInstanceById(31L, 41L, Map.of());
+        ArgumentCaptor<FlowInstanceEvent> captor = ArgumentCaptor.forClass(FlowInstanceEvent.class);
+        var order = org.mockito.Mockito.inOrder(flowEventPublisher, processExecutor);
+        order.verify(flowEventPublisher).publish(captor.capture());
+        order.verify(processExecutor).executeNode(any(), eq(node));
+        assertEquals(FlowEventType.INSTANCE_STARTED, captor.getValue().eventType());
+        assertEquals(21L, captor.getValue().instanceId());
+        assertEquals(41L, captor.getValue().businessId());
+        assertEquals(8L, captor.getValue().startUserId());
     }
 
     @Test
@@ -291,9 +338,9 @@ class FlowRuntimeServiceImplTest {
         assertEquals(FlowInstanceStatusEnum.CANCEL.getCode(), updateCaptor.getValue().getStatus());
         assertEquals("approve", updateCaptor.getValue().getCurrentNodeKey());
         assertEquals(FlowInstanceStatusEnum.CANCEL.getCode(), instance.getStatus());
-        ArgumentCaptor<InstanceEvent> eventCaptor = ArgumentCaptor.forClass(InstanceEvent.class);
-        verify(applicationContext).publishEvent(eventCaptor.capture());
-        assertEquals(FlowInstanceStatusEnum.CANCEL.getCode(), eventCaptor.getValue().getInstance().getStatus());
+        ArgumentCaptor<FlowInstanceEvent> eventCaptor = ArgumentCaptor.forClass(FlowInstanceEvent.class);
+        verify(flowEventPublisher).publish(eventCaptor.capture());
+        assertEquals(FlowInstanceStatusEnum.CANCEL.getCode(), eventCaptor.getValue().status());
     }
 
     @Test

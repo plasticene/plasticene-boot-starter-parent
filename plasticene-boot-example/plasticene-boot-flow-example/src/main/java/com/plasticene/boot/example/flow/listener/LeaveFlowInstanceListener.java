@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow.listener;
 
-import com.plasticene.boot.flow.core.event.BaseFlowInstanceListener;
-import com.plasticene.boot.flow.core.event.InstanceEvent;
+import com.plasticene.boot.flow.core.event.FlowEvent;
+import com.plasticene.boot.flow.core.event.SpringFlowEventListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -11,9 +11,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-public class LeaveFlowInstanceListener extends BaseFlowInstanceListener {
+public class LeaveFlowInstanceListener extends SpringFlowEventListener {
     @Override
-    public void doProcessInstanceEvent(InstanceEvent event) {
+    public void doProcessEvent(FlowEvent event) {
         log.info("======>>>instance event: {}", event);
     }
 

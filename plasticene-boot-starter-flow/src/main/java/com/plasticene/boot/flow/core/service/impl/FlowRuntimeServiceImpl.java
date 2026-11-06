@@ -20,11 +20,12 @@ import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.entity.FlowTaskAddSign;
 import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
-import com.plasticene.boot.flow.core.enums.FlowInstanceEventTypeEnum;
+import com.plasticene.boot.flow.core.event.FlowEventType;
+import com.plasticene.boot.flow.core.event.FlowEventPublisher;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
-import com.plasticene.boot.flow.core.event.InstanceEvent;
+import com.plasticene.boot.flow.core.event.FlowInstanceEvent;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowInstanceNodeTimeDTO;
@@ -46,7 +47,6 @@ import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import com.plasticene.boot.mybatis.core.utils.MybatisUtils;
 import jakarta.annotation.Resource;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,7 +72,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Lazy
     private ProcessExecutor processExecutor;
     @Resource
-    private ApplicationContext applicationContext;
+    private FlowEventPublisher flowEventPublisher;
     @Resource
     private FlowDefinitionService flowDefinitionService;
     @Resource
@@ -110,8 +110,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         flowInstanceDAO.insert(instance);
 
         // 发布流程实例开始事件
-        InstanceEvent instanceEvent = buildInstanceEvent(instance, flowNode, FlowInstanceEventTypeEnum.START);
-        applicationContext.publishEvent(instanceEvent);
+        flowEventPublisher.publish(FlowInstanceEvent.of(instance, FlowEventType.INSTANCE_STARTED));
 
         // 开始流转流程
         FlowParser.makeParentNode(flowNode);
@@ -300,20 +299,14 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         // 上下文instance需要传递最新状态
         instance.setStatus(status.getCode());
         // 发布流程结束事件
-        InstanceEvent instanceEvent = buildInstanceEvent(instance, currentNode, FlowInstanceEventTypeEnum.END);
-        applicationContext.publishEvent(instanceEvent);
+        FlowEventType eventType = switch (status) {
+            case APPROVE -> FlowEventType.INSTANCE_APPROVED;
+            case REJECT -> FlowEventType.INSTANCE_REJECTED;
+            case CANCEL -> FlowEventType.INSTANCE_CANCELLED;
+            default -> throw new IllegalArgumentException("非终态不能发布实例结束事件");
+        };
+        flowEventPublisher.publish(FlowInstanceEvent.of(instance, eventType));
 
-    }
-
-    private InstanceEvent buildInstanceEvent(FlowInstance instance, FlowNode currentNode,
-                                             FlowInstanceEventTypeEnum eventType) {
-        InstanceEvent instanceEvent = new InstanceEvent(this);
-        instanceEvent.setInstance(instance);
-        instanceEvent.setCurrentNode(currentNode);
-        instanceEvent.setBusinessId(instance.getBusinessId());
-        instanceEvent.setCategory(instance.getCategory());
-        instanceEvent.setEventType(eventType);
-        return instanceEvent;
     }
 
     private FlowRouteNodeVO toRouteNodeVO(FlowNode flowNode) {

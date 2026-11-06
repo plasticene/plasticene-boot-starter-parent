@@ -43,6 +43,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
+import com.plasticene.boot.flow.core.event.FlowTaskEvent;
+import com.plasticene.boot.flow.core.event.FlowEventType;
+import com.plasticene.boot.flow.core.event.FlowTaskAction;
+import com.plasticene.boot.flow.core.event.FlowTaskCancelReason;
+import com.plasticene.boot.flow.core.event.FlowEventPublisher;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
@@ -58,6 +63,7 @@ import static org.mockito.Mockito.*;
  * @since 2026-11-03
  */
 class FlowTaskAddSignTest {
+    private final List<FlowTaskEvent> events = new java.util.ArrayList<>();
     private final FlowTaskServiceImpl service = new FlowTaskServiceImpl();
     private final FlowTaskDAO tasks = mock(FlowTaskDAO.class);
     private final FlowTaskAddSignDAO signs = mock(FlowTaskAddSignDAO.class);
@@ -74,6 +80,9 @@ class FlowTaskAddSignTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setup() {
+        ReflectionTestUtils.setField(service, "flowEventPublisher",
+                (FlowEventPublisher) event -> events.add((FlowTaskEvent) event));
+        when(runtime.getById(anyLong())).thenReturn(instance);
         for (Class<?> type : List.of(FlowTask.class, FlowTaskAddSign.class, FlowTimeoutNotice.class)) {
             TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "add-sign"), type);
         }
@@ -124,6 +133,60 @@ class FlowTaskAddSignTest {
     @AfterEach
     void clearUser() {
         LoginUserHolder.remove();
+    }
+
+    @Test
+    void shouldPublishTransferCompletionBeforeNewTodoWithStableSnapshots() {
+        FlowTaskTransferParam param = new FlowTaskTransferParam();
+        param.setTaskId(1L);
+        param.setAssignee(12L);
+        param.setComment("转交审核");
+        service.transferTask(param);
+        assertEquals(List.of(FlowEventType.TASK_COMPLETED, FlowEventType.TASK_CREATED),
+                events.stream().map(FlowTaskEvent::eventType).toList());
+        assertEquals(FlowTaskAction.TRANSFER, events.getFirst().action());
+        assertEquals(1L, events.getFirst().taskId());
+        assertEquals(8L, events.getFirst().assignee());
+        assertEquals(12L, events.getLast().assignee());
+        assertNotEquals(events.getFirst().taskId(), events.getLast().taskId());
+    }
+
+    @Test
+    void shouldClosePausedTodoAndReopenItOnlyAfterBeforeSignCompletes() {
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)));
+        assertEquals(FlowEventType.TASK_CANCELLED, events.getFirst().eventType());
+        assertEquals(FlowTaskCancelReason.ADD_SIGN_WAITING, events.getFirst().cancelReason());
+        assertEquals(FlowEventType.TASK_CREATED, events.getLast().eventType());
+        assertEquals(10L, events.getLast().assignee());
+        approve(pending(10L));
+        assertEquals(FlowEventType.TASK_CREATED, events.getLast().eventType());
+        assertEquals(1L, events.getLast().taskId());
+        assertEquals(8L, events.getLast().assignee());
+    }
+
+    @Test
+    void shouldCancelOnlyRemainingAnySignTodosOnce() {
+        rows.get(1L).setApproveMode(1);
+        rows.put(2L, task(2L, 9L, "approve", 1));
+        rows.put(3L, task(3L, 12L, "other-branch", 0));
+        approve(rows.get(1L));
+        assertEquals(List.of(FlowEventType.TASK_COMPLETED, FlowEventType.TASK_CANCELLED),
+                events.stream().map(FlowTaskEvent::eventType).toList());
+        assertEquals(2L, events.getLast().taskId());
+        assertEquals(FlowTaskCancelReason.NODE_COMPLETED, events.getLast().cancelReason());
+        assertThrows(BizException.class, () -> approve(rows.get(1L)));
+        assertEquals(2, events.size());
+    }
+
+    @Test
+    void shouldCancelAllActionableTodosWhenInstanceCancelled() {
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)));
+        events.clear();
+        service.cancelInstanceRunningTask(21L);
+        assertEquals(2, events.size());
+        assertTrue(events.stream().allMatch(event -> event.eventType() == FlowEventType.TASK_CANCELLED
+                && event.cancelReason() == FlowTaskCancelReason.INSTANCE_CANCELLED));
+        assertEquals(2, events.stream().map(FlowTaskEvent::taskId).distinct().count());
     }
 
     @ParameterizedTest

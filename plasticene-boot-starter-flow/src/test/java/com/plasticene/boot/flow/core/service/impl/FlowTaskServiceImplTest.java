@@ -85,11 +85,20 @@ class FlowTaskServiceImplTest {
     private FlowTaskAddSignDAO flowTaskAddSignDAO;
     @Mock
     private com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO formChangeRecordDAO;
+    @Mock
+    private com.plasticene.boot.flow.core.event.FlowEventPublisher flowEventPublisher;
     @InjectMocks
     private FlowTaskServiceImpl service;
 
     @BeforeEach
     void setUpLoginUser() {
+        org.mockito.Mockito.lenient().when(flowRuntimeService.getById(org.mockito.ArgumentMatchers.anyLong()))
+                .thenAnswer(call -> {
+                    FlowInstance instance = new FlowInstance();
+                    instance.setId(call.getArgument(0));
+                    instance.setOrgId(9L);
+                    return instance;
+                });
         LoginUser loginUser = new LoginUser();
         loginUser.setId(8L);
         loginUser.setOrgId(9L);

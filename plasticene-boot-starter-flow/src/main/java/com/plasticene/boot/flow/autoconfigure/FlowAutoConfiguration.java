@@ -1,5 +1,7 @@
 package com.plasticene.boot.flow.autoconfigure;
 
+import com.plasticene.boot.flow.core.event.FlowEventPublisher;
+import com.plasticene.boot.flow.core.event.SpringFlowEventPublisher;
 import com.plasticene.boot.flow.core.executor.DefaultProcessExecutor;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.provider.DefaultFlowTaskAssigneeProvider;
@@ -10,6 +12,7 @@ import com.plasticene.boot.flow.core.validator.ConditionNodeValidator;
 import com.plasticene.boot.flow.core.validator.NodeValidator;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -54,4 +57,9 @@ public class FlowAutoConfiguration {
     }
 
 
+    @Bean
+    @ConditionalOnMissingBean(FlowEventPublisher.class)
+    public FlowEventPublisher flowEventPublisher(ApplicationEventPublisher publisher) {
+        return new SpringFlowEventPublisher(publisher);
+    }
 }

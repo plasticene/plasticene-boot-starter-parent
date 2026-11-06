@@ -38,6 +38,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import com.plasticene.boot.flow.core.event.FlowTaskEvent;
+import com.plasticene.boot.flow.core.event.FlowEventType;
+import com.plasticene.boot.flow.core.event.FlowTaskAction;
+import com.plasticene.boot.flow.core.event.FlowEventPublisher;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
@@ -53,6 +57,7 @@ import static org.mockito.Mockito.*;
  * @since 2026-11-02
  */
 class FlowTaskReturnTest {
+    private final List<FlowTaskEvent> events = new java.util.ArrayList<>();
     private final FlowTaskServiceImpl service = new FlowTaskServiceImpl();
     private final DefaultProcessExecutor executor = new DefaultProcessExecutor();
     private final FlowTaskDAO dao = mock(FlowTaskDAO.class);
@@ -67,6 +72,9 @@ class FlowTaskReturnTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setup() {
+        ReflectionTestUtils.setField(service, "flowEventPublisher",
+                (FlowEventPublisher) event -> events.add((FlowTaskEvent) event));
+        when(runtime.getById(anyLong())).thenReturn(instance);
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "return"), FlowTask.class);
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "return"), com.plasticene.boot.flow.core.entity.FlowTimeoutNotice.class);
         instance.setId(1L);
@@ -142,6 +150,24 @@ class FlowTaskReturnTest {
 
     @AfterEach
     void cleanup() { LoginUserHolder.remove(); }
+
+    @Test
+    void shouldPublishReturnCompletionAndReopenedTaskWithoutCancellingCompletedHistory() {
+        FlowNode a = approval("a"), b = approval("b");
+        a.setChildNode(b);
+        start(a);
+        Long first = pending("a").getId();
+        approve("a");
+        Long second = pending("b").getId();
+        events.clear();
+        back("b", "a");
+        assertEquals(List.of(FlowEventType.TASK_COMPLETED, FlowEventType.TASK_CREATED),
+                events.stream().map(FlowTaskEvent::eventType).toList());
+        assertEquals(second, events.getFirst().taskId());
+        assertEquals(FlowTaskAction.RETURN, events.getFirst().action());
+        assertEquals("a", events.getLast().nodeKey());
+        assertNotEquals(first, events.getLast().taskId());
+    }
 
     @Test
     void serialReturnMustCreateNewTasksAndRetainHistoryAcrossTwoRounds() {
