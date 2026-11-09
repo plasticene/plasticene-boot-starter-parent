@@ -28,3 +28,11 @@ spring:
 mybatis-plus:
   configuration:
     local-cache-scope: statement
+
+ptc:
+  api:
+    log:
+      enable: true
+  flow:
+    timeout:
+      enabled: false
