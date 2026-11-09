@@ -1,6 +1,8 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowModel;
@@ -12,6 +14,8 @@ import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.validator.FlowNodeValidator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -44,6 +48,24 @@ class FlowModelExtraSettingServiceTest {
     private FlowDefinitionService flowDefinitionService;
     @InjectMocks
     private FlowModelServiceImpl service;
+
+    @BeforeEach
+    void setupUser() {
+        var user = new LoginUser();
+        user.setId(8L);
+        user.setOrgId(100L);
+        LoginUserHolder.set(user);
+        var model = new FlowModel();
+        model.setId(11L);
+        model.setOrgId(100L);
+        model.setManagerUserIds(java.util.List.of(8L));
+        org.mockito.Mockito.lenient().when(flowModelDAO.selectById(11L)).thenReturn(model);
+    }
+
+    @AfterEach
+    void cleanupUser() {
+        LoginUserHolder.remove();
+    }
 
     @Test
     void shouldRejectInvalidDefaultTimeoutWhenCreating() {
@@ -109,6 +131,8 @@ class FlowModelExtraSettingServiceTest {
         when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(model);
         when(flowDefinitionService.getMaxVersion(11L)).thenReturn(2);
 
+        model.setOrgId(100L);
+        model.setManagerUserIds(java.util.List.of(8L));
         service.publish(11L);
         verify(flowNodeValidator).validate(model.getModelNode(), java.util.Set.of());
 
@@ -147,6 +171,8 @@ class FlowModelExtraSettingServiceTest {
         verify(flowModelDAO).updateById(draft.capture());
         when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(draft.getValue());
 
+        draft.getValue().setOrgId(100L);
+        draft.getValue().setManagerUserIds(java.util.List.of(8L));
         service.publish(11L);
 
         ArgumentCaptor<FlowDefinition> published = ArgumentCaptor.forClass(FlowDefinition.class);
@@ -176,6 +202,8 @@ class FlowModelExtraSettingServiceTest {
                 java.util.Map.of("type", "select", "field", "choice", "title", ""),
                 java.util.Map.of("type", "subForm", "field", "detail", "title", "分组"))));
         when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(model);
+        model.setOrgId(100L);
+        model.setManagerUserIds(java.util.List.of(8L));
         service.publish(11L);
         verify(flowNodeValidator).validate(model.getModelNode(), java.util.Set.of("choice"));
     }

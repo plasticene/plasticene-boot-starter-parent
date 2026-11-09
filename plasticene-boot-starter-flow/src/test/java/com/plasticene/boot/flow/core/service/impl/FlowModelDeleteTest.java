@@ -44,6 +44,7 @@ class FlowModelDeleteTest {
     void setup() {
         LoginUser user = new LoginUser();
         user.setOrgId(100L);
+        user.setId(8L);
         LoginUserHolder.set(user);
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "delete"), FlowDefinition.class);
     }
@@ -101,6 +102,7 @@ class FlowModelDeleteTest {
     private FlowModel model(Long orgId) {
         FlowModel model = new FlowModel();
         model.setId(11L);
+        model.setManagerUserIds(List.of(8L));
         model.setOrgId(orgId);
         return model;
     }

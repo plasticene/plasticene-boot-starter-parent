@@ -180,6 +180,7 @@ class FlowModelVersionServiceTest {
             return 1;
         });
 
+        when(models.selectById(11L)).thenReturn(model(100L));
         modelService.update(omitted);
         modelService.update(cleared);
         verify(models, times(2)).updateById(any(FlowModel.class));
@@ -226,6 +227,7 @@ class FlowModelVersionServiceTest {
         FlowModel model = new FlowModel();
         model.setId(11L);
         model.setOrgId(orgId);
+        model.setManagerUserIds(List.of(8L));
         model.setActiveDefinitionId(31L);
         return model;
     }

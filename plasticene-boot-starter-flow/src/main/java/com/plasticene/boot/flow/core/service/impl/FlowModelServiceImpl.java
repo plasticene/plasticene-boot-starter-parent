@@ -31,7 +31,6 @@ import jakarta.annotation.Resource;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.Assert;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -66,6 +65,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         if (flowModel.getExtraSetting().getTimeoutRule() != null) {
             flowModel.getExtraSetting().getTimeoutRule().validate();
         }
+        flowModel.setStatus(FlowModelEnums.Status.DRAFT.getCode());
         flowModel.setOrgId(LoginUserHolder.get().getOrgId());
         flowModel.setIsEdited(CommonConstant.IS_ON);
         validateCodeUnique(flowModel.getCode(), null);
@@ -88,6 +88,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
                 flowModel.getExtraSetting().getTimeoutRule().validate();
             }
         }
+        requireManager(requireModel(flowModelDAO.selectById(param.getId())));
         flowModel.setIsEdited(CommonConstant.IS_ON);
         validateCodeUnique(flowModel.getCode(), flowModel.getId());
         try {
@@ -111,9 +112,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
             if (model == null) {
                 continue;
             }
-            if (!Objects.equals(model.getOrgId(), orgId)) {
-                throw new BizException("流程模型不存在");
-            }
+            requireManager(requireModel(model));
             modelIds.add(modelId);
         }
         if (modelIds.isEmpty()) {
@@ -146,7 +145,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
 
     @Override
     public FlowModelVO detail(Long id) {
-        FlowModel flowModel = flowModelDAO.selectById(id);
+        FlowModel flowModel = requireModel(flowModelDAO.selectById(id));
         FlowModelVO vo = PtcBeanUtils.copy(flowModel, FlowModelVO.class);
         vo.setExtraSetting(FlowExtraSetting.normalize(vo.getExtraSetting()));
         return vo;
@@ -175,8 +174,8 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     public void enable(FlowModelEnableParam param) {
         Long id = param.getId();
         Integer status = param.getStatus();
-        FlowModel flowModel = this.getById(id);
-        Assert.notNull(flowModel, "流程模型不存在");
+        FlowModel flowModel = requireModel(flowModelDAO.selectById(id));
+        requireManager(flowModel);
         if (Objects.equals(flowModel.getStatus(), FlowModelEnums.Status.DRAFT.getCode())) {
             throw new BizException("流程模型当前状态为草稿，不能进行开关操作");
         }
@@ -199,7 +198,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     public void publish(Long id) {
         // 1.获取流程模型,悲观锁防止并发发布
         FlowModel flowModel = flowModelDAO.selectFlowModelForUpdate(id);
-        Assert.notNull(flowModel, "流程模型不存在");
+        requireManager(requireModel(flowModel));
         // 2.发布前校验流程模型是否合法
         FlowNode modelNode = flowModel.getModelNode();
         flowNodeValidator.validate(modelNode, FlowFormConfig.referenceFields(flowModel.getFormConfig()));
@@ -241,6 +240,20 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
                         .or()
                         .like(FlowModel::getCode, query.getKeyword()));
         return queryWrapper;
+    }
+
+    private FlowModel requireModel(FlowModel model) {
+        if (model == null || !Objects.equals(model.getOrgId(), LoginUserHolder.get().getOrgId())) {
+            throw new BizException("流程模型不存在");
+        }
+        return model;
+    }
+
+    private void requireManager(FlowModel model) {
+        Long userId = LoginUserHolder.get().getId();
+        if (userId == null || !CollUtil.contains(model.getManagerUserIds(), userId)) {
+            throw new BizException("仅流程管理员可操作该流程模型");
+        }
     }
 
     private void validateCodeUnique(String code, Long excludeId) {

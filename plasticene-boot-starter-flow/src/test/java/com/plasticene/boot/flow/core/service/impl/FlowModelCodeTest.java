@@ -38,7 +38,13 @@ class FlowModelCodeTest {
     void setUp() {
         LoginUser user = new LoginUser();
         user.setOrgId(9L);
+        user.setId(8L);
         LoginUserHolder.set(user);
+        FlowModel existing = new FlowModel();
+        existing.setId(11L);
+        existing.setOrgId(9L);
+        existing.setManagerUserIds(java.util.List.of(8L));
+        lenient().when(flowModelDAO.selectById(11L)).thenReturn(existing);
     }
 
     @AfterEach
@@ -114,6 +120,7 @@ class FlowModelCodeTest {
         existing.setId(11L);
         existing.setOrgId(9L);
         existing.setCode("old");
+        existing.setManagerUserIds(java.util.List.of(8L));
         when(flowModelDAO.selectById(11L)).thenReturn(existing);
         var param = param("old");
         param.setId(11L);
@@ -126,6 +133,24 @@ class FlowModelCodeTest {
         assertThrows(BizException.class, () -> service.update(param));
         assertThrows(BizException.class, () -> service.create(param("abcd")));
         verify(flowModelDAO, times(1)).updateById(any(FlowModel.class));
+    }
+
+    @Test
+    void shouldAlwaysCreateDraftRegardlessOfRequestedStatus() {
+        when(flowModelDAO.insert(any(FlowModel.class))).thenAnswer(invocation -> {
+            FlowModel model = invocation.getArgument(0);
+            assertEquals(0, model.getStatus());
+            assertNull(model.getActiveDefinitionId());
+            assertNull(model.getActiveVersion());
+            assertNull(model.getPublishTime());
+            model.setId(88L);
+            return 1;
+        });
+        for (Integer status : new Integer[]{null, 0, 1, -1}) {
+            var param = param("tests_copy");
+            param.setStatus(status);
+            assertEquals(88L, service.create(param));
+        }
     }
 
     private FlowModelParam param(String code) {
