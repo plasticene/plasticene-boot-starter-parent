@@ -41,6 +41,10 @@
             <artifactId>screw-core</artifactId>
             <exclusions>
                 <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>commons-lang</groupId>
                     <artifactId>commons-lang</artifactId>
                 </exclusion>
