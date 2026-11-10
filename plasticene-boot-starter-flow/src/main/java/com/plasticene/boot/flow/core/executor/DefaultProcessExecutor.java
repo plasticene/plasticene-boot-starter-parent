@@ -1,22 +1,14 @@
 package com.plasticene.boot.flow.core.executor;
 
 import com.plasticene.boot.flow.core.enums.FlowApproveTaskResult;
-import cn.hutool.core.collection.CollUtil;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
-import com.plasticene.boot.flow.core.model.dto.ProcessConditionGroup;
-import com.plasticene.boot.flow.core.model.dto.ProcessConditionRule;
-import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
-import com.plasticene.boot.flow.core.enums.FlowConditionTypeEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
-import com.plasticene.boot.flow.core.factory.OperatorFactory;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
-import com.plasticene.boot.flow.core.operator.Operator;
 import jakarta.annotation.Resource;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,6 +23,9 @@ public class DefaultProcessExecutor implements ProcessExecutor {
     private FlowTaskService flowTaskService;
     @Resource
     private FlowRuntimeService flowRuntimeService;
+
+    private final FlowBranchSelector branchSelector = new FlowBranchSelector();
+    private final FlowRouteCalculator routeCalculator = new FlowRouteCalculator(branchSelector);
 
     @Override
     public void executeNode(FlowInstance instance, FlowNode currentNode) {
@@ -84,69 +79,13 @@ public class DefaultProcessExecutor implements ProcessExecutor {
 
     @Override
     public List<FlowNode> calculateRoute(FlowNode flowNode, Map<String, Object> varMap) {
-        List<FlowNode> routeNodes = new ArrayList<>();
-        calculateRoute(flowNode, varMap, routeNodes, false);
-        return routeNodes;
+        return routeCalculator.calculateRoute(flowNode, varMap);
     }
 
     @Override
     public List<FlowNode> calculateRouteTrace(FlowNode flowNode, Map<String, Object> varMap) {
-        List<FlowNode> routeNodes = new ArrayList<>();
-        calculateRoute(flowNode, varMap, routeNodes, true);
-        return routeNodes;
+        return routeCalculator.calculateRouteTrace(flowNode, varMap);
     }
-
-    private void calculateRoute(FlowNode flowNode, Map<String, Object> varMap,
-                                List<FlowNode> routeNodes, boolean includeRoutingNodes) {
-        if (flowNode == null) {
-            return;
-        }
-        Integer type = flowNode.getType();
-        // 节点类型为开始节点、结束节点、抄送节点、审批节点时，加入路径
-        if (Objects.equals(type, FlowNodeEnum.Type.START.getCode())
-                || Objects.equals(type, FlowNodeEnum.Type.END.getCode())
-                || Objects.equals(type, FlowNodeEnum.Type.COPY.getCode())
-                || Objects.equals(type, FlowNodeEnum.Type.APPROVE.getCode())) {
-            routeNodes.add(flowNode);
-        }
-        // 条件分支
-        if (Objects.equals(type, FlowNodeEnum.Type.CONDITION_BRANCH.getCode())) {
-            if (includeRoutingNodes) {
-                routeNodes.add(flowNode);
-            }
-            // 分支下的条件节点
-            List<FlowNode> conditionNodes = flowNode.getConditionNodes();
-            for (FlowNode conditionNode : conditionNodes) {
-                boolean match = handleConditionNode(varMap, conditionNode);
-                if (match) {
-                    if (includeRoutingNodes) {
-                        routeNodes.add(conditionNode);
-                    }
-                    // 递归条件节点下的子节点，没有子节点那就return
-                    calculateRoute(conditionNode.getChildNode(), varMap, routeNodes, includeRoutingNodes);
-                    break;
-                }
-            }
-        }
-        // 并行分支
-        if (Objects.equals(type, FlowNodeEnum.Type.PARALLEL_BRANCH.getCode())) {
-            if (includeRoutingNodes) {
-                routeNodes.add(flowNode);
-            }
-            List<FlowNode> conditionNodes = selectParallelBranches(flowNode, varMap);
-            for (FlowNode conditionNode : conditionNodes) {
-                if (includeRoutingNodes) {
-                    routeNodes.add(conditionNode);
-                }
-                FlowNode childNode = conditionNode.getChildNode();
-                calculateRoute(childNode, varMap, routeNodes, includeRoutingNodes);
-            }
-        }
-        calculateRoute(flowNode.getChildNode(), varMap, routeNodes, includeRoutingNodes);
-    }
-
-
-
 
     /**
      * 处理开始节点
@@ -182,100 +121,21 @@ public class DefaultProcessExecutor implements ProcessExecutor {
 
     private void handleConditionBranch(FlowInstance instance, FlowNode currentNode) {
         flowTaskService.createBranchTask(instance, currentNode);
-        List<FlowNode> conditionNodes = currentNode.getConditionNodes();
-        for (FlowNode conditionNode : conditionNodes) {
-            Map<String, Object> varMap = instance.getVarMap();
-            boolean match = handleConditionNode(varMap, conditionNode);
-            // 条件节点匹配成功
-            if (match) {
-                flowTaskService.createConditionNodeTask(instance, conditionNode);
-                // 条件节点是否有子节点
-                FlowNode childNode = conditionNode.getChildNode();
-                if (childNode != null) {
-                    // 有，流转到条件节点的子节点
-                    executeNode(instance, childNode);
-                } else {
-                    // 没有子节点，那就回退到当前条件分支，执行条件分支节点的子节点
-                    moveToNextNode(instance, conditionNode);
-                }
-                // 匹配成功后，同一个条件分支节点下的后续条件节点不再遍历
-                break;
-            }
+        FlowNode conditionNode = branchSelector.selectExclusiveBranch(currentNode, instance.getVarMap());
+        if (conditionNode == null) {
+            return;
         }
-    }
-
-    private boolean handleConditionNode(Map<String, Object> varMap, FlowNode conditionNode) {
-        // 条件节点的条件配置
-        ProcessNodeCondition condition = conditionNode.getCondition();
-        if (condition == null) {
-            // 没有条件配置直接通过，默认条件节点就是没有条件的
-            return true;
+        flowTaskService.createConditionNodeTask(instance, conditionNode);
+        FlowNode childNode = conditionNode.getChildNode();
+        if (childNode != null) {
+            executeNode(instance, childNode);
+        } else {
+            moveToNextNode(instance, conditionNode);
         }
-        List<ProcessConditionGroup> conditionGroups = condition.getConditionGroups();
-        if (CollUtil.isEmpty(conditionGroups)) {
-            return true;
-        }
-        // 校验条件规则
-        Integer matchType = condition.getType();
-        boolean andMatch = Objects.equals(matchType, FlowConditionTypeEnum.AND.getCode());
-        for (ProcessConditionGroup conditionGroup : conditionGroups) {
-            Boolean result = matchConditionGroup(varMap, conditionGroup);
-            if (andMatch && !result) {
-                return false;
-            }
-            if (!andMatch && result) {
-                return true;
-            }
-        }
-        return andMatch;
-    }
-
-    private Boolean matchConditionGroup(Map<String, Object> varMap, ProcessConditionGroup group) {
-        Integer type = group.getType();
-        boolean andMatch = Objects.equals(type, FlowConditionTypeEnum.AND.getCode());
-        List<ProcessConditionRule> conditionRules = group.getConditionRules();
-        if (CollUtil.isEmpty(conditionRules)) {
-            return true;
-        }
-        if (Objects.isNull(varMap)) {
-            return false;
-        }
-        for (ProcessConditionRule rule : conditionRules) {
-            String field = rule.getField();
-            Integer filedType = rule.getType();
-            Object fieldValue = varMap.get(field);
-            String op = rule.getOperator();
-            String inputValue = rule.getInputValue();
-            Operator operator = OperatorFactory.getOperator(op);
-            boolean compare = operator.compare(filedType, fieldValue, inputValue);
-            if (andMatch && !compare) {
-                return false;
-            }
-            if (!andMatch && compare) {
-                return true;
-            }
-        }
-        return andMatch;
-    }
-
-    private List<FlowNode> selectParallelBranches(FlowNode gateway, Map<String, Object> varMap) {
-        List<FlowNode> matched = new ArrayList<>();
-        FlowNode fallback = null;
-        for (FlowNode branch : gateway.getConditionNodes()) {
-            if (branch.getCondition() != null && Boolean.TRUE.equals(branch.getCondition().getIsDefault())) {
-                fallback = branch;
-            } else if (handleConditionNode(varMap, branch)) {
-                matched.add(branch);
-            }
-        }
-        if (matched.isEmpty() && fallback != null) {
-            matched.add(fallback);
-        }
-        return matched;
     }
 
     private void handleParallelBranch(FlowInstance instance, FlowNode currentNode) {
-        List<FlowNode> conditionNodes = selectParallelBranches(currentNode, instance.getVarMap());
+        List<FlowNode> conditionNodes = branchSelector.selectParallelBranches(currentNode, instance.getVarMap());
         flowTaskService.createBranchTask(instance, currentNode);
         // 先持久化跳过数量，避免同步完成的空分支或自动审批提前汇合。
         int skipped = currentNode.getConditionNodes().size() - conditionNodes.size();

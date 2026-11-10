@@ -230,6 +230,33 @@ class DefaultProcessExecutorTest {
         verify(harness.runtime, never()).endInstance(any(), any(), any());
     }
 
+    @ParameterizedTest
+    @EnumSource(value = FlowNodeEnum.Type.class, names = {"CONDITION_BRANCH", "PARALLEL_BRANCH"})
+    void shouldKeepExecutionStoppedButPredictContinuationWhenNoBranchMatches(FlowNodeEnum.Type type) {
+        FlowNode gateway = gateway("gateway", conditional("unmatched", "a"));
+        gateway.setType(type.getCode());
+        Harness harness = new Harness(Map.of("a", "no"));
+        harness.execute(gateway);
+        verify(harness.tasks, never()).createConditionNodeTask(any(), any());
+        verify(harness.tasks, never()).createEndTask(any(), any());
+        assertEquals(List.of(gateway.getChildNode()), processExecutor.calculateRoute(gateway, harness.instance.getVarMap()));
+    }
+
+    @Test
+    void shouldUseSameFirstExclusiveMatchForPreviewAndExecution() {
+        FlowNode first = conditional("first", "a");
+        FlowNode second = conditional("second", "a");
+        FlowNode gateway = gateway("gateway", first, second);
+        gateway.setType(FlowNodeEnum.Type.CONDITION_BRANCH.getCode());
+        Harness harness = new Harness(Map.of("a", "yes"));
+        harness.execute(gateway);
+        verify(harness.tasks).createConditionNodeTask(harness.instance, first);
+        verify(harness.tasks, never()).createConditionNodeTask(harness.instance, second);
+        verify(harness.tasks, times(1)).createEndTask(any(), any());
+        assertEquals(List.of(gateway, first, gateway.getChildNode()),
+                processExecutor.calculateRouteTrace(gateway, harness.instance.getVarMap()));
+    }
+
     private FlowNode conditional(String key, String field) {
         FlowNode branch = node(key, FlowNodeEnum.Type.CONDITION_NODE);
         ProcessConditionRule rule = new ProcessConditionRule();
