@@ -94,6 +94,9 @@ class FlowTaskServiceImplTest {
 
     @BeforeEach
     void setUpLoginUser() {
+        FlowTaskTestComponents.install(service, flowTaskDAO, flowTaskAssigneeProvider,
+                flowRuntimeService, processExecutor, flowDefinitionService, flowCategoryService,
+                flowOrganizationProvider, flowTaskAddSignDAO, formChangeRecordDAO, flowEventPublisher);
         org.mockito.Mockito.lenient().when(flowRuntimeService.getById(org.mockito.ArgumentMatchers.anyLong()))
                 .thenAnswer(call -> {
                     FlowInstance instance = new FlowInstance();

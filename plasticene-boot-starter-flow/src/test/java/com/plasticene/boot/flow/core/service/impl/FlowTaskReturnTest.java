@@ -72,7 +72,8 @@ class FlowTaskReturnTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setup() {
-        ReflectionTestUtils.setField(service, "flowEventPublisher",
+        FlowTaskTestComponents.install(service);
+        FlowTaskTestComponents.setDependency(service, "flowEventPublisher",
                 (FlowEventPublisher) event -> events.add((FlowTaskEvent) event));
         when(runtime.getById(anyLong())).thenReturn(instance);
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "return"), FlowTask.class);
@@ -86,15 +87,15 @@ class FlowTaskReturnTest {
         definition.setOrgId(9L);
         definition.setExtraSetting(new FlowExtraSetting());
         login(8L, 9L);
-        ReflectionTestUtils.setField(service, "flowTaskDAO", dao);
-        ReflectionTestUtils.setField(service, "flowTaskAddSignDAO", mock(FlowTaskAddSignDAO.class));
-        ReflectionTestUtils.setField(service, "flowRuntimeService", runtime);
-        ReflectionTestUtils.setField(service, "flowDefinitionService", definitions);
-        ReflectionTestUtils.setField(service, "flowTimeoutNoticeDAO", notices);
-        ReflectionTestUtils.setField(service, "processExecutor", executor);
+        FlowTaskTestComponents.setDependency(service, "flowTaskDAO", dao);
+        FlowTaskTestComponents.setDependency(service, "flowTaskAddSignDAO", mock(FlowTaskAddSignDAO.class));
+        FlowTaskTestComponents.setDependency(service, "flowRuntimeService", runtime);
+        FlowTaskTestComponents.setDependency(service, "flowDefinitionService", definitions);
+        FlowTaskTestComponents.setDependency(service, "flowTimeoutNoticeDAO", notices);
+        FlowTaskTestComponents.setDependency(service, "processExecutor", executor);
         var provider = mock(com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider.class);
         when(provider.getAssignees(any())).thenAnswer(call -> call.<FlowNode>getArgument(0).getAssigneeList());
-        ReflectionTestUtils.setField(service, "flowTaskAssigneeProvider", provider);
+        FlowTaskTestComponents.setDependency(service, "flowTaskAssigneeProvider", provider);
         ReflectionTestUtils.setField(executor, "flowTaskService", service);
         ReflectionTestUtils.setField(executor, "flowRuntimeService", runtime);
         when(runtime.selectInstanceForUpdate(1L)).thenReturn(instance);

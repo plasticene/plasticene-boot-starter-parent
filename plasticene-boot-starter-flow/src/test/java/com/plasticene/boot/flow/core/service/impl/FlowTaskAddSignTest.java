@@ -84,13 +84,14 @@ class FlowTaskAddSignTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setup() {
+        FlowTaskTestComponents.install(service);
         FlowEventPublisher publisher = event -> {
             lifecycleEvents.add(event);
             if (event instanceof FlowTaskEvent taskEvent) {
                 events.add(taskEvent);
             }
         };
-        ReflectionTestUtils.setField(service, "flowEventPublisher", publisher);
+        FlowTaskTestComponents.setDependency(service, "flowEventPublisher", publisher);
         FlowRuntimeServiceImpl terminalService = new FlowRuntimeServiceImpl();
         ReflectionTestUtils.setField(terminalService, "flowTaskService", service);
         ReflectionTestUtils.setField(terminalService, "flowInstanceDAO",
@@ -104,13 +105,13 @@ class FlowTaskAddSignTest {
         for (Class<?> type : List.of(FlowTask.class, FlowTaskAddSign.class, FlowTimeoutNotice.class)) {
             TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "add-sign"), type);
         }
-        ReflectionTestUtils.setField(service, "flowTaskDAO", tasks);
-        ReflectionTestUtils.setField(service, "flowTaskAddSignDAO", signs);
-        ReflectionTestUtils.setField(service, "flowTimeoutNoticeDAO", notices);
-        ReflectionTestUtils.setField(service, "flowRuntimeService", runtime);
-        ReflectionTestUtils.setField(service, "flowDefinitionService", definitions);
-        ReflectionTestUtils.setField(service, "flowOrganizationProvider", organization);
-        ReflectionTestUtils.setField(service, "processExecutor", executor);
+        FlowTaskTestComponents.setDependency(service, "flowTaskDAO", tasks);
+        FlowTaskTestComponents.setDependency(service, "flowTaskAddSignDAO", signs);
+        FlowTaskTestComponents.setDependency(service, "flowTimeoutNoticeDAO", notices);
+        FlowTaskTestComponents.setDependency(service, "flowRuntimeService", runtime);
+        FlowTaskTestComponents.setDependency(service, "flowDefinitionService", definitions);
+        FlowTaskTestComponents.setDependency(service, "flowOrganizationProvider", organization);
+        FlowTaskTestComponents.setDependency(service, "processExecutor", executor);
         instance.setId(21L);
         instance.setOrgId(9L);
         instance.setDefinitionId(31L);
@@ -450,7 +451,7 @@ class FlowTaskAddSignTest {
 
     @Test
     void shouldPauseOriginalTimeoutAndSettleSignMemberTimeoutThroughGroupLogic() {
-        ReflectionTestUtils.setField(service, "baseMapper", tasks);
+        FlowTaskTestComponents.setDependency(service, "baseMapper", tasks);
         rows.get(1L).getTimeoutRule().setAction(FlowTimeoutRule.Action.APPROVE);
         rows.get(1L).setDeadline(LocalDateTime.now().minusMinutes(1));
         service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 1, List.of(10L, 11L)));
