@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.service.impl;
 
+import com.plasticene.boot.flow.core.enums.FlowApproveTaskResult;
 import com.plasticene.boot.flow.core.utils.FlowFormPermissions;
 import com.plasticene.boot.flow.core.utils.FlowFormChanges;
 import com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO;
@@ -69,6 +70,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -193,17 +195,17 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void createApproveTask(FlowInstance instance, FlowNode currentNode) {
+    public FlowApproveTaskResult createApproveTask(FlowInstance instance, FlowNode currentNode) {
         Integer approveType = currentNode.getApproveType();
         // 自动通过
         if (Objects.equals(approveType, FlowNodeEnum.ApproveType.AUTO_PASS.getCode())) {
             createAutoApproveTask(instance, currentNode, FlowTaskStatusEnum.APPROVE, "系统自动通过");
-            return;
+            return FlowApproveTaskResult.APPROVED;
         }
         // 自动拒绝
         if (Objects.equals(approveType, FlowNodeEnum.ApproveType.AUTO_REJECT.getCode())) {
             createAutoApproveTask(instance, currentNode, FlowTaskStatusEnum.REJECT, "系统自动拒绝");
-            return;
+            return FlowApproveTaskResult.REJECTED;
         }
         // 人工手动审批
         List<Long> assignees = new ArrayList<>(flowTaskAssigneeProvider.getAssignees(currentNode).stream()
@@ -211,12 +213,18 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 .distinct()
                 .toList());
         // 处理审批人为空
-        processAssigneeEmpty(instance, currentNode, assignees);
+        Optional<FlowApproveTaskResult> result = processAssigneeEmpty(instance, currentNode, assignees);
+        if (result.isPresent()) {
+            return result.get();
+        }
         // 处理发起人同审批人为同一人
-        processSelfApprove(instance, currentNode, assignees);
-        // 经过上面审批人为空、审批人和发起人同一人逻辑处理之后审批人还是为空，肯定已经执行自动逻辑了，return即可
+        result = processSelfApprove(instance, currentNode, assignees);
+        if (result.isPresent()) {
+            return result.get();
+        }
+        // 未产生自动审批结果且仍无人处理时，保持停留，不额外兜底。
         if (CollUtil.isEmpty(assignees)) {
-            return;
+            return FlowApproveTaskResult.WAITING;
         }
         FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
         FlowExtraSetting setting = FlowExtraSetting.normalize(
@@ -227,12 +235,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         Integer approveMode = currentNode.getApproveMode();
         if (Objects.equals(approveMode, FlowNodeEnum.ApproveMode.ANY.getCode())
                 && CollUtil.isNotEmpty(deduplicatedAssignees)) {
-            processExecutor.moveToNextNode(instance, currentNode);
-            return;
+            return FlowApproveTaskResult.APPROVED;
         }
         if (CollUtil.isEmpty(assignees)) {
-            processExecutor.moveToNextNode(instance, currentNode);
-            return;
+            return FlowApproveTaskResult.APPROVED;
         }
         FlowTimeoutRule timeoutRule = FlowTimeoutRule.resolve(currentNode, setting);
         // 不是顺序审批 即会签或者或签
@@ -247,7 +253,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             });
             flowTaskDAO.insert(taskList);
             taskList.forEach(task -> publishCreatedTask(instance, task));
-            return;
+            return FlowApproveTaskResult.WAITING;
         }
         // 顺序审批
         FlowTask task = buildFlowTask(instance, currentNode);
@@ -257,6 +263,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         initializeTimeout(task, timeoutRule);
         flowTaskDAO.insert(task);
         publishCreatedTask(instance, task);
+        return FlowApproveTaskResult.WAITING;
     }
 
     private void createAutoApproveTask(FlowInstance instance,
@@ -275,23 +282,21 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 status == FlowTaskStatusEnum.APPROVE ? FlowTaskAction.APPROVE : FlowTaskAction.REJECT, null);
     }
 
-    private void processAssigneeEmpty(FlowInstance instance, FlowNode currentNode, List<Long> assignees) {
+    private Optional<FlowApproveTaskResult> processAssigneeEmpty(FlowInstance instance, FlowNode currentNode, List<Long> assignees) {
         if (CollUtil.isNotEmpty(assignees)) {
-            return;
+            return Optional.empty();
         }
         // 处理审批人为空
         Integer assigneeEmpty = currentNode.getAssigneeEmpty();
         // 自动通过
         if (Objects.equals(assigneeEmpty, FlowNodeEnum.AssigneeEmpty.AUTO_APPROVE.getCode())) {
             createAutoApproveTask(instance, currentNode, FlowTaskStatusEnum.APPROVE, "审批人为空，系统自动通过");
-            // 移动到下一个节点
-            processExecutor.moveToNextNode(instance, currentNode);
+            return Optional.of(FlowApproveTaskResult.APPROVED);
         }
         // 自动拒绝
         if (Objects.equals(assigneeEmpty, FlowNodeEnum.AssigneeEmpty.AUTO_REJECT.getCode())) {
             createAutoApproveTask(instance, currentNode, FlowTaskStatusEnum.REJECT, "审批人为空，系统自动拒绝");
-            delInstanceRunningTask(instance.getId());
-            flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
+            return Optional.of(FlowApproveTaskResult.REJECTED);
         }
         // 指定人员审批
         if (Objects.equals(assigneeEmpty, FlowNodeEnum.AssigneeEmpty.TO_USER.getCode())) {
@@ -302,17 +307,18 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
             assignees.addAll(definition.getManagerUserIds());
         }
+        return Optional.empty();
     }
 
-    private void processSelfApprove(FlowInstance instance, FlowNode currentNode, List<Long> assignees) {
+    private Optional<FlowApproveTaskResult> processSelfApprove(FlowInstance instance, FlowNode currentNode, List<Long> assignees) {
         Long userId = instance.getUserId();
         if (CollUtil.isEmpty(assignees) || !assignees.contains(userId)) {
-            return;
+            return Optional.empty();
         }
         Integer selfApprove = currentNode.getSelfApprove();
         // 自己对自己审批
         if (Objects.equals(selfApprove, FlowNodeEnum.SelfApprove.MANUAL.getCode())) {
-            return;
+            return Optional.empty();
         }
         // 自动跳过
         if (Objects.equals(selfApprove, FlowNodeEnum.SelfApprove.AUTO_SKIP.getCode())) {
@@ -326,8 +332,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 task.setComment("审批人与提交人是同一人，系统自动通过");
                 flowTaskDAO.insert(task);
                 publishTask(instance, task, FlowEventType.TASK_COMPLETED, task.getStatus(), FlowTaskAction.APPROVE, null);
-                // 移动到下一个节点
-                processExecutor.moveToNextNode(instance, currentNode);
+                return Optional.of(FlowApproveTaskResult.APPROVED);
             }
             // 如果当前节点有多个人，剔除自己
             assignees.remove(userId);
@@ -342,6 +347,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             Long leaderId = flowTaskAssigneeProvider.getDeptLeader(userId);
             assignees.set(assignees.indexOf(userId), leaderId);
         }
+        return Optional.empty();
     }
 
 

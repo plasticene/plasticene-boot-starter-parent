@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.service;
 
+import com.plasticene.boot.flow.core.enums.FlowApproveTaskResult;
 import com.plasticene.boot.flow.core.model.param.FlowTaskFormParam;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.common.pojo.PageResult;
@@ -51,9 +52,10 @@ public interface FlowTaskService extends IService<FlowTask> {
     void createStartTask(FlowInstance instance, FlowNode currentNode);
 
     /**
-     * 创建审批节点任务
+     * 创建审批节点任务并返回处理结果，不推进流程或结束实例。
+     * @return 当前节点的等待、通过或拒绝结果
      */
-    void createApproveTask(FlowInstance instance, FlowNode currentNode);
+    FlowApproveTaskResult createApproveTask(FlowInstance instance, FlowNode currentNode);
 
     /**
      * 创建抄送节点任务

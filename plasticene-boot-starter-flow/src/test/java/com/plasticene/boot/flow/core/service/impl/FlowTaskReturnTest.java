@@ -152,6 +152,59 @@ class FlowTaskReturnTest {
     void cleanup() { LoginUserHolder.remove(); }
 
     @Test
+    void shouldExecuteConsecutiveAutomaticResultsBeforeWaitingAndReopenAfterReturn() {
+        FlowNode first = approval("first");
+        first.setApproveType(FlowNodeEnum.ApproveType.AUTO_PASS.getCode());
+        FlowNode empty = approval("empty");
+        empty.setAssigneeList(List.of());
+        empty.setAssigneeEmpty(FlowNodeEnum.AssigneeEmpty.AUTO_APPROVE.getCode());
+        FlowNode self = approval("self");
+        self.setAssigneeList(List.of(99L));
+        self.setSelfApprove(FlowNodeEnum.SelfApprove.AUTO_SKIP.getCode());
+        FlowNode manual = approval("manual");
+        FlowNode last = approval("last");
+        first.setChildNode(empty);
+        empty.setChildNode(self);
+        self.setChildNode(manual);
+        manual.setChildNode(last);
+        start(first);
+        assertEquals(List.of("manual"), pendingKeys());
+        assertEquals(List.of("first", "empty", "self", "manual"),
+                events.stream().map(FlowTaskEvent::nodeKey).toList());
+        assertEquals(List.of(FlowEventType.TASK_COMPLETED, FlowEventType.TASK_COMPLETED,
+                FlowEventType.TASK_COMPLETED, FlowEventType.TASK_CREATED),
+                events.stream().map(FlowTaskEvent::eventType).toList());
+        assertTrue(events.stream().allMatch(event -> rows.containsKey(event.taskId())));
+        approve("manual");
+        back("last", "manual");
+        assertEquals(List.of("manual"), pendingKeys());
+        approve("manual");
+        assertEquals(List.of("last"), pendingKeys());
+        assertEquals(3, rows.values().stream().filter(task -> task.getApproveType() == 1).count());
+    }
+
+    @Test
+    void shouldPublishAutomaticRejectionBeforeEndingInstance() {
+        FlowNode empty = approval("empty");
+        empty.setAssigneeList(List.of());
+        empty.setAssigneeEmpty(FlowNodeEnum.AssigneeEmpty.AUTO_REJECT.getCode());
+        empty.setChildNode(approval("unreachable"));
+        doAnswer(call -> {
+            assertEquals(1, events.size());
+            assertEquals(FlowEventType.TASK_COMPLETED, events.getFirst().eventType());
+            assertEquals(FlowTaskAction.REJECT, events.getFirst().action());
+            assertEquals(2, rows.values().iterator().next().getStatus());
+            instance.setStatus(2);
+            return null;
+        }).when(runtime).endInstance(any(), any(), any());
+        start(empty);
+        assertEquals(List.of(), pendingKeys());
+        assertEquals(2, instance.getStatus());
+        verify(runtime).endInstance(instance, empty,
+                com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum.REJECT);
+    }
+
+    @Test
     void shouldPublishReturnCompletionAndReopenedTaskWithoutCancellingCompletedHistory() {
         FlowNode a = approval("a"), b = approval("b");
         a.setChildNode(b);

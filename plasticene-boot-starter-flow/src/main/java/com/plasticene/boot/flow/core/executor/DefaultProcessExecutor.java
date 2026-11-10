@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.executor;
 
+import com.plasticene.boot.flow.core.enums.FlowApproveTaskResult;
 import cn.hutool.core.collection.CollUtil;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.ProcessConditionGroup;
@@ -161,16 +162,17 @@ public class DefaultProcessExecutor implements ProcessExecutor {
      */
     private void handleApproveNode(FlowInstance instance, FlowNode currentNode) {
         flowRuntimeService.updateInstanceCurrentNode(instance.getId(), currentNode);
-        flowTaskService.createApproveTask(instance, currentNode);
-        Integer approveType = currentNode.getApproveType();
-        // 自动通过 → 流入下一个节点
-        if (Objects.equals(approveType, FlowNodeEnum.ApproveType.AUTO_PASS.getCode())) {
-            moveToNextNode(instance, currentNode);
-        }
-        // 自动拒绝 → 结束流程
-        if (Objects.equals(approveType, FlowNodeEnum.ApproveType.AUTO_REJECT.getCode())) {
-            flowTaskService.delInstanceRunningTask(instance.getId());
-            flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
+        FlowApproveTaskResult result = flowTaskService.createApproveTask(instance, currentNode);
+        switch (result) {
+            case WAITING -> {
+            }
+            case APPROVED -> {
+                moveToNextNode(instance, currentNode);
+            }
+            case REJECTED -> {
+                flowTaskService.delInstanceRunningTask(instance.getId());
+                flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
+            }
         }
     }
 

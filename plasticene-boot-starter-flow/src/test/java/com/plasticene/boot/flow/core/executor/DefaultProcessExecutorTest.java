@@ -1,6 +1,8 @@
 package com.plasticene.boot.flow.core.executor;
 
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
+import com.plasticene.boot.flow.core.enums.FlowApproveTaskResult;
+import org.junit.jupiter.params.provider.EnumSource;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
@@ -191,6 +193,44 @@ class DefaultProcessExecutorTest {
                 .map(ProcessConditionRule::getField).toList());
     }
 
+    @ParameterizedTest
+    @EnumSource(FlowApproveTaskResult.class)
+    void shouldUseCreationResultInsteadOfConfiguredApprovalType(FlowApproveTaskResult result) {
+        Harness harness = new Harness(Map.of());
+        FlowNode approve = node("approve", FlowNodeEnum.Type.APPROVE);
+        approve.setApproveType(FlowNodeEnum.ApproveType.MANUAL.getCode());
+        FlowNode end = node("end", FlowNodeEnum.Type.END);
+        approve.setChildNode(end);
+        when(harness.tasks.createApproveTask(harness.instance, approve)).thenReturn(result);
+        harness.execute(approve);
+        var order = inOrder(harness.runtime, harness.tasks);
+        order.verify(harness.runtime).updateInstanceCurrentNode(1L, approve);
+        order.verify(harness.tasks).createApproveTask(harness.instance, approve);
+        if (result == FlowApproveTaskResult.APPROVED) {
+            order.verify(harness.tasks).createEndTask(harness.instance, end);
+            order.verify(harness.runtime).endInstance(harness.instance, end, FlowInstanceStatusEnum.APPROVE);
+        } else if (result == FlowApproveTaskResult.REJECTED) {
+            order.verify(harness.tasks).delInstanceRunningTask(1L);
+            order.verify(harness.runtime).endInstance(harness.instance, approve, FlowInstanceStatusEnum.REJECT);
+        }
+        verify(harness.tasks, times(result == FlowApproveTaskResult.APPROVED ? 1 : 0)).createEndTask(any(), any());
+        verify(harness.tasks, times(result == FlowApproveTaskResult.REJECTED ? 1 : 0)).delInstanceRunningTask(any());
+        verify(harness.runtime, times(result == FlowApproveTaskResult.WAITING ? 0 : 1)).endInstance(any(), any(), any());
+    }
+
+    @Test
+    void shouldPropagateCreationFailureWithoutAdvancing() {
+        Harness harness = new Harness(Map.of());
+        FlowNode approve = node("approve", FlowNodeEnum.Type.APPROVE);
+        approve.setChildNode(node("end", FlowNodeEnum.Type.END));
+        IllegalStateException failure = new IllegalStateException("creation failed");
+        when(harness.tasks.createApproveTask(harness.instance, approve)).thenThrow(failure);
+        assertSame(failure, assertThrows(IllegalStateException.class, () -> harness.execute(approve)));
+        verify(harness.tasks, never()).createEndTask(any(), any());
+        verify(harness.tasks, never()).delInstanceRunningTask(any());
+        verify(harness.runtime, never()).endInstance(any(), any(), any());
+    }
+
     private FlowNode conditional(String key, String field) {
         FlowNode branch = node(key, FlowNodeEnum.Type.CONDITION_NODE);
         ProcessConditionRule rule = new ProcessConditionRule();
@@ -236,6 +276,16 @@ class DefaultProcessExecutorTest {
             instance.setVarMap(variables);
             ReflectionTestUtils.setField(processExecutor, "flowTaskService", tasks);
             ReflectionTestUtils.setField(processExecutor, "flowRuntimeService", runtime);
+            when(tasks.createApproveTask(any(), any())).thenAnswer(call -> {
+                FlowNode node = call.getArgument(1);
+                if (Integer.valueOf(1).equals(node.getApproveType())) {
+                    return FlowApproveTaskResult.APPROVED;
+                }
+                if (Integer.valueOf(2).equals(node.getApproveType())) {
+                    return FlowApproveTaskResult.REJECTED;
+                }
+                return FlowApproveTaskResult.WAITING;
+            });
             doAnswer(call -> {
                 FlowNode node = call.getArgument(1);
                 counters.put(node.getKey(), new AtomicInteger());

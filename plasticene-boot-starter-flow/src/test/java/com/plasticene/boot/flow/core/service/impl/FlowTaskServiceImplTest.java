@@ -13,6 +13,8 @@ import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
+import com.plasticene.boot.flow.core.enums.FlowApproveTaskResult;
+import org.junit.jupiter.params.provider.CsvSource;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
@@ -301,6 +303,121 @@ class FlowTaskServiceImplTest {
         verify(flowRuntimeService, never()).selectInstanceForUpdate(any());
     }
 
+    @ParameterizedTest
+    @CsvSource({"1,APPROVED,1,系统自动通过", "2,REJECTED,2,系统自动拒绝"})
+    void shouldReturnAutomaticResultWithoutAdvancing(int type, FlowApproveTaskResult result,
+                                                    int status, String comment) {
+        FlowNode node = approveNode("auto");
+        node.setApproveType(type);
+        assertEquals(result, service.createApproveTask(runningInstance(), node));
+        ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
+        var order = org.mockito.Mockito.inOrder(flowTaskDAO, flowEventPublisher);
+        order.verify(flowTaskDAO).insert(captor.capture());
+        order.verify(flowEventPublisher).publish(any());
+        assertEquals(status, captor.getValue().getStatus());
+        assertEquals(comment, captor.getValue().getComment());
+        verifyNoInteractions(processExecutor, flowRuntimeService, flowTaskAssigneeProvider);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0,APPROVED,1,审批人为空，系统自动通过", "1,REJECTED,2,审批人为空，系统自动拒绝"})
+    void shouldReturnEmptyAssigneeResult(int policy, FlowApproveTaskResult result, int status, String comment) {
+        FlowNode node = approveNode("empty");
+        node.setAssigneeEmpty(policy);
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of());
+        assertEquals(result, service.createApproveTask(runningInstance(), node));
+        ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        assertEquals(status, captor.getValue().getStatus());
+        assertEquals(comment, captor.getValue().getComment());
+        verify(flowEventPublisher).publish(any());
+        verifyNoInteractions(processExecutor, flowRuntimeService, flowDefinitionService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {2, 3})
+    void shouldCreateWaitingTaskForEmptyAssigneeReplacement(int policy) {
+        FlowNode node = approveNode("empty");
+        node.setAssigneeEmpty(policy);
+        node.setEmptyUserIds(List.of(8L));
+        FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, false);
+        definition.setManagerUserIds(List.of(8L));
+        when(flowDefinitionService.getById(31L)).thenReturn(definition);
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of());
+        assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
+        ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        assertEquals(List.of(8L), captor.getValue().stream().map(FlowTask::getAssignee).toList());
+        verifyNoInteractions(processExecutor, flowRuntimeService);
+    }
+
+    @Test
+    void shouldStayWithoutTasksWhenEmptyAssigneeHasNoAutomaticPolicy() {
+        FlowNode node = approveNode("empty");
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of());
+        assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
+        verifyNoInteractions(flowTaskDAO, flowEventPublisher, processExecutor, flowRuntimeService);
+    }
+
+    @Test
+    void shouldReturnApprovedForOnlySelfApprover() {
+        FlowNode node = approveNode("self");
+        node.setSelfApprove(FlowNodeEnum.SelfApprove.AUTO_SKIP.getCode());
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(7L));
+        assertEquals(FlowApproveTaskResult.APPROVED, service.createApproveTask(runningInstance(), node));
+        ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        assertEquals(7L, captor.getValue().getAssignee());
+        assertEquals("审批人与提交人是同一人，系统自动通过", captor.getValue().getComment());
+        verifyNoInteractions(processExecutor, flowRuntimeService, flowDefinitionService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 3})
+    void shouldPreserveSelfApproverPolicy(int policy) {
+        FlowNode node = approveNode("self");
+        node.setSelfApprove(policy);
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(7L, 8L));
+        when(flowDefinitionService.getById(31L)).thenReturn(definition(FlowExtraSetting.ApproverDeduplication.NONE, false));
+        if (policy == 2) {
+            when(flowTaskAssigneeProvider.getLeader(7L)).thenReturn(9L);
+        }
+        if (policy == 3) {
+            when(flowTaskAssigneeProvider.getDeptLeader(7L)).thenReturn(9L);
+        }
+        assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
+        ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
+        verify(flowTaskDAO).insert(captor.capture());
+        List<Long> expected = policy == 0 ? List.of(7L, 8L) : policy == 1 ? List.of(8L) : List.of(9L, 8L);
+        assertEquals(expected, captor.getValue().stream().map(FlowTask::getAssignee).toList());
+        verifyNoInteractions(processExecutor, flowRuntimeService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2})
+    void shouldApplyPartialDeduplicationToApprovalMode(int mode) {
+        FlowNode node = approveNode("second");
+        node.setApproveMode(mode);
+        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L));
+        when(flowDefinitionService.getById(31L)).thenReturn(definition(
+                FlowExtraSetting.ApproverDeduplication.ONCE_PER_PROCESS, false));
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(completedApproval(1L, "first", 8L,
+                FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(2))));
+        assertEquals(mode == 1 ? FlowApproveTaskResult.APPROVED : FlowApproveTaskResult.WAITING,
+                service.createApproveTask(runningInstance(), node));
+        ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
+        verify(flowTaskDAO, times(mode == 2 ? 2 : 1)).insert(captor.capture());
+        assertEquals(FlowTaskStatusEnum.APPROVE.getCode(), captor.getAllValues().getFirst().getStatus());
+        if (mode == 0) {
+            ArgumentCaptor<Collection<FlowTask>> batch = ArgumentCaptor.forClass(Collection.class);
+            verify(flowTaskDAO).insert(batch.capture());
+            assertEquals(List.of(10L), batch.getValue().stream().map(FlowTask::getAssignee).toList());
+        } else if (mode == 2) {
+            assertEquals(10L, captor.getAllValues().getLast().getAssignee());
+        }
+        verifyNoInteractions(processExecutor, flowRuntimeService);
+    }
+
     @Test
     void shouldResolveInheritedTimeoutOnceForBatchApprovalTasks() {
         FlowNode node = approveNode("approve");
@@ -310,7 +427,7 @@ class FlowTaskServiceImplTest {
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
         when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L, 12L));
 
-        service.createApproveTask(runningInstance(), node);
+        assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -332,7 +449,7 @@ class FlowTaskServiceImplTest {
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
         when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L));
 
-        service.createApproveTask(runningInstance(), node);
+        assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
 
         ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).insert(captor.capture());
@@ -351,7 +468,7 @@ class FlowTaskServiceImplTest {
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
         when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L));
 
-        service.createApproveTask(runningInstance(), node);
+        assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -385,14 +502,14 @@ class FlowTaskServiceImplTest {
                 FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(2));
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(previous));
 
-        service.createApproveTask(instance, node);
+        assertEquals(FlowApproveTaskResult.APPROVED, service.createApproveTask(instance, node));
 
         ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).insert(captor.capture());
         assertEquals(8L, captor.getValue().getAssignee());
         assertEquals(FlowNodeEnum.ApproveType.AUTO_PASS.getCode(), captor.getValue().getApproveType());
         assertEquals(FlowTaskStatusEnum.APPROVE.getCode(), captor.getValue().getStatus());
-        verify(processExecutor).moveToNextNode(instance, node);
+        verifyNoInteractions(processExecutor, flowRuntimeService);
     }
 
     @Test
@@ -408,7 +525,7 @@ class FlowTaskServiceImplTest {
                 FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(2));
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(earlier, previous));
 
-        service.createApproveTask(instance, node);
+        assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(instance, node));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -430,12 +547,12 @@ class FlowTaskServiceImplTest {
                 FlowNodeEnum.ApproveType.MANUAL.getCode(), LocalDateTime.now().minusMinutes(2));
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(previous));
 
-        service.createApproveTask(instance, node);
+        assertEquals(FlowApproveTaskResult.APPROVED, service.createApproveTask(instance, node));
 
         ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).insert(captor.capture());
         assertEquals(FlowNodeEnum.ApproveType.AUTO_PASS.getCode(), captor.getValue().getApproveType());
-        verify(processExecutor).moveToNextNode(instance, node);
+        verifyNoInteractions(processExecutor, flowRuntimeService);
     }
 
     @Test
