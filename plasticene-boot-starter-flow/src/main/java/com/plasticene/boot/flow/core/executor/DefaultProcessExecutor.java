@@ -164,15 +164,9 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         flowRuntimeService.updateInstanceCurrentNode(instance.getId(), currentNode);
         FlowApproveTaskResult result = flowTaskService.createApproveTask(instance, currentNode);
         switch (result) {
-            case WAITING -> {
-            }
-            case APPROVED -> {
-                moveToNextNode(instance, currentNode);
-            }
-            case REJECTED -> {
-                flowTaskService.delInstanceRunningTask(instance.getId());
-                flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
-            }
+            case WAITING -> {}
+            case APPROVED -> moveToNextNode(instance, currentNode);
+            case REJECTED -> flowRuntimeService.endInstance(instance, currentNode, FlowInstanceStatusEnum.REJECT);
         }
     }
 

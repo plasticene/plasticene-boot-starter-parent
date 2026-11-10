@@ -210,11 +210,10 @@ class DefaultProcessExecutorTest {
             order.verify(harness.tasks).createEndTask(harness.instance, end);
             order.verify(harness.runtime).endInstance(harness.instance, end, FlowInstanceStatusEnum.APPROVE);
         } else if (result == FlowApproveTaskResult.REJECTED) {
-            order.verify(harness.tasks).delInstanceRunningTask(1L);
             order.verify(harness.runtime).endInstance(harness.instance, approve, FlowInstanceStatusEnum.REJECT);
         }
         verify(harness.tasks, times(result == FlowApproveTaskResult.APPROVED ? 1 : 0)).createEndTask(any(), any());
-        verify(harness.tasks, times(result == FlowApproveTaskResult.REJECTED ? 1 : 0)).delInstanceRunningTask(any());
+        verify(harness.tasks, never()).delInstanceRunningTask(any());
         verify(harness.runtime, times(result == FlowApproveTaskResult.WAITING ? 0 : 1)).endInstance(any(), any(), any());
     }
 

@@ -288,6 +288,9 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void endInstance(FlowInstance instance, FlowNode currentNode, FlowInstanceStatusEnum status) {
+        if (status == FlowInstanceStatusEnum.REJECT) {
+            flowTaskService.delInstanceRunningTask(instance.getId());
+        }
         // 更新按照规范只更新必须的字段
         FlowInstance updateInstance = new FlowInstance();
         updateInstance.setId(instance.getId());

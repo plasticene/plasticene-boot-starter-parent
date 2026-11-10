@@ -11,6 +11,7 @@ import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowTaskAddSignDAO;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
+import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
@@ -19,6 +20,7 @@ import com.plasticene.boot.flow.core.entity.FlowTaskAddSign;
 import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
 import com.plasticene.boot.flow.core.enums.FlowAddSignEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
+import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
@@ -44,6 +46,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import com.plasticene.boot.flow.core.event.FlowTaskEvent;
+import com.plasticene.boot.flow.core.event.FlowEvent;
 import com.plasticene.boot.flow.core.event.FlowEventType;
 import com.plasticene.boot.flow.core.event.FlowTaskAction;
 import com.plasticene.boot.flow.core.event.FlowTaskCancelReason;
@@ -64,7 +67,8 @@ import static org.mockito.Mockito.*;
  */
 class FlowTaskAddSignTest {
     private final List<FlowTaskEvent> events = new java.util.ArrayList<>();
-    private final FlowTaskServiceImpl service = new FlowTaskServiceImpl();
+    private final List<FlowEvent> lifecycleEvents = new java.util.ArrayList<>();
+    private final FlowTaskServiceImpl service = spy(new FlowTaskServiceImpl());
     private final FlowTaskDAO tasks = mock(FlowTaskDAO.class);
     private final FlowTaskAddSignDAO signs = mock(FlowTaskAddSignDAO.class);
     private final FlowTimeoutNoticeDAO notices = mock(FlowTimeoutNoticeDAO.class);
@@ -80,8 +84,22 @@ class FlowTaskAddSignTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setup() {
-        ReflectionTestUtils.setField(service, "flowEventPublisher",
-                (FlowEventPublisher) event -> events.add((FlowTaskEvent) event));
+        FlowEventPublisher publisher = event -> {
+            lifecycleEvents.add(event);
+            if (event instanceof FlowTaskEvent taskEvent) {
+                events.add(taskEvent);
+            }
+        };
+        ReflectionTestUtils.setField(service, "flowEventPublisher", publisher);
+        FlowRuntimeServiceImpl terminalService = new FlowRuntimeServiceImpl();
+        ReflectionTestUtils.setField(terminalService, "flowTaskService", service);
+        ReflectionTestUtils.setField(terminalService, "flowInstanceDAO",
+                mock(FlowInstanceDAO.class));
+        ReflectionTestUtils.setField(terminalService, "flowEventPublisher", publisher);
+        doAnswer(call -> {
+            terminalService.endInstance(call.getArgument(0), call.getArgument(1), call.getArgument(2));
+            return null;
+        }).when(runtime).endInstance(any(), any(), any());
         when(runtime.getById(anyLong())).thenReturn(instance);
         for (Class<?> type : List.of(FlowTask.class, FlowTaskAddSign.class, FlowTimeoutNotice.class)) {
             TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "add-sign"), type);
@@ -316,6 +334,50 @@ class FlowTaskAddSignTest {
         assertEquals(3, rows.get(1L).getStatus());
         assertEquals(FlowAddSignEnum.State.REJECTED, batches.values().iterator().next().getState());
         verify(runtime).endInstance(any(), any(), eq(FlowInstanceStatusEnum.REJECT));
+        verify(service).delInstanceRunningTask(21L);
+        assertEquals(0, rows.get(member.getId()).getIsDelete());
+        assertEquals(2, instance.getStatus());
+        assertEquals(FlowEventType.INSTANCE_REJECTED, lifecycleEvents.getLast().eventType());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void shouldCleanParallelTasksAndAddSignsOnceForAutomaticOrManualRejection(boolean automatic) {
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)));
+        rows.put(2L, task(2L, 8L, "other-branch", 0));
+        FlowNode otherBranch = new FlowNode();
+        otherBranch.setKey("other-branch");
+        otherBranch.setType(FlowNodeEnum.Type.APPROVE.getCode());
+        definitions.getById(31L).getModelNode().setChildNode(otherBranch);
+        events.clear();
+        lifecycleEvents.clear();
+        if (automatic) {
+            var process = new com.plasticene.boot.flow.core.executor.DefaultProcessExecutor();
+            ReflectionTestUtils.setField(process, "flowTaskService", service);
+            ReflectionTestUtils.setField(process, "flowRuntimeService", runtime);
+            FlowNode node = new FlowNode();
+            node.setKey("auto-reject");
+            node.setType(FlowNodeEnum.Type.APPROVE.getCode());
+            node.setApproveType(FlowNodeEnum.ApproveType.AUTO_REJECT.getCode());
+            process.executeNode(instance, node);
+        } else {
+            service.rejectTask(action(2L));
+        }
+        verify(service).delInstanceRunningTask(21L);
+        verify(runtime).endInstance(eq(instance), any(), eq(FlowInstanceStatusEnum.REJECT));
+        assertEquals(FlowAddSignEnum.State.CANCELLED, batches.values().iterator().next().getState());
+        assertEquals(3, rows.get(1L).getStatus());
+        assertTrue(rows.values().stream().filter(t -> t.getAddSignId() != null).allMatch(t -> t.getStatus() == 3));
+        FlowTask rejected = rows.values().stream().filter(t -> t.getStatus() == 2).findFirst().orElseThrow();
+        assertNotEquals(1, rejected.getIsDelete());
+        assertEquals(automatic ? 1 : 0, rows.get(2L).getIsDelete());
+        assertEquals(FlowEventType.TASK_COMPLETED, lifecycleEvents.getFirst().eventType());
+        assertEquals(FlowTaskAction.REJECT, ((FlowTaskEvent) lifecycleEvents.getFirst()).action());
+        assertTrue(lifecycleEvents.subList(1, lifecycleEvents.size() - 1).stream()
+                .allMatch(event -> event.eventType() == FlowEventType.TASK_CANCELLED));
+        assertTrue(lifecycleEvents.size() >= 3);
+        assertEquals(FlowEventType.INSTANCE_REJECTED, lifecycleEvents.getLast().eventType());
+        assertEquals(2, instance.getStatus());
     }
 
     @Test

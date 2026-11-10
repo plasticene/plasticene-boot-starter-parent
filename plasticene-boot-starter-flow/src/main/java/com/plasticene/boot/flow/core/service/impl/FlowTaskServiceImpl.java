@@ -514,8 +514,6 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
         if (isAddSignGroupTask(flowTask)) {
             finishAddSign(getAddSignBatch(flowTask), FlowAddSignEnum.State.REJECTED);
         }
-        delInstanceRunningTask(instanceId);
-
         // 终止流程实例
         FlowDefinition flowDefinition = flowDefinitionService.getById(instance.getDefinitionId());
         FlowNode flowNode = flowDefinition.getModelNode();

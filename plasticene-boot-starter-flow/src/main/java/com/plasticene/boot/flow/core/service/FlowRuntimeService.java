@@ -111,7 +111,7 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
     void updateInstanceCurrentNode(Long instanceId, FlowNode currentNode);
 
     /**
-     * 结束流程实例
+     * 结束流程实例；拒绝时先清理剩余运行任务，再更新实例并发布结束事件。
      * @param instance 实例
      * @param currentNode 当前节点
      * @param status 实例状态

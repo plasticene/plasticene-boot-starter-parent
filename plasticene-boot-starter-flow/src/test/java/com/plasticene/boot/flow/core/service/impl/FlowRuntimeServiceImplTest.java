@@ -43,6 +43,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -114,6 +115,31 @@ class FlowRuntimeServiceImplTest {
         assertEquals(expected, captor.getValue().eventType());
         assertEquals(status.getCode(), captor.getValue().status());
         assertEquals(instance.getId(), captor.getValue().instanceId());
+        var order = org.mockito.Mockito.inOrder(flowTaskService, flowInstanceDAO, flowEventPublisher);
+        if (status == FlowInstanceStatusEnum.REJECT) {
+            order.verify(flowTaskService).delInstanceRunningTask(instance.getId());
+        } else {
+            verify(flowTaskService, never()).delInstanceRunningTask(any());
+        }
+        order.verify(flowInstanceDAO).updateById(any(FlowInstance.class));
+        order.verify(flowEventPublisher).publish(any());
+    }
+
+    @Test
+    void shouldPropagateRejectionCleanupFailureBeforeUpdatingOrPublishing() {
+        FlowInstance instance = runningInstance(8L);
+        FlowNode node = new FlowNode();
+        node.setKey("approve");
+        IllegalStateException failure = new IllegalStateException("cleanup failed");
+        org.mockito.Mockito.doThrow(failure).when(flowTaskService).delInstanceRunningTask(instance.getId());
+
+        assertSame(failure, assertThrows(IllegalStateException.class,
+                () -> service.endInstance(instance, node, FlowInstanceStatusEnum.REJECT)));
+
+        assertEquals(FlowInstanceStatusEnum.RUNNING.getCode(), instance.getStatus());
+        verify(flowTaskService).delInstanceRunningTask(instance.getId());
+        verify(flowInstanceDAO, never()).updateById(any(FlowInstance.class));
+        org.mockito.Mockito.verifyNoInteractions(flowEventPublisher);
     }
 
     @Test
