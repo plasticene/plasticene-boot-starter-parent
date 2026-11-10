@@ -25,6 +25,20 @@ class FlowTaskReturnMapperTest {
     }
 
     @Test
+    void shouldBindBulkCountAndUpdateOnlyEffectiveGatewayRecord() throws Exception {
+        Configuration configuration = load("mapper/FlowTaskMapper.xml");
+        var bound = configuration.getMappedStatement(FlowTaskDAO.class.getName() + ".addCompletedBranches")
+                .getBoundSql(Map.of("instanceId", 1L, "nodeKey", "g", "count", 17));
+        String sql = bound.getSql().replaceAll("\\s+", " ");
+        assertTrue(sql.contains("completed_branch = completed_branch + ?"));
+        assertTrue(sql.contains("instance_id = ? and node_key = ?"));
+        assertTrue(sql.contains("return_task_id IS NULL"));
+        assertTrue(sql.contains("is_delete = 0"));
+        assertEquals(java.util.List.of("count", "instanceId", "nodeKey"),
+                bound.getParameterMappings().stream().map(item -> item.getProperty()).toList());
+    }
+
+    @Test
     void shouldKeepHistoricalDoneTasksButExcludeInvalidRunningTasks() throws Exception {
         Configuration configuration = load("mapper/FlowTaskMapper.xml");
         FlowTaskQuery query = new FlowTaskQuery();

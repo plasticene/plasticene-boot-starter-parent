@@ -16,6 +16,10 @@ public interface FlowTaskDAO extends BaseMapperX<FlowTask> {
 
     IPage<FlowTaskPageVO> pageTask(Page<FlowTaskPageVO> page, @Param("query") FlowTaskQuery query);
 
+    /** 按数量累计当前有效网关的已完成分支。 */
+    void addCompletedBranches(@Param("instanceId") Long instanceId, @Param("nodeKey") String nodeKey,
+                              @Param("count") int count);
+
     /**
      * 并行分支任务完成的分支数量+1
      * @param instanceId 实例id

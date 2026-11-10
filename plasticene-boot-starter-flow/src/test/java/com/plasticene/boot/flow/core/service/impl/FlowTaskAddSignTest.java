@@ -183,6 +183,29 @@ class FlowTaskAddSignTest {
     }
 
     @Test
+    void shouldQueryOnlyCurrentNodeTodosWhenAnyApproverCompletes() {
+        rows.get(1L).setApproveMode(1);
+        rows.put(2L, task(2L, 9L, "approve", 1));
+        rows.put(3L, task(3L, 12L, "other-branch", 0));
+        approve(rows.get(1L));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(Wrapper.class);
+        verify(tasks).selectList(captor.capture());
+        String sql = captor.getValue().getSqlSegment();
+        assertTrue(sql.contains("node_key ="));
+        assertTrue(sql.contains("instance_id ="));
+        assertTrue(sql.contains("node_type ="));
+        assertTrue(sql.contains("status ="));
+        assertTrue(sql.contains("is_delete ="));
+        assertTrue(sql.contains("return_task_id IS NULL"));
+        assertEquals(1, rows.get(2L).getIsDelete());
+        assertEquals(0, rows.get(3L).getIsDelete());
+        assertEquals(0, rows.get(3L).getStatus());
+        assertEquals(List.of(1L, 2L), events.stream().map(FlowTaskEvent::taskId).toList());
+        assertEquals(FlowTaskCancelReason.NODE_COMPLETED, events.getLast().cancelReason());
+    }
+
+    @Test
     void shouldCancelOnlyRemainingAnySignTodosOnce() {
         rows.get(1L).setApproveMode(1);
         rows.put(2L, task(2L, 9L, "approve", 1));

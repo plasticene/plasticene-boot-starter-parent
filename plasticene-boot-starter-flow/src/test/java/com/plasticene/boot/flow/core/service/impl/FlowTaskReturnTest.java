@@ -146,6 +146,13 @@ class FlowTaskReturnTest {
             gateway.setCompletedBranch(gateway.getCompletedBranch() + 1);
             return null;
         }).when(dao).incrementCompletedBranch(anyLong(), anyString());
+        doAnswer(call -> {
+            String key = call.getArgument(1);
+            FlowTask gateway = rows.values().stream().filter(FlowReturnPath::isActive)
+                    .filter(task -> task.getIsDelete() == 0 && key.equals(task.getNodeKey())).findFirst().orElseThrow();
+            gateway.setCompletedBranch(gateway.getCompletedBranch() + call.<Integer>getArgument(2));
+            return null;
+        }).when(dao).addCompletedBranches(anyLong(), anyString(), anyInt());
     }
 
     @AfterEach

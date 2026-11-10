@@ -139,8 +139,8 @@ public class DefaultProcessExecutor implements ProcessExecutor {
         flowTaskService.createBranchTask(instance, currentNode);
         // 先持久化跳过数量，避免同步完成的空分支或自动审批提前汇合。
         int skipped = currentNode.getConditionNodes().size() - conditionNodes.size();
-        for (int i = 0; i < skipped; i++) {
-            flowTaskService.incrementCompletedBranchAndGet(instance.getId(), currentNode.getKey());
+        if (skipped > 0) {
+            flowTaskService.addCompletedBranches(instance.getId(), currentNode.getKey(), skipped);
         }
         for (FlowNode conditionNode : conditionNodes) {
             Integer status = instance.getStatus();

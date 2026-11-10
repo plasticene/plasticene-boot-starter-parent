@@ -113,6 +113,20 @@ class FlowTaskServiceImplTest {
     }
 
     @Test
+    void shouldAccumulateSkippedBranchesWithOneUpdateAndNoQuery() {
+        service.addCompletedBranches(21L, "gateway", 17);
+        verify(flowTaskDAO).addCompletedBranches(21L, "gateway", 17);
+        org.mockito.Mockito.verifyNoMoreInteractions(flowTaskDAO);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1})
+    void shouldNotUpdateNonPositiveSkippedCount(int count) {
+        service.addCompletedBranches(21L, "gateway", count);
+        verifyNoInteractions(flowTaskDAO);
+    }
+
+    @Test
     void shouldRejectApprovalAfterInstanceWasCancelled() {
         FlowTaskParam param = new FlowTaskParam();
         param.setTaskId(11L);

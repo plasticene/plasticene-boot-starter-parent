@@ -852,6 +852,15 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
 
     @Transactional(rollbackFor = Exception.class)
     @Override
+    public void addCompletedBranches(Long instanceId, String nodeKey, int count) {
+        if (count <= 0) {
+            return;
+        }
+        flowTaskDAO.addCompletedBranches(instanceId, nodeKey, count);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
     public int incrementCompletedBranchAndGet(Long instanceId, String nodeKey) {
         flowTaskDAO.incrementCompletedBranch(instanceId, nodeKey);
         LambdaQueryWrapper<FlowTask> queryWrapper = new LambdaQueryWrapper<>();
@@ -913,8 +922,13 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     }
 
     private List<FlowTask> runningApprovalTasks(Long instanceId) {
+        return runningApprovalTasks(instanceId, null);
+    }
+
+    private List<FlowTask> runningApprovalTasks(Long instanceId, String nodeKey) {
         return flowTaskDAO.selectList(new LambdaQueryWrapper<FlowTask>()
                 .eq(FlowTask::getInstanceId, instanceId)
+                .eq(nodeKey != null, FlowTask::getNodeKey, nodeKey)
                 .eq(FlowTask::getNodeType, FlowNodeEnum.Type.APPROVE.getCode())
                 .eq(FlowTask::getStatus, FlowTaskStatusEnum.RUNNING.getCode())
                 .eq(FlowTask::getIsDelete, CommonConstant.IS_NOT_DEL)
@@ -953,8 +967,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             if (Objects.equals(flowTask.getIsDelete(), CommonConstant.IS_DEL)) {
                 throw new BizException("当前节点已审批，不能再审");
             }
-            List<FlowTask> cancelled = runningApprovalTasks(instanceId).stream()
-                    .filter(item -> Objects.equals(item.getNodeKey(), nodeKey)).toList();
+            List<FlowTask> cancelled = runningApprovalTasks(instanceId, nodeKey);
             // 或签只结束当前审批节点，不能删除其他并行分支的待办。
             LambdaUpdateWrapper<FlowTask> updateWrapper = new LambdaUpdateWrapper<>();
             updateWrapper.eq(FlowTask::getInstanceId, instanceId);

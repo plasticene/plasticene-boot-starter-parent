@@ -257,6 +257,32 @@ class DefaultProcessExecutorTest {
                 processExecutor.calculateRouteTrace(gateway, harness.instance.getVarMap()));
     }
 
+    @Test
+    void shouldAccumulateSkippedBranchesOnceBeforeExecutingSelectedBranch() {
+        FlowNode selected = node("selected", FlowNodeEnum.Type.CONDITION_NODE);
+        FlowNode gateway = gateway("gateway", selected, conditional("skip-a", "a"), conditional("skip-b", "b"));
+        Harness harness = new Harness(Map.of("a", "no", "b", "no"));
+        harness.execute(gateway);
+        var order = inOrder(harness.tasks);
+        order.verify(harness.tasks).createBranchTask(harness.instance, gateway);
+        order.verify(harness.tasks).addCompletedBranches(1L, "gateway", 2);
+        order.verify(harness.tasks).createConditionNodeTask(harness.instance, selected);
+        order.verify(harness.tasks).incrementCompletedBranchAndGet(1L, "gateway");
+        order.verify(harness.tasks).createEndTask(harness.instance, gateway.getChildNode());
+        verify(harness.tasks, times(1)).incrementCompletedBranchAndGet(anyLong(), anyString());
+    }
+
+    @Test
+    void shouldNotWriteSkippedCountWhenAllBranchesAreSelected() {
+        FlowNode gateway = gateway("gateway", node("a", FlowNodeEnum.Type.CONDITION_NODE),
+                node("b", FlowNodeEnum.Type.CONDITION_NODE));
+        Harness harness = new Harness(Map.of());
+        harness.execute(gateway);
+        verify(harness.tasks, never()).addCompletedBranches(anyLong(), anyString(), anyInt());
+        verify(harness.tasks, times(2)).incrementCompletedBranchAndGet(1L, "gateway");
+        verify(harness.tasks, times(1)).createEndTask(any(), any());
+    }
+
     private FlowNode conditional(String key, String field) {
         FlowNode branch = node(key, FlowNodeEnum.Type.CONDITION_NODE);
         ProcessConditionRule rule = new ProcessConditionRule();
@@ -317,6 +343,10 @@ class DefaultProcessExecutorTest {
                 counters.put(node.getKey(), new AtomicInteger());
                 return null;
             }).when(tasks).createBranchTask(any(), any());
+            doAnswer(call -> {
+                counters.get(call.<String>getArgument(1)).addAndGet(call.<Integer>getArgument(2));
+                return null;
+            }).when(tasks).addCompletedBranches(anyLong(), anyString(), anyInt());
             when(tasks.incrementCompletedBranchAndGet(anyLong(), anyString())).thenAnswer(call ->
                     counters.get(call.<String>getArgument(1)).incrementAndGet());
             doAnswer(call -> {

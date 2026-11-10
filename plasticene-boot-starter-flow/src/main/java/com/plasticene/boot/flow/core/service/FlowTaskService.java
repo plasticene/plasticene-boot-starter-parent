@@ -128,6 +128,14 @@ public interface FlowTaskService extends IService<FlowTask> {
                             FlowDefinition definition, List<FlowTask> instanceTasks);
 
     /**
+     * 累计并行网关跳过的分支数量，不查询汇合结果。
+     * @param instanceId 实例id
+     * @param nodeKey 并行分支节点key
+     * @param count 跳过数量，小于等于零时不更新
+     */
+    void addCompletedBranches(Long instanceId, String nodeKey, int count);
+
+    /**
      * 并行分支任务完成的分支数量+1
      * @param instanceId 实例id
      * @param nodeKey 并行分支节点key

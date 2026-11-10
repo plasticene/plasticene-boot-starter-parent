@@ -33,6 +33,7 @@ public class FlowAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(ProcessExecutor.class)
     public ProcessExecutor processExecutor () {
         return new DefaultProcessExecutor();
     }

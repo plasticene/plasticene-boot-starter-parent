@@ -68,6 +68,12 @@
         ORDER BY COALESCE(ft.end_time, ft.start_time) DESC, ft.id DESC
     </select>
 
+    <update id="addCompletedBranches">
+        update flow_task set completed_branch = completed_branch + #{count}
+              where instance_id = #{instanceId} and node_key = #{nodeKey}
+                and is_delete = 0 and return_task_id IS NULL;
+    </update>
+
     <update id="incrementCompletedBranch">
         update flow_task set completed_branch = completed_branch + 1
               where instance_id = #{instanceId} and node_key = #{nodeKey}
