@@ -27,7 +27,7 @@ public interface FlowEvent {
     Long definitionId();
 
     /** 关联业务ID，可为空。 */
-    Long businessId();
+    String businessId();
 
     /** 流程分类编码。 */
     String category();

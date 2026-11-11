@@ -91,7 +91,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public long startFlowInstanceById(Long definitionId, Long businessId, Map<String, Object> varMap) {
+    public long startFlowInstanceById(Long definitionId, String businessId, Map<String, Object> varMap) {
         FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId);
         // 发布了的流程模型是合法的，可以直接使用，这里不需要再校验合法性，发布的时候已经校验过合法性了
         FlowNode flowNode = flowDefinition.getModelNode();

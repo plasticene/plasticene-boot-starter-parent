@@ -44,19 +44,19 @@ public class FlowEngineImpl implements FlowEngine {
     }
 
     @Override
-    public Long startInstance(Long definitionId, Long businessId) {
+    public Long startInstance(Long definitionId, String businessId) {
         return flowRuntimeService.startFlowInstanceById(definitionId, businessId);
     }
 
     @Override
-    public Long startInstance(Long definitionId, Long businessId, Map<String, Object> varMap) {
+    public Long startInstance(Long definitionId, String businessId, Map<String, Object> varMap) {
         return flowRuntimeService.startFlowInstanceById(definitionId, businessId, varMap);
     }
 
     @Override
     public Long startInstance(FlowInstanceParam param) {
         Long definitionId = param.getDefinitionId();
-        Long businessId = param.getBusinessId();
+        String businessId = param.getBusinessId();
         Map<String, Object> varMap = param.getVarMap();
         return flowRuntimeService.startFlowInstanceById(definitionId, businessId, varMap);
     }

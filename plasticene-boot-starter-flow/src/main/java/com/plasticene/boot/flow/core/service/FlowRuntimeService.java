@@ -38,7 +38,7 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @return 实例id
      */
     @Transactional(rollbackFor = Exception.class)
-    default long startFlowInstanceById(Long definitionId, Long businessId) {
+    default long startFlowInstanceById(Long definitionId, String businessId) {
         return startFlowInstanceById(definitionId, businessId, null);
     }
 
@@ -49,7 +49,7 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @param varMap 变量map
      * @return 实例id
      */
-    long startFlowInstanceById(Long definitionId, Long businessId, Map<String, Object> varMap);
+    long startFlowInstanceById(Long definitionId, String businessId, Map<String, Object> varMap);
 
     /**
      * 计算当前用户可发起流程的预计路径

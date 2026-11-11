@@ -57,7 +57,7 @@ public class FlowInstance extends BaseDO {
     /**
      * 业务id
      */
-    private Long businessId;
+    private String businessId;
 
     /**
      * 参数变量值

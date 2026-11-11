@@ -22,7 +22,7 @@ public class FlowInstanceVO {
     private Long definitionId;
 
     @Schema(description = "业务id")
-    private Long businessId;
+    private String businessId;
 
     @Schema(description = "流程名称")
     private String name;

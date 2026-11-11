@@ -45,7 +45,7 @@ public interface FlowEngine {
      * @param businessId 业务 id
      * @return 实例 id
      */
-    Long startInstance(Long definitionId, Long businessId);
+    Long startInstance(Long definitionId, String businessId);
 
     /**
      * 基于流程模型发布id 发起一次流程实例（带业务 id & 变量）
@@ -55,7 +55,7 @@ public interface FlowEngine {
      * @param varMap     变量 map
      * @return 实例 id
      */
-    Long startInstance(Long definitionId, Long businessId, Map<String, Object> varMap);
+    Long startInstance(Long definitionId, String businessId, Map<String, Object> varMap);
 
     /**
      * 基于参数对象发起实例（便于不同调用方按需扩展字段）

@@ -35,7 +35,7 @@ public record FlowTaskEvent(
         Long orgId,
         Long instanceId,
         Long definitionId,
-        Long businessId,
+        String businessId,
         String category,
         Long taskId,
         String nodeKey,

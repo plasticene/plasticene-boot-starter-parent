@@ -88,11 +88,12 @@ class FlowEventPublisherTest {
         FlowInstanceEvent started = FlowInstanceEvent.of(instance, FlowEventType.INSTANCE_STARTED);
         FlowTaskEvent created = FlowTaskEvent.of(instance, task, FlowEventType.TASK_CREATED, 0, null, null);
         instance.setStatus(1);
-        instance.setBusinessId(99L);
+        instance.setBusinessId("BIZ-0099");
         task.setId(100L);
         task.setAssignee(101L);
         assertEquals(0, started.status());
-        assertEquals(4L, created.businessId());
+        assertEquals("BIZ-0004", started.businessId());
+        assertEquals("BIZ-0004", created.businessId());
         assertEquals(7L, created.taskId());
         assertEquals(8L, created.assignee());
         assertEquals(1L, created.orgId());
@@ -101,6 +102,14 @@ class FlowEventPublisherTest {
         assertNotNull(created.eventTime());
         assertNotNull(created.eventId());
         assertNotEquals(started.eventId(), created.eventId());
+    }
+
+    @Test
+    void shouldAllowEventsWithoutBusinessId() {
+        FlowInstance instance = instance();
+        instance.setBusinessId(null);
+        assertNull(FlowInstanceEvent.of(instance, FlowEventType.INSTANCE_STARTED).businessId());
+        assertNull(FlowTaskEvent.of(instance, new FlowTask(), FlowEventType.TASK_CREATED, 0, null, null).businessId());
     }
 
     private static FlowEvent event(FlowInstance instance, FlowEventType type) {
@@ -119,7 +128,7 @@ class FlowEventPublisherTest {
         instance.setOrgId(1L);
         instance.setId(2L);
         instance.setDefinitionId(3L);
-        instance.setBusinessId(4L);
+        instance.setBusinessId("BIZ-0004");
         instance.setCategory("leave");
         instance.setStatus(0);
         instance.setUserId(5L);

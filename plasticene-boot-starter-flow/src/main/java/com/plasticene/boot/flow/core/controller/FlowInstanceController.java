@@ -42,7 +42,7 @@ public class FlowInstanceController {
     @PostMapping("/start")
     public ResponseVO<Long> startFlowInstance(@RequestBody @Validated FlowInstanceParam param) {
         Long definitionId = param.getDefinitionId();
-        Long businessId = param.getBusinessId();
+        String businessId = param.getBusinessId();
         Map<String, Object> varMap = param.getVarMap();
         long instanceId = flowRuntimeService.startFlowInstanceById(definitionId, businessId, varMap);
         return ResponseVO.success(instanceId);

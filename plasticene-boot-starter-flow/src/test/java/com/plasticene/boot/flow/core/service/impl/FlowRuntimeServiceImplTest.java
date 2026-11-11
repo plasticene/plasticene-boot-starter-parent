@@ -142,8 +142,10 @@ class FlowRuntimeServiceImplTest {
         org.mockito.Mockito.verifyNoInteractions(flowEventPublisher);
     }
 
-    @Test
-    void shouldPublishStartedSnapshotBeforeExecutingNodes() {
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.NullSource
+    @ValueSource(strings = {"BIZ-000041", "000041", "9223372036854775808"})
+    void shouldPublishStartedSnapshotBeforeExecutingNodes(String businessId) {
         FlowDefinition definition = new FlowDefinition();
         definition.setOrgId(10L);
         definition.setCategory("leave");
@@ -155,14 +157,18 @@ class FlowRuntimeServiceImplTest {
             call.<FlowInstance>getArgument(0).setId(21L);
             return 1;
         });
-        service.startFlowInstanceById(31L, 41L, Map.of());
+        long instanceId = service.startFlowInstanceById(31L, businessId, Map.of());
+        ArgumentCaptor<FlowInstance> instanceCaptor = ArgumentCaptor.forClass(FlowInstance.class);
+        verify(flowInstanceDAO).insert(instanceCaptor.capture());
+        assertEquals(21L, instanceId);
+        assertEquals(businessId, instanceCaptor.getValue().getBusinessId());
         ArgumentCaptor<FlowInstanceEvent> captor = ArgumentCaptor.forClass(FlowInstanceEvent.class);
         var order = org.mockito.Mockito.inOrder(flowEventPublisher, processExecutor);
         order.verify(flowEventPublisher).publish(captor.capture());
         order.verify(processExecutor).executeNode(any(), eq(node));
         assertEquals(FlowEventType.INSTANCE_STARTED, captor.getValue().eventType());
         assertEquals(21L, captor.getValue().instanceId());
-        assertEquals(41L, captor.getValue().businessId());
+        assertEquals(businessId, captor.getValue().businessId());
         assertEquals(8L, captor.getValue().startUserId());
     }
 

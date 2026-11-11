@@ -23,7 +23,7 @@ import java.util.UUID;
  * @since 2026-11-06
  */
 public record FlowInstanceEvent(String eventId, FlowEventType eventType, LocalDateTime eventTime, Long orgId,
-                                Long instanceId, Long definitionId, Long businessId, String category, Integer status,
+                                Long instanceId, Long definitionId, String businessId, String category, Integer status,
                                 Long startUserId) implements FlowEvent {
     public static FlowInstanceEvent of(FlowInstance instance, FlowEventType type) {
         return new FlowInstanceEvent(UUID.randomUUID().toString(), type, LocalDateTime.now(),

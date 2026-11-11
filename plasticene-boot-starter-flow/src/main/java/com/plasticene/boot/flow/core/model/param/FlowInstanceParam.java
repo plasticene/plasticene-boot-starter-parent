@@ -17,7 +17,7 @@ public class FlowInstanceParam {
     @NotNull(message = "流程id不能为空")
     private Long definitionId;
     @Schema(description = "业务id")
-    private Long businessId;
+    private String businessId;
     @Schema(description = "变量值")
     private Map<String, Object> varMap;
 }
