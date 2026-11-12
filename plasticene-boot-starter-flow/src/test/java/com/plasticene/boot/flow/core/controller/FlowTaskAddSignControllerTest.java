@@ -1,12 +1,17 @@
 package com.plasticene.boot.flow.core.controller;
 
-import com.plasticene.boot.flow.core.model.param.FlowTaskAddSignParam;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.enums.FlowAddSignEnum;
+import com.plasticene.boot.flow.core.model.param.FlowTaskAddSignParam;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -23,13 +28,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @since 2026-11-03
  */
 class FlowTaskAddSignControllerTest {
+    private final LoginUser loginUser = new LoginUser();
     private final FlowTaskService service = mock(FlowTaskService.class);
     private MockMvc mvc;
 
     @BeforeEach
     void setup() {
+        loginUser.setId(17L);
+        loginUser.setOrgId(27L);
+        LoginUserHolder.set(loginUser);
         FlowTaskController controller = new FlowTaskController();
-        org.springframework.test.util.ReflectionTestUtils.setField(controller, "flowTaskService", service);
+        ReflectionTestUtils.setField(controller, "flowTaskService", service);
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -39,7 +48,7 @@ class FlowTaskAddSignControllerTest {
                 .content("{\"taskId\":1,\"type\":\"BEFORE\",\"assigneeIds\":[11,10],\"approveMode\":2,\"comment\":\"补充审核\"}"))
                 .andExpect(status().isOk());
         var param = ArgumentCaptor.forClass(FlowTaskAddSignParam.class);
-        verify(service).addSign(param.capture());
+        verify(service).addSign(param.capture(), ArgumentMatchers.same(loginUser));
         assertEquals(FlowAddSignEnum.Type.BEFORE, param.getValue().getType());
         assertEquals(List.of(11L, 10L), param.getValue().getAssigneeIds());
         assertEquals(2, param.getValue().getApproveMode());
@@ -60,5 +69,10 @@ class FlowTaskAddSignControllerTest {
                     .andExpect(status().isBadRequest());
         }
         verifyNoInteractions(service);
+    }
+
+    @AfterEach
+    void clearLoginUser() {
+        LoginUserHolder.remove();
     }
 }

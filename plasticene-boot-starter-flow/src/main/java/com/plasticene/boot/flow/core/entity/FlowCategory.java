@@ -30,9 +30,7 @@ public class FlowCategory extends BaseDO {
      */
     private String icon;
 
-    /**
-     * 分类标识，同一公司内唯一、不区分大小写
-     */
+    /** 组织内唯一的业务分类编码，不区分大小写且创建后不可修改。 */
     private String code;
     /**
      * 分类描述

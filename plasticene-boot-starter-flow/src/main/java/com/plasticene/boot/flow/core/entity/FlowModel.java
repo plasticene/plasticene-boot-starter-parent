@@ -1,21 +1,19 @@
 package com.plasticene.boot.flow.core.entity;
 
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
-import com.plasticene.boot.flow.core.model.dto.FlowNode;
-import com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler;
-import lombok.EqualsAndHashCode;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
-import lombok.Data;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  *

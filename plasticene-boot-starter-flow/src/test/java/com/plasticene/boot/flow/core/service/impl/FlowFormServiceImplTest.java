@@ -2,18 +2,16 @@ package com.plasticene.boot.flow.core.service.impl;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import org.apache.ibatis.builder.MapperBuilderAssistant;
-import com.plasticene.boot.common.pojo.PageResult;
-import com.plasticene.boot.flow.core.model.query.FlowFormQuery;
-import com.plasticene.boot.flow.core.service.FlowCategoryService;
-import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowFormDAO;
 import com.plasticene.boot.flow.core.entity.FlowForm;
 import com.plasticene.boot.flow.core.model.param.FlowFormParam;
-import org.junit.jupiter.api.AfterEach;
+import com.plasticene.boot.flow.core.model.query.FlowFormQuery;
+import com.plasticene.boot.flow.core.service.FlowCategoryService;
+import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +36,7 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class FlowFormServiceImplTest {
+    private LoginUser loginUserContext;
     @Mock
     private FlowFormDAO flowFormDAO;
     @Mock
@@ -50,12 +49,7 @@ class FlowFormServiceImplTest {
         LoginUser user = new LoginUser();
         user.setId(8L);
         user.setOrgId(9L);
-        LoginUserHolder.set(user);
-    }
-
-    @AfterEach
-    void clearLoginUser() {
-        LoginUserHolder.remove();
+        loginUserContext = user;
     }
 
     @ParameterizedTest
@@ -68,7 +62,7 @@ class FlowFormServiceImplTest {
     })
     void shouldRejectInvalidSerializedFieldsBeforePersistence(String rule) {
         var param = param(List.of(rule));
-        assertThrows(BizException.class, () -> service.create(param));
+        assertThrows(BizException.class, () -> service.create(param, loginUserContext));
         assertThrows(BizException.class, () -> service.update(param));
         verifyNoInteractions(flowFormDAO);
     }
@@ -77,7 +71,7 @@ class FlowFormServiceImplTest {
     void shouldRejectDuplicateFieldsAcrossSerializedRulesAndNestedLayouts() {
         String rule = "{\"type\":\"input\",\"field\":\"name\",\"title\":\"姓名\"}";
         var param = param(List.of(rule, "{\"type\":\"row\",\"children\":[" + rule + "]}"));
-        assertThrows(BizException.class, () -> service.create(param));
+        assertThrows(BizException.class, () -> service.create(param, loginUserContext));
         assertThrows(BizException.class, () -> service.update(param));
         verifyNoInteractions(flowFormDAO);
     }
@@ -93,7 +87,7 @@ class FlowFormServiceImplTest {
                 call.<FlowForm>getArgument(0).setId(21L);
                 return 1;
             });
-            assertEquals(21L, service.create(param));
+            assertEquals(21L, service.create(param, loginUserContext));
             verify(flowFormDAO).insert(captured.capture());
             assertEquals(9L, captured.getValue().getOrgId());
         } else {
@@ -142,7 +136,7 @@ class FlowFormServiceImplTest {
         }
         var form = new FlowForm();
         form.setCategory("office");
-        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("office", "办公"));
+        when(flowCategoryService.getCategoryMap(loginUserContext)).thenReturn(Map.of("office", "办公"));
         when(flowFormDAO.selectPage(eq(query), any(PtcLambdaQueryWrapper.class)))
                 .thenAnswer(call -> {
                     PtcLambdaQueryWrapper<FlowForm> wrapper = call.getArgument(1);
@@ -153,7 +147,7 @@ class FlowFormServiceImplTest {
                     assertEquals(filtered, wrapper.getParamNameValuePairs().containsValue("office"));
                     return new PageResult<>(List.of(form), 1L, 1L);
                 });
-        var result = service.page(query);
+        var result = service.page(query, loginUserContext);
         assertEquals("office", result.getList().getFirst().getCategory());
         assertEquals("办公", result.getList().getFirst().getCategoryName());
     }

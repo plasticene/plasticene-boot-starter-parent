@@ -26,6 +26,11 @@
         <url/>
     </scm>
     <dependencies>
+        <!-- FLOW 的 Web 适配已改为可选；原示例直接使用这些类型，显式保留原依赖。 -->
+        <dependency>
+            <groupId>com.plasticene.boot</groupId>
+            <artifactId>plasticene-boot-starter-web</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.plasticene.boot</groupId>
             <artifactId>plasticene-boot-starter-banner</artifactId>

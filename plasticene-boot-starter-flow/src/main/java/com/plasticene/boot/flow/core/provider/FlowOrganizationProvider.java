@@ -26,4 +26,20 @@ public interface FlowOrganizationProvider {
     default Map<Long, String> getRoleMap() {
         return Map.of();
     }
+
+    default Map<Long, String> getUserMap(Long orgId) {
+        return getUserMap();
+    }
+
+    default Map<Long, String> getActiveUserMap(Long orgId) {
+        return getActiveUserMap();
+    }
+
+    default Map<Long, String> getDeptMap(Long orgId) {
+        return getDeptMap();
+    }
+
+    default Map<Long, String> getRoleMap(Long orgId) {
+        return getRoleMap();
+    }
 }

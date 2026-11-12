@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.dao.FlowDefinitionDAO;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
@@ -15,19 +14,18 @@ import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.enums.FlowModelEnums;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.vo.FlowDefinitionVO;
-import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.model.vo.FlowStartCatalogVO;
 import com.plasticene.boot.flow.core.model.vo.FlowStartableModelVO;
+import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
 
 /**
  * @author ZFJ
@@ -46,16 +44,19 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
     @Resource
     private FlowOrganizationProvider flowOrganizationProvider;
 
-
     @Override
     public int getMaxVersion(Long modelId) {
         Integer maxVersion = flowDefinitionDAO.getMaxVersion(modelId);
         return maxVersion == null ? 0 : maxVersion;
     }
 
+    /**
+     * 查询指定操作者可发起的流程目录及其最近使用的流程。
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 可发起流程目录及最近使用记录
+     */
     @Override
-    public FlowStartCatalogVO getStartableCatalog() {
-        LoginUser loginUser = LoginUserHolder.get();
+    public FlowStartCatalogVO getStartableCatalog(LoginUser loginUser) {
         // 查询已发布的流程模型flowModel
         PtcLambdaQueryWrapper<FlowModel> queryWrapper = new PtcLambdaQueryWrapper<>();
         queryWrapper.eq(FlowModel::getOrgId, loginUser.getOrgId())
@@ -83,7 +84,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
                 .toList();
 
         // 构造可发起的流程模型分类
-        Map<String, String> categoryMap = flowCategoryService.getCategoryMap();
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap(loginUser);
         List<FlowStartableModelVO> voList = models.stream()
                 .map(model -> toStartableModelVO(model, definitionMap.get(model.getActiveDefinitionId()), categoryMap))
                 .toList();
@@ -97,10 +98,16 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         return catalogVO;
     }
 
+    /**
+     * 校验操作者的发起权限，返回当前生效版本的定义详情。
+     * @param definitionId 流程发布定义 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 查询结果
+     */
     @Override
-    public FlowDefinitionVO getFlowDefinition(Long definitionId) {
-        FlowDefinition flowDefinition = getStartableDefinition(definitionId);
-        Map<String, String> categoryMap = flowCategoryService.getCategoryMap();
+    public FlowDefinitionVO getFlowDefinition(Long definitionId, LoginUser loginUser) {
+        FlowDefinition flowDefinition = getStartableDefinition(definitionId, loginUser);
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap(loginUser);
         FlowDefinitionVO vo = PtcBeanUtils.copy(flowDefinition, FlowDefinitionVO.class);
         vo.setDefinitionId(flowDefinition.getId());
         vo.setCategoryName(categoryMap.get(flowDefinition.getCategory()));
@@ -108,12 +115,17 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         return vo;
     }
 
+    /**
+     * 按读取时的模型状态校验组织、当前生效版本及操作者发起权限，不锁定模型。
+     * @param definitionId 流程发布定义 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 已校验且可发起的流程发布定义
+     */
     @Override
-    public FlowDefinition getStartableDefinition(Long definitionId) {
+    public FlowDefinition getStartableDefinition(Long definitionId, LoginUser loginUser) {
         if (definitionId == null) {
             throw new BizException("流程发布id不能为空");
         }
-        LoginUser loginUser = LoginUserHolder.get();
         // 校验流程模型发布信息
         PtcLambdaQueryWrapper<FlowModel> queryWrapper = new PtcLambdaQueryWrapper<>();
         queryWrapper.eq(FlowModel::getOrgId, loginUser.getOrgId())
@@ -135,9 +147,15 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         return definition;
     }
 
+    /**
+     * 查询操作者所属组织内指定模型的发布历史，按版本倒序返回。
+     * @param modelId 流程模型 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 查询结果
+     */
     @Override
-    public List<FlowDefinitionVO> listModelVersions(Long modelId) {
-        FlowModel model = requireHistoryModel(modelId);
+    public List<FlowDefinitionVO> listModelVersions(Long modelId, LoginUser loginUser) {
+        FlowModel model = requireHistoryModel(modelId, loginUser);
         PtcLambdaQueryWrapper<FlowDefinition> query = new PtcLambdaQueryWrapper<>();
         query.select(FlowDefinition::getId, FlowDefinition::getVersion,
                         FlowDefinition::getPublishTime, FlowDefinition::getCreator)
@@ -146,7 +164,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
                 .eq(FlowDefinition::getIsDelete, 0)
                 .orderByDesc(FlowDefinition::getVersion);
         List<FlowDefinition> definitions = flowDefinitionDAO.selectList(query);
-        Map<Long, String> users = flowOrganizationProvider.getUserMap();
+        Map<Long, String> users = flowOrganizationProvider.getUserMap(model.getOrgId());
         return definitions.stream().map(definition -> {
             FlowDefinitionVO vo = PtcBeanUtils.copy(definition, FlowDefinitionVO.class);
             vo.setDefinitionId(definition.getId());
@@ -158,9 +176,16 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         }).toList();
     }
 
+    /**
+     * 查询操作者所属组织内指定模型的发布快照，不改变当前生效版本。
+     * @param modelId 流程模型 ID
+     * @param definitionId 流程发布定义 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 查询结果
+     */
     @Override
-    public FlowDefinitionVO getModelVersion(Long modelId, Long definitionId) {
-        FlowModel model = requireHistoryModel(modelId);
+    public FlowDefinitionVO getModelVersion(Long modelId, Long definitionId, LoginUser loginUser) {
+        FlowModel model = requireHistoryModel(modelId, loginUser);
         PtcLambdaQueryWrapper<FlowDefinition> query = new PtcLambdaQueryWrapper<>();
         query.eq(FlowDefinition::getId, definitionId)
                 .eq(FlowDefinition::getModelId, modelId)
@@ -172,14 +197,20 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         }
         FlowDefinitionVO vo = PtcBeanUtils.copy(definition, FlowDefinitionVO.class);
         vo.setDefinitionId(definition.getId());
-        vo.setCategoryName(flowCategoryService.getCategoryMap().get(definition.getCategory()));
+        vo.setCategoryName(flowCategoryService.getCategoryMap(loginUser).get(definition.getCategory()));
         vo.setExtraSetting(FlowExtraSetting.normalize(vo.getExtraSetting()));
         return vo;
     }
 
-    private FlowModel requireHistoryModel(Long modelId) {
+    /**
+     * 校验模型存在且归属于操作者所属组织，供发布历史查询使用。
+     * @param modelId 流程模型 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 查询结果
+     */
+    private FlowModel requireHistoryModel(Long modelId, LoginUser loginUser) {
         FlowModel model = flowModelDAO.selectById(modelId);
-        if (model == null || !Objects.equals(model.getOrgId(), LoginUserHolder.get().getOrgId())) {
+        if (model == null || !Objects.equals(model.getOrgId(), loginUser.getOrgId())) {
             throw new BizException("流程模型不存在");
         }
         return model;
@@ -241,8 +272,6 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
         vo.setPublishTime(model.getPublishTime());
         return vo;
     }
-
-
 
     boolean canStart(FlowDefinition definition, LoginUser loginUser) {
         Integer startUserType = definition.getStartUserType();

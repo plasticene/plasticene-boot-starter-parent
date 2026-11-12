@@ -2,6 +2,8 @@ package com.plasticene.boot.flow.core.controller;
 
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.pojo.ResponseVO;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.model.param.FlowFormParam;
 import com.plasticene.boot.flow.core.model.query.FlowFormQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowFormVO;
@@ -9,10 +11,9 @@ import com.plasticene.boot.flow.core.service.FlowFormService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import java.util.List;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 提供流程表单管理接口。
@@ -29,7 +30,8 @@ public class FlowFormController {
     @Operation(summary = "创建表单")
     @PostMapping
     public ResponseVO<Long> create(@RequestBody @Validated FlowFormParam param) {
-        Long id = flowFormService.create(param);
+        LoginUser loginUser = LoginUserHolder.get();
+        Long id = flowFormService.create(param, loginUser);
         return ResponseVO.success(id);
     }
 
@@ -50,21 +52,24 @@ public class FlowFormController {
     @Operation(summary = "分页查询表单")
     @GetMapping("/page")
     public ResponseVO<PageResult<FlowFormVO>> page(FlowFormQuery query) {
-        PageResult<FlowFormVO> pageResult = flowFormService.page(query);
+        LoginUser loginUser = LoginUserHolder.get();
+        PageResult<FlowFormVO> pageResult = flowFormService.page(query, loginUser);
         return ResponseVO.success(pageResult);
     }
 
     @Operation(summary = "表单列表")
     @GetMapping("/list")
     public ResponseVO<List<FlowFormVO>> list() {
-        List<FlowFormVO> list = flowFormService.listAll();
+        LoginUser loginUser = LoginUserHolder.get();
+        List<FlowFormVO> list = flowFormService.listAll(loginUser);
         return ResponseVO.success(list);
     }
 
     @Operation(summary = "表单详情")
     @GetMapping("/{id}")
     public ResponseVO<FlowFormVO> detail(@PathVariable("id") Long id) {
-        FlowFormVO vo = flowFormService.detail(id);
+        LoginUser loginUser = LoginUserHolder.get();
+        FlowFormVO vo = flowFormService.detail(id, loginUser);
         return ResponseVO.success(vo);
     }
 

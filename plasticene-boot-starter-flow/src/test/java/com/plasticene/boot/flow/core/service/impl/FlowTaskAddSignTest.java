@@ -7,11 +7,10 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
+import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.dao.FlowTaskAddSignDAO;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
-import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
@@ -22,6 +21,7 @@ import com.plasticene.boot.flow.core.enums.FlowAddSignEnum;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
+import com.plasticene.boot.flow.core.executor.DefaultProcessExecutor;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
@@ -32,25 +32,28 @@ import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
+import java.util.ArrayList;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import com.plasticene.boot.flow.core.event.FlowTaskEvent;
 import com.plasticene.boot.flow.core.event.FlowEvent;
+import com.plasticene.boot.flow.core.event.FlowEventPublisher;
 import com.plasticene.boot.flow.core.event.FlowEventType;
 import com.plasticene.boot.flow.core.event.FlowTaskAction;
 import com.plasticene.boot.flow.core.event.FlowTaskCancelReason;
-import com.plasticene.boot.flow.core.event.FlowEventPublisher;
+import com.plasticene.boot.flow.core.event.FlowTaskEvent;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
@@ -66,8 +69,9 @@ import static org.mockito.Mockito.*;
  * @since 2026-11-03
  */
 class FlowTaskAddSignTest {
-    private final List<FlowTaskEvent> events = new java.util.ArrayList<>();
-    private final List<FlowEvent> lifecycleEvents = new java.util.ArrayList<>();
+    private LoginUser loginUserContext;
+    private final List<FlowTaskEvent> events = new ArrayList<>();
+    private final List<FlowEvent> lifecycleEvents = new ArrayList<>();
     private final FlowTaskServiceImpl service = spy(new FlowTaskServiceImpl());
     private final FlowTaskDAO tasks = mock(FlowTaskDAO.class);
     private final FlowTaskAddSignDAO signs = mock(FlowTaskAddSignDAO.class);
@@ -117,7 +121,7 @@ class FlowTaskAddSignTest {
         instance.setDefinitionId(31L);
         instance.setStatus(0);
         when(runtime.selectInstanceForUpdate(21L)).thenReturn(instance);
-        when(organization.getActiveUserMap()).thenReturn(Map.of(8L, "原审批人", 9L, "原后续人", 10L, "加签甲", 11L, "加签乙", 12L, "接收人"));
+        when(organization.getActiveUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(8L, "原审批人", 9L, "原后续人", 10L, "加签甲", 11L, "加签乙", 12L, "接收人"));
         FlowDefinition definition = new FlowDefinition();
         definition.setOrgId(9L);
         FlowNode node = new FlowNode();
@@ -149,18 +153,13 @@ class FlowTaskAddSignTest {
         login(8L, 9L);
     }
 
-    @AfterEach
-    void clearUser() {
-        LoginUserHolder.remove();
-    }
-
     @Test
     void shouldPublishTransferCompletionBeforeNewTodoWithStableSnapshots() {
         FlowTaskTransferParam param = new FlowTaskTransferParam();
         param.setTaskId(1L);
         param.setAssignee(12L);
         param.setComment("转交审核");
-        service.transferTask(param);
+        service.transferTask(param, loginUserContext);
         assertEquals(List.of(FlowEventType.TASK_COMPLETED, FlowEventType.TASK_CREATED),
                 events.stream().map(FlowTaskEvent::eventType).toList());
         assertEquals(FlowTaskAction.TRANSFER, events.getFirst().action());
@@ -172,7 +171,7 @@ class FlowTaskAddSignTest {
 
     @Test
     void shouldClosePausedTodoAndReopenItOnlyAfterBeforeSignCompletes() {
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)), loginUserContext);
         assertEquals(FlowEventType.TASK_CANCELLED, events.getFirst().eventType());
         assertEquals(FlowTaskCancelReason.ADD_SIGN_WAITING, events.getFirst().cancelReason());
         assertEquals(FlowEventType.TASK_CREATED, events.getLast().eventType());
@@ -190,7 +189,7 @@ class FlowTaskAddSignTest {
         rows.put(3L, task(3L, 12L, "other-branch", 0));
         approve(rows.get(1L));
 
-        var captor = org.mockito.ArgumentCaptor.forClass(Wrapper.class);
+        var captor = ArgumentCaptor.forClass(Wrapper.class);
         verify(tasks).selectList(captor.capture());
         String sql = captor.getValue().getSqlSegment();
         assertTrue(sql.contains("node_key ="));
@@ -222,7 +221,7 @@ class FlowTaskAddSignTest {
 
     @Test
     void shouldCancelAllActionableTodosWhenInstanceCancelled() {
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)), loginUserContext);
         events.clear();
         service.cancelInstanceRunningTask(21L);
         assertEquals(2, events.size());
@@ -236,7 +235,7 @@ class FlowTaskAddSignTest {
     void shouldSettleGroupBeforeResumingOrCompletingOriginalTask(FlowAddSignEnum.Type type, int mode) {
         LocalDateTime deadline = rows.get(1L).getDeadline();
         LocalDateTime remindAt = rows.get(1L).getNextRemindTime();
-        service.addSign(request(1L, type, mode, List.of(10L, 11L)));
+        service.addSign(request(1L, type, mode, List.of(10L, 11L)), loginUserContext);
         FlowTaskAddSign batch = batches.values().iterator().next();
         batch.setPausedAt(LocalDateTime.now().minusMinutes(10));
         assertEquals(6, rows.get(1L).getStatus());
@@ -273,7 +272,7 @@ class FlowTaskAddSignTest {
         FlowTask returned = task(2L, 8L, "approve", 0);
         returned.setStatus(FlowTaskStatusEnum.RETURNED.getCode());
         rows.put(returned.getId(), returned);
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, mode, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, mode, List.of(10L, 11L)), loginUserContext);
         FlowTaskAddSign batch = batches.values().iterator().next();
         approve(runningMembers(batch.getId()).getFirst());
         if (mode != 1) {
@@ -290,7 +289,7 @@ class FlowTaskAddSignTest {
     @Test
     void shouldWaitForOtherOriginalApproverAfterBeforeAddSign() {
         rows.put(2L, task(2L, 9L, "approve", 0));
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)), loginUserContext);
         approve(pending(10L));
         approve(rows.get(1L));
         verifyNoInteractions(executor);
@@ -303,7 +302,7 @@ class FlowTaskAddSignTest {
     void shouldApplyParallelSignUsingOriginalNodeMode(int mode) {
         rows.get(1L).setApproveMode(mode);
         if (mode == 2) rows.get(1L).setAssigneeList(List.of(8L, 9L));
-        service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, 99, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, 99, List.of(10L, 11L)), loginUserContext);
         FlowTaskAddSign batch = batches.values().iterator().next();
         assertEquals(mode, batch.getApproveMode());
         assertEquals(FlowAddSignEnum.State.APPLIED, batch.getState());
@@ -336,7 +335,7 @@ class FlowTaskAddSignTest {
         rows.get(1L).setApproveMode(1);
         rows.put(2L, task(2L, 9L, "approve", 1));
         rows.put(3L, task(3L, 12L, "other-branch", 0));
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)), loginUserContext);
         FlowTask member = pending(10L);
         approve(rows.get(2L));
         assertEquals(3, rows.get(1L).getStatus());
@@ -349,11 +348,11 @@ class FlowTaskAddSignTest {
 
     @Test
     void shouldRejectWholeInstanceWhenSignMemberRejects() {
-        service.addSign(request(1L, FlowAddSignEnum.Type.AFTER, 0, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.AFTER, 0, List.of(10L, 11L)), loginUserContext);
         FlowTask member = pending(10L);
         login(10L, 9L);
         FlowTaskParam param = action(member.getId());
-        service.rejectTask(param);
+        service.rejectTask(param, loginUserContext);
         assertEquals(2, rows.get(member.getId()).getStatus());
         assertEquals(3, rows.get(1L).getStatus());
         assertEquals(FlowAddSignEnum.State.REJECTED, batches.values().iterator().next().getState());
@@ -367,7 +366,7 @@ class FlowTaskAddSignTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void shouldCleanParallelTasksAndAddSignsOnceForAutomaticOrManualRejection(boolean automatic) {
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)), loginUserContext);
         rows.put(2L, task(2L, 8L, "other-branch", 0));
         FlowNode otherBranch = new FlowNode();
         otherBranch.setKey("other-branch");
@@ -376,7 +375,7 @@ class FlowTaskAddSignTest {
         events.clear();
         lifecycleEvents.clear();
         if (automatic) {
-            var process = new com.plasticene.boot.flow.core.executor.DefaultProcessExecutor();
+            var process = new DefaultProcessExecutor();
             ReflectionTestUtils.setField(process, "flowTaskService", service);
             ReflectionTestUtils.setField(process, "flowRuntimeService", runtime);
             FlowNode node = new FlowNode();
@@ -385,7 +384,7 @@ class FlowTaskAddSignTest {
             node.setApproveType(FlowNodeEnum.ApproveType.AUTO_REJECT.getCode());
             process.executeNode(instance, node);
         } else {
-            service.rejectTask(action(2L));
+            service.rejectTask(action(2L), loginUserContext);
         }
         verify(service).delInstanceRunningTask(21L);
         verify(runtime).endInstance(eq(instance), any(), eq(FlowInstanceStatusEnum.REJECT));
@@ -406,31 +405,31 @@ class FlowTaskAddSignTest {
 
     @Test
     void shouldRestrictWaitingAndGroupTasksAndRejectInvalidPeople() {
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(8L))));
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 10L))));
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(99L))));
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 9, List.of(10L))));
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(8L)), loginUserContext));
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 10L)), loginUserContext));
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(99L)), loginUserContext));
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 9, List.of(10L)), loginUserContext));
         login(8L, 99L);
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L))));
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)), loginUserContext));
         login(8L, 9L);
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)));
-        assertThrows(BizException.class, () -> service.approveTask(action(1L)));
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.AFTER, 0, List.of(12L))));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L, 11L)), loginUserContext);
+        assertThrows(BizException.class, () -> service.approveTask(action(1L), loginUserContext));
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.AFTER, 0, List.of(12L)), loginUserContext));
         FlowTask member = pending(10L);
         login(10L, 9L);
-        assertThrows(BizException.class, () -> service.addSign(request(member.getId(), FlowAddSignEnum.Type.BEFORE, 0, List.of(12L))));
+        assertThrows(BizException.class, () -> service.addSign(request(member.getId(), FlowAddSignEnum.Type.BEFORE, 0, List.of(12L)), loginUserContext));
         FlowTaskTransferParam transfer = new FlowTaskTransferParam();
         transfer.setTaskId(member.getId()); transfer.setAssignee(12L); transfer.setComment("转交");
-        assertThrows(BizException.class, () -> service.transferTask(transfer));
-        assertThrows(BizException.class, () -> service.listReturnTargets(member.getId()));
+        assertThrows(BizException.class, () -> service.transferTask(transfer, loginUserContext));
+        assertThrows(BizException.class, () -> service.listReturnTargets(member.getId(), loginUserContext));
         FlowTaskReturnParam back = new FlowTaskReturnParam();
         back.setTaskId(member.getId()); back.setTargetNodeKey("previous"); back.setComment("退回");
-        assertThrows(BizException.class, () -> service.returnTask(back));
+        assertThrows(BizException.class, () -> service.returnTask(back, loginUserContext));
     }
 
     @Test
     void shouldCancelWaitingParentsAndAllGroupsWhenInstanceIsCancelled() {
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 2, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 2, List.of(10L, 11L)), loginUserContext);
         service.cancelInstanceRunningTask(21L);
         assertEquals(3, rows.get(1L).getStatus());
         assertEquals(FlowAddSignEnum.State.CANCELLED, batches.values().iterator().next().getState());
@@ -441,12 +440,12 @@ class FlowTaskAddSignTest {
     void shouldRejectPreviouslyHandledAndQueuedPeopleAndRepeatedSubmission() {
         rows.get(1L).setApproveMode(2);
         rows.get(1L).setAssigneeList(List.of(8L, 9L));
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, null, List.of(9L))));
-        service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, null, List.of(10L, 11L)));
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, null, List.of(10L))));
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, null, List.of(9L)), loginUserContext));
+        service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, null, List.of(10L, 11L)), loginUserContext);
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, null, List.of(10L)), loginUserContext));
         approve(rows.get(1L));
         login(8L, 9L);
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, null, List.of(12L))));
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.PARALLEL, null, List.of(12L)), loginUserContext));
     }
 
     @Test
@@ -454,7 +453,7 @@ class FlowTaskAddSignTest {
         FlowTaskTestComponents.setDependency(service, "baseMapper", tasks);
         rows.get(1L).getTimeoutRule().setAction(FlowTimeoutRule.Action.APPROVE);
         rows.get(1L).setDeadline(LocalDateTime.now().minusMinutes(1));
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 1, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 1, List.of(10L, 11L)), loginUserContext);
         FlowTimeoutServiceImpl timeouts = new FlowTimeoutServiceImpl(notices, runtime, service);
         timeouts.handleDueTask(rows.get(1L), LocalDateTime.now());
         assertEquals(6, rows.get(1L).getStatus());
@@ -475,23 +474,23 @@ class FlowTaskAddSignTest {
             rows.get(1L).setStatus(1);
             return instance;
         });
-        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L))));
+        assertThrows(BizException.class, () -> service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)), loginUserContext));
         assertTrue(batches.isEmpty());
         verify(tasks, never()).insert(any(FlowTask.class));
     }
 
     @Test
     void shouldRejectRepeatedGroupApprovalAndDenyWithdrawalAcrossSignGroup() {
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 1, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 1, List.of(10L, 11L)), loginUserContext);
         FlowTask member = pending(10L);
         approve(member);
         assertThrows(BizException.class, () -> approve(member));
         verifyNoInteractions(executor);
         approve(rows.get(1L));
         FlowDefinition definition = new FlowDefinition();
-        assertFalse(service.canWithdrawTask(rows.get(1L), instance, definition, List.copyOf(rows.values())));
+        assertFalse(service.canWithdrawTask(rows.get(1L), instance, definition, List.copyOf(rows.values()), loginUserContext));
         login(10L, 9L);
-        assertFalse(service.canWithdrawTask(rows.get(member.getId()), instance, definition, List.copyOf(rows.values())));
+        assertFalse(service.canWithdrawTask(rows.get(member.getId()), instance, definition, List.copyOf(rows.values()), loginUserContext));
     }
 
     @Test
@@ -502,9 +501,9 @@ class FlowTaskAddSignTest {
         rows.put(0L, previous);
         rows.get(1L).setApproveMode(2);
         rows.get(1L).setAssigneeList(List.of(8L, 9L));
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)), loginUserContext);
         FlowDefinition definition = new FlowDefinition();
-        assertFalse(service.canWithdrawTask(previous, instance, definition, List.copyOf(rows.values())));
+        assertFalse(service.canWithdrawTask(previous, instance, definition, List.copyOf(rows.values()), loginUserContext));
         assertEquals(6, rows.get(1L).getStatus());
         assertEquals(1, runningMembers(batches.values().iterator().next().getId()).size());
     }
@@ -524,11 +523,11 @@ class FlowTaskAddSignTest {
         rows.put(0L, prior);
         rows.put(2L, task(2L, 9L, "approve", 0));
         rows.put(3L, task(3L, 12L, "unrelated", 0));
-        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 2, List.of(10L, 11L)));
+        service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 2, List.of(10L, 11L)), loginUserContext);
         login(9L, 9L);
         FlowTaskReturnParam param = new FlowTaskReturnParam();
         param.setTaskId(2L); param.setTargetNodeKey("previous"); param.setComment("补充材料");
-        service.returnTask(param);
+        service.returnTask(param, loginUserContext);
         assertEquals(3, rows.get(1L).getStatus());
         assertEquals(2L, rows.get(1L).getReturnTaskId());
         assertEquals(FlowAddSignEnum.State.CANCELLED, batches.values().iterator().next().getState());
@@ -540,12 +539,12 @@ class FlowTaskAddSignTest {
     }
 
     @ParameterizedTest
-    @org.junit.jupiter.params.provider.EnumSource(FlowAddSignEnum.Type.class)
+    @EnumSource(FlowAddSignEnum.Type.class)
     void shouldRejectEveryAddSignTypeWhenPublishedNodeDisablesIt(FlowAddSignEnum.Type type) {
         definitions.getById(31L).getModelNode().setAllowAddSign(false);
 
         BizException error = assertThrows(BizException.class,
-                () -> service.addSign(request(1L, type, 0, List.of(10L))));
+                () -> service.addSign(request(1L, type, 0, List.of(10L)), loginUserContext));
 
         assertEquals("当前审批节点不允许加签", error.getMessage());
         assertTrue(batches.isEmpty());
@@ -580,7 +579,7 @@ class FlowTaskAddSignTest {
 
     private void approve(FlowTask task) {
         login(task.getAssignee(), task.getOrgId());
-        service.approveTask(action(task.getId()));
+        service.approveTask(action(task.getId()), loginUserContext);
     }
 
     private FlowTaskParam action(Long id) {
@@ -588,7 +587,7 @@ class FlowTaskAddSignTest {
     }
 
     private void login(Long id, Long org) {
-        LoginUser user = new LoginUser(); user.setId(id); user.setOrgId(org); LoginUserHolder.set(user);
+        LoginUser user = new LoginUser(); user.setId(id); user.setOrgId(org); loginUserContext = user;
     }
 
     private FlowTask copy(FlowTask row) { return row == null ? null : PtcBeanUtils.copy(row, FlowTask.class); }

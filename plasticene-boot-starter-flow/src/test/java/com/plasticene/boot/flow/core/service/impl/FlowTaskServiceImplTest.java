@@ -1,26 +1,31 @@
 package com.plasticene.boot.flow.core.service.impl;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
-import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
+import com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO;
 import com.plasticene.boot.flow.core.dao.FlowTaskAddSignDAO;
+import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
+import com.plasticene.boot.flow.core.entity.FlowFormChangeRecord;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
-import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowApproveTaskResult;
-import org.junit.jupiter.params.provider.CsvSource;
+import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
+import com.plasticene.boot.flow.core.event.FlowEventPublisher;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
+import com.plasticene.boot.flow.core.model.dto.FlowFieldPermission;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
+import com.plasticene.boot.flow.core.model.param.FlowTaskFormParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
@@ -30,16 +35,21 @@ import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
 import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
-import org.junit.jupiter.api.AfterEach;
+import java.util.Arrays;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -68,6 +78,7 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class FlowTaskServiceImplTest {
+    private LoginUser loginUserContext;
 
     @Mock
     private FlowTaskDAO flowTaskDAO;
@@ -86,9 +97,9 @@ class FlowTaskServiceImplTest {
     @Mock
     private FlowTaskAddSignDAO flowTaskAddSignDAO;
     @Mock
-    private com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO formChangeRecordDAO;
+    private FlowFormChangeRecordDAO formChangeRecordDAO;
     @Mock
-    private com.plasticene.boot.flow.core.event.FlowEventPublisher flowEventPublisher;
+    private FlowEventPublisher flowEventPublisher;
     @InjectMocks
     private FlowTaskServiceImpl service;
 
@@ -97,7 +108,7 @@ class FlowTaskServiceImplTest {
         FlowTaskTestComponents.install(service, flowTaskDAO, flowTaskAssigneeProvider,
                 flowRuntimeService, processExecutor, flowDefinitionService, flowCategoryService,
                 flowOrganizationProvider, flowTaskAddSignDAO, formChangeRecordDAO, flowEventPublisher);
-        org.mockito.Mockito.lenient().when(flowRuntimeService.getById(org.mockito.ArgumentMatchers.anyLong()))
+        Mockito.lenient().when(flowRuntimeService.getById(ArgumentMatchers.anyLong()))
                 .thenAnswer(call -> {
                     FlowInstance instance = new FlowInstance();
                     instance.setId(call.getArgument(0));
@@ -107,19 +118,14 @@ class FlowTaskServiceImplTest {
         LoginUser loginUser = new LoginUser();
         loginUser.setId(8L);
         loginUser.setOrgId(9L);
-        LoginUserHolder.set(loginUser);
-    }
-
-    @AfterEach
-    void clearLoginUser() {
-        LoginUserHolder.remove();
+        loginUserContext = loginUser;
     }
 
     @Test
     void shouldAccumulateSkippedBranchesWithOneUpdateAndNoQuery() {
         service.addCompletedBranches(21L, "gateway", 17);
         verify(flowTaskDAO).addCompletedBranches(21L, "gateway", 17);
-        org.mockito.Mockito.verifyNoMoreInteractions(flowTaskDAO);
+        Mockito.verifyNoMoreInteractions(flowTaskDAO);
     }
 
     @ParameterizedTest
@@ -136,7 +142,7 @@ class FlowTaskServiceImplTest {
         when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(cancelledInstance());
 
-        assertThrows(BizException.class, () -> service.approveTask(param));
+        assertThrows(BizException.class, () -> service.approveTask(param, loginUserContext));
     }
 
     @Test
@@ -146,7 +152,7 @@ class FlowTaskServiceImplTest {
         when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(cancelledInstance());
 
-        assertThrows(BizException.class, () -> service.rejectTask(param));
+        assertThrows(BizException.class, () -> service.rejectTask(param, loginUserContext));
     }
 
     @Test
@@ -177,10 +183,10 @@ class FlowTaskServiceImplTest {
         page.setRecords(List.of(vo));
         page.setTotal(1);
         when(flowTaskDAO.pageTask(any(), eq(query))).thenReturn(page);
-        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("purchase", "采购管理"));
-        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(7L, "张敏"));
+        when(flowCategoryService.getCategoryMap(ArgumentMatchers.any(LoginUser.class))).thenReturn(Map.of("purchase", "采购管理"));
+        when(flowOrganizationProvider.getUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(7L, "张敏"));
 
-        PageResult<FlowTaskPageVO> result = service.pageMyDone(query);
+        PageResult<FlowTaskPageVO> result = service.pageMyDone(query, loginUserContext);
 
         assertEquals("采购", query.getKeyword());
         assertEquals("purchase", query.getCategory());
@@ -206,7 +212,7 @@ class FlowTaskServiceImplTest {
         query.setTaskStartTimeBegin(LocalDateTime.of(2026, 9, 16, 11, 0));
         query.setTaskStartTimeEnd(LocalDateTime.of(2026, 9, 16, 10, 0));
 
-        assertThrows(BizException.class, () -> service.pageMyTodo(query));
+        assertThrows(BizException.class, () -> service.pageMyTodo(query, loginUserContext));
         verify(flowTaskDAO, never()).pageTask(any(), any());
     }
 
@@ -222,7 +228,7 @@ class FlowTaskServiceImplTest {
         page.setRecords(List.of());
         when(flowTaskDAO.pageTask(any(), eq(query))).thenReturn(page);
 
-        service.pageMyDone(query);
+        service.pageMyDone(query, loginUserContext);
 
         assertEquals(List.of(
                 FlowTaskStatusEnum.REJECT.getCode(),
@@ -235,7 +241,7 @@ class FlowTaskServiceImplTest {
         FlowTaskQuery query = new FlowTaskQuery();
         query.setStatuses(List.of(FlowTaskStatusEnum.RUNNING.getCode()));
 
-        assertThrows(BizException.class, () -> service.pageMyDone(query));
+        assertThrows(BizException.class, () -> service.pageMyDone(query, loginUserContext));
         verify(flowTaskDAO, never()).pageTask(any(), any());
     }
 
@@ -258,10 +264,10 @@ class FlowTaskServiceImplTest {
         page.setRecords(List.of(vo));
         page.setTotal(1);
         when(flowTaskDAO.pageTask(any(), eq(query))).thenReturn(page);
-        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("purchase", "采购管理"));
-        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(7L, "张敏"));
+        when(flowCategoryService.getCategoryMap(ArgumentMatchers.any(LoginUser.class))).thenReturn(Map.of("purchase", "采购管理"));
+        when(flowOrganizationProvider.getUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(7L, "张敏"));
 
-        PageResult<FlowTaskPageVO> result = service.pageMyCopy(query);
+        PageResult<FlowTaskPageVO> result = service.pageMyCopy(query, loginUserContext);
 
         assertEquals(FlowNodeEnum.Type.COPY.getCode(), query.getNodeType());
         assertEquals(List.of(FlowTaskStatusEnum.APPROVE.getCode()), query.getStatuses());
@@ -280,7 +286,7 @@ class FlowTaskServiceImplTest {
         FlowTaskQuery query = new FlowTaskQuery();
         query.setInstanceStatuses(List.of(99));
 
-        assertThrows(BizException.class, () -> service.pageMyCopy(query));
+        assertThrows(BizException.class, () -> service.pageMyCopy(query, loginUserContext));
 
         verify(flowTaskDAO, never()).pageTask(any(), any());
     }
@@ -290,11 +296,12 @@ class FlowTaskServiceImplTest {
         FlowInstance instance = new FlowInstance();
         instance.setId(21L);
         instance.setOrgId(9L);
+        instance.setUserId(7L);
         FlowNode copyNode = new FlowNode();
         copyNode.setKey("copy");
         copyNode.setName("财务抄送");
         copyNode.setType(FlowNodeEnum.Type.COPY.getCode());
-        when(flowTaskAssigneeProvider.getAssignees(copyNode)).thenReturn(List.of(8L, 8L, 10L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(copyNode), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(8L, 8L, 10L));
 
         service.createCopyTask(instance, copyNode);
 
@@ -316,7 +323,7 @@ class FlowTaskServiceImplTest {
         FlowTaskParam param = new FlowTaskParam();
         param.setTaskId(11L);
 
-        assertThrows(BizException.class, () -> service.approveTask(param));
+        assertThrows(BizException.class, () -> service.approveTask(param, loginUserContext));
         verify(flowRuntimeService, never()).selectInstanceForUpdate(any());
     }
 
@@ -328,7 +335,7 @@ class FlowTaskServiceImplTest {
         node.setApproveType(type);
         assertEquals(result, service.createApproveTask(runningInstance(), node));
         ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
-        var order = org.mockito.Mockito.inOrder(flowTaskDAO, flowEventPublisher);
+        var order = Mockito.inOrder(flowTaskDAO, flowEventPublisher);
         order.verify(flowTaskDAO).insert(captor.capture());
         order.verify(flowEventPublisher).publish(any());
         assertEquals(status, captor.getValue().getStatus());
@@ -341,7 +348,7 @@ class FlowTaskServiceImplTest {
     void shouldReturnEmptyAssigneeResult(int policy, FlowApproveTaskResult result, int status, String comment) {
         FlowNode node = approveNode("empty");
         node.setAssigneeEmpty(policy);
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of());
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of());
         assertEquals(result, service.createApproveTask(runningInstance(), node));
         ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).insert(captor.capture());
@@ -360,7 +367,7 @@ class FlowTaskServiceImplTest {
         FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, false);
         definition.setManagerUserIds(List.of(8L));
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of());
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of());
         assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
         ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
         verify(flowTaskDAO).insert(captor.capture());
@@ -371,7 +378,7 @@ class FlowTaskServiceImplTest {
     @Test
     void shouldStayWithoutTasksWhenEmptyAssigneeHasNoAutomaticPolicy() {
         FlowNode node = approveNode("empty");
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of());
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of());
         assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
         verifyNoInteractions(flowTaskDAO, flowEventPublisher, processExecutor, flowRuntimeService);
     }
@@ -380,7 +387,7 @@ class FlowTaskServiceImplTest {
     void shouldReturnApprovedForOnlySelfApprover() {
         FlowNode node = approveNode("self");
         node.setSelfApprove(FlowNodeEnum.SelfApprove.AUTO_SKIP.getCode());
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(7L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(7L));
         assertEquals(FlowApproveTaskResult.APPROVED, service.createApproveTask(runningInstance(), node));
         ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).insert(captor.capture());
@@ -394,13 +401,13 @@ class FlowTaskServiceImplTest {
     void shouldPreserveSelfApproverPolicy(int policy) {
         FlowNode node = approveNode("self");
         node.setSelfApprove(policy);
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(7L, 8L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(7L, 8L));
         when(flowDefinitionService.getById(31L)).thenReturn(definition(FlowExtraSetting.ApproverDeduplication.NONE, false));
         if (policy == 2) {
-            when(flowTaskAssigneeProvider.getLeader(7L)).thenReturn(9L);
+            when(flowTaskAssigneeProvider.getLeader(ArgumentMatchers.anyLong(), ArgumentMatchers.eq(7L))).thenReturn(9L);
         }
         if (policy == 3) {
-            when(flowTaskAssigneeProvider.getDeptLeader(7L)).thenReturn(9L);
+            when(flowTaskAssigneeProvider.getDeptLeader(ArgumentMatchers.anyLong(), ArgumentMatchers.eq(7L))).thenReturn(9L);
         }
         assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
         ArgumentCaptor<Collection<FlowTask>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -415,7 +422,7 @@ class FlowTaskServiceImplTest {
     void shouldApplyPartialDeduplicationToApprovalMode(int mode) {
         FlowNode node = approveNode("second");
         node.setApproveMode(mode);
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(8L, 10L));
         when(flowDefinitionService.getById(31L)).thenReturn(definition(
                 FlowExtraSetting.ApproverDeduplication.ONCE_PER_PROCESS, false));
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(completedApproval(1L, "first", 8L,
@@ -442,7 +449,7 @@ class FlowTaskServiceImplTest {
         FlowTimeoutRule rule = timeoutRule();
         definition.getExtraSetting().setTimeoutRule(rule);
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L, 12L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(8L, 10L, 12L));
 
         assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
 
@@ -464,7 +471,7 @@ class FlowTaskServiceImplTest {
         FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, false);
         definition.getExtraSetting().setTimeoutRule(new FlowTimeoutRule());
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(8L, 10L));
 
         assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
 
@@ -483,7 +490,7 @@ class FlowTaskServiceImplTest {
         FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, false);
         definition.getExtraSetting().setTimeoutRule(timeoutRule());
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L, 10L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(8L, 10L));
 
         assertEquals(FlowApproveTaskResult.WAITING, service.createApproveTask(runningInstance(), node));
 
@@ -512,7 +519,7 @@ class FlowTaskServiceImplTest {
     void shouldAutoApproveRepeatedAssigneeOncePerProcess() {
         FlowInstance instance = runningInstance();
         FlowNode node = approveNode("second");
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(8L));
         when(flowDefinitionService.getById(31L)).thenReturn(definition(
                 FlowExtraSetting.ApproverDeduplication.ONCE_PER_PROCESS, false));
         FlowTask previous = completedApproval(1L, "first", 8L,
@@ -533,7 +540,7 @@ class FlowTaskServiceImplTest {
     void shouldNotAutoApproveWhenPreviousNodeHasDifferentAssignee() {
         FlowInstance instance = runningInstance();
         FlowNode node = approveNode("second");
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(8L));
         when(flowDefinitionService.getById(31L)).thenReturn(definition(
                 FlowExtraSetting.ApproverDeduplication.CONSECUTIVE, false));
         FlowTask earlier = completedApproval(1L, "first", 8L,
@@ -557,7 +564,7 @@ class FlowTaskServiceImplTest {
         FlowNode previousNode = approveNode("first");
         FlowNode node = approveNode("second");
         node.setParentNode(previousNode);
-        when(flowTaskAssigneeProvider.getAssignees(node)).thenReturn(List.of(8L));
+        when(flowTaskAssigneeProvider.getAssignees(ArgumentMatchers.eq(node), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenReturn(List.of(8L));
         when(flowDefinitionService.getById(31L)).thenReturn(definition(
                 FlowExtraSetting.ApproverDeduplication.CONSECUTIVE, false));
         FlowTask previous = completedApproval(1L, "first", 8L,
@@ -586,7 +593,7 @@ class FlowTaskServiceImplTest {
         instance.setCurrentNodeKey("second");
         FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, true);
 
-        assertTrue(service.canWithdrawTask(approved, instance, definition, List.of(approved, pending)));
+        assertTrue(service.canWithdrawTask(approved, instance, definition, List.of(approved, pending), loginUserContext));
     }
 
     @Test
@@ -602,7 +609,7 @@ class FlowTaskServiceImplTest {
         instance.setCurrentNodeKey("second");
         FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, true);
 
-        assertTrue(service.canWithdrawTask(approved, instance, definition, List.of(approved, pending)));
+        assertTrue(service.canWithdrawTask(approved, instance, definition, List.of(approved, pending), loginUserContext));
     }
 
     @ParameterizedTest
@@ -627,7 +634,7 @@ class FlowTaskServiceImplTest {
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(approved, pending));
         when(flowTaskDAO.update(any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        service.withdrawTask(11L);
+        service.withdrawTask(11L, loginUserContext);
 
         verify(flowTaskDAO, times(2)).update(any(LambdaUpdateWrapper.class));
         verify(flowRuntimeService).updateInstanceCurrentNode(eq(21L), any(FlowNode.class));
@@ -646,14 +653,14 @@ class FlowTaskServiceImplTest {
         instance.setCurrentNodeKey("third");
         FlowDefinition definition = definition(FlowExtraSetting.ApproverDeduplication.NONE, true);
 
-        assertFalse(service.canWithdrawTask(approved, instance, definition, List.of(approved, later)));
+        assertFalse(service.canWithdrawTask(approved, instance, definition, List.of(approved, later), loginUserContext));
     }
 
     @Test
     void shouldKeepOtherParallelBranchesRunningWhenAnyApproverCompletes() {
-        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(
-                new org.apache.ibatis.builder.MapperBuilderAssistant(
-                        new com.baomidou.mybatisplus.core.MybatisConfiguration(), "test"), FlowTask.class);
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(
+                        new MybatisConfiguration(), "test"), FlowTask.class);
         FlowTask task = runningTask();
         task.setApproveMode(FlowNodeEnum.ApproveMode.ANY.getCode());
         FlowInstance instance = runningInstance();
@@ -666,7 +673,7 @@ class FlowTaskServiceImplTest {
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
         FlowTaskParam param = new FlowTaskParam();
         param.setTaskId(11L);
-        service.approveTask(param);
+        service.approveTask(param, loginUserContext);
         @SuppressWarnings("unchecked")
         ArgumentCaptor<LambdaUpdateWrapper<FlowTask>> captor = ArgumentCaptor.forClass(LambdaUpdateWrapper.class);
         verify(flowTaskDAO).update(captor.capture());
@@ -703,9 +710,9 @@ class FlowTaskServiceImplTest {
     }
 
     private FlowTask approveAndCaptureNextOrderedTask(FlowTimeoutRule rule) {
-        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(
-                new org.apache.ibatis.builder.MapperBuilderAssistant(
-                        new com.baomidou.mybatisplus.core.MybatisConfiguration(), "test"), FlowTask.class);
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(
+                        new MybatisConfiguration(), "test"), FlowTask.class);
         FlowTask task = runningTask();
         task.setApproveMode(FlowNodeEnum.ApproveMode.ORDER.getCode());
         task.setAssigneeList(List.of(8L, 10L));
@@ -722,7 +729,7 @@ class FlowTaskServiceImplTest {
         FlowTaskParam param = new FlowTaskParam();
         param.setTaskId(11L);
 
-        service.approveTask(param);
+        service.approveTask(param, loginUserContext);
 
         ArgumentCaptor<FlowTask> captor = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).insert(captor.capture());
@@ -744,7 +751,7 @@ class FlowTaskServiceImplTest {
         task.setNextRemindTime(LocalDateTime.now().plusMinutes(5));
         task.setRemindCount(2);
 
-        service.transferTask(transferParam());
+        service.transferTask(transferParam(), loginUserContext);
 
         ArgumentCaptor<FlowTask> history = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).update(history.capture(), any());
@@ -773,19 +780,19 @@ class FlowTaskServiceImplTest {
         FlowTask task = prepareTransfer();
         task.setApproveMode(FlowNodeEnum.ApproveMode.ORDER.getCode());
         task.setAssigneeList(List.of(7L, 8L, 12L));
-        service.transferTask(transferParam());
+        service.transferTask(transferParam(), loginUserContext);
         ArgumentCaptor<FlowTask> captured = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).insert(captured.capture());
         FlowTask recipient = captured.getValue();
         assertEquals(List.of(7L, 10L, 12L), recipient.getAssigneeList());
         assertEquals(List.of(7L, 8L, 12L), task.getAssigneeList());
-        org.mockito.Mockito.clearInvocations(flowTaskDAO);
+        Mockito.clearInvocations(flowTaskDAO);
         recipient.setId(13L);
-        LoginUserHolder.get().setId(10L);
+        loginUserContext.setId(10L);
         when(flowTaskDAO.selectById(13L)).thenReturn(recipient);
         FlowTaskParam approval = new FlowTaskParam();
         approval.setTaskId(13L);
-        service.approveTask(approval);
+        service.approveTask(approval, loginUserContext);
         verify(flowTaskDAO).insert(captured.capture());
         assertEquals(12L, captured.getValue().getAssignee());
         assertNull(captured.getValue().getSourceTaskId());
@@ -797,14 +804,14 @@ class FlowTaskServiceImplTest {
     void shouldKeepAnyApprovalModeWhenTransferring() {
         FlowTask task = prepareTransfer();
         task.setApproveMode(FlowNodeEnum.ApproveMode.ANY.getCode());
-        service.transferTask(transferParam());
+        service.transferTask(transferParam(), loginUserContext);
         ArgumentCaptor<FlowTask> captured = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).insert(captured.capture());
         assertEquals(FlowNodeEnum.ApproveMode.ANY.getCode(), captured.getValue().getApproveMode());
         verifyNoInteractions(processExecutor);
         FlowTask recipient = captured.getValue();
         recipient.setId(13L);
-        LoginUserHolder.get().setId(10L);
+        loginUserContext.setId(10L);
         when(flowTaskDAO.selectById(13L)).thenReturn(recipient);
         FlowNode node = approveNode("approve");
         FlowDefinition definition = new FlowDefinition();
@@ -812,15 +819,15 @@ class FlowTaskServiceImplTest {
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
         FlowTaskParam approval = new FlowTaskParam();
         approval.setTaskId(13L);
-        service.approveTask(approval);
+        service.approveTask(approval, loginUserContext);
         verify(processExecutor).moveToNextNode(any(), eq(node));
     }
 
     @Test
     void shouldCompleteAllApprovalIgnoringTransferHistory() {
-        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(
-                new org.apache.ibatis.builder.MapperBuilderAssistant(
-                        new com.baomidou.mybatisplus.core.MybatisConfiguration(), "test"), FlowTask.class);
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(
+                        new MybatisConfiguration(), "test"), FlowTask.class);
         FlowTask recipient = runningTask();
         recipient.setApproveMode(FlowNodeEnum.ApproveMode.ALL.getCode());
         recipient.setSourceTaskId(1L);
@@ -837,7 +844,7 @@ class FlowTaskServiceImplTest {
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
         FlowTaskParam approval = new FlowTaskParam();
         approval.setTaskId(11L);
-        service.approveTask(approval);
+        service.approveTask(approval, loginUserContext);
         verify(processExecutor).moveToNextNode(any(), eq(node));
     }
 
@@ -846,10 +853,10 @@ class FlowTaskServiceImplTest {
         FlowTask task = runningTask();
         task.setAssignee(99L);
         when(flowTaskDAO.selectById(11L)).thenReturn(task);
-        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        assertThrows(BizException.class, () -> service.transferTask(transferParam(), loginUserContext));
         task.setAssignee(8L);
         task.setOrgId(99L);
-        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        assertThrows(BizException.class, () -> service.transferTask(transferParam(), loginUserContext));
         verifyNoInteractions(flowRuntimeService);
         verify(flowTaskDAO, never()).insert(any(FlowTask.class));
     }
@@ -861,7 +868,7 @@ class FlowTaskServiceImplTest {
         handled.setStatus(FlowTaskStatusEnum.TRANSFERRED.getCode());
         when(flowTaskDAO.selectById(11L)).thenReturn(stale, handled);
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
-        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        assertThrows(BizException.class, () -> service.transferTask(transferParam(), loginUserContext));
         verify(flowTaskDAO, never()).insert(any(FlowTask.class));
     }
 
@@ -869,7 +876,7 @@ class FlowTaskServiceImplTest {
     void shouldRejectTransferForCancelledInstance() {
         when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(cancelledInstance());
-        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        assertThrows(BizException.class, () -> service.transferTask(transferParam(), loginUserContext));
         verify(flowTaskDAO, never()).insert(any(FlowTask.class));
     }
 
@@ -880,7 +887,7 @@ class FlowTaskServiceImplTest {
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
         FlowTaskTransferParam param = transferParam();
         param.setAssignee(8L);
-        assertThrows(BizException.class, () -> service.transferTask(param));
+        assertThrows(BizException.class, () -> service.transferTask(param, loginUserContext));
         verify(flowTaskDAO, never()).insert(any(FlowTask.class));
     }
 
@@ -889,8 +896,8 @@ class FlowTaskServiceImplTest {
         prepareOperationDefinition();
         when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
-        when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of());
-        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        when(flowOrganizationProvider.getActiveUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of());
+        assertThrows(BizException.class, () -> service.transferTask(transferParam(), loginUserContext));
         verify(flowTaskDAO, never()).insert(any(FlowTask.class));
     }
 
@@ -899,11 +906,11 @@ class FlowTaskServiceImplTest {
         prepareOperationDefinition();
         when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
-        when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of(10L, "李四"));
+        when(flowOrganizationProvider.getActiveUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(10L, "李四"));
         FlowTask other = runningTask();
         other.setAssignee(10L);
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(other));
-        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        assertThrows(BizException.class, () -> service.transferTask(transferParam(), loginUserContext));
         verify(flowTaskDAO, never()).insert(any(FlowTask.class));
     }
 
@@ -915,16 +922,16 @@ class FlowTaskServiceImplTest {
         task.setAssigneeList(List.of(8L, 10L));
         when(flowTaskDAO.selectById(11L)).thenReturn(task);
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
-        when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of(10L, "李四"));
+        when(flowOrganizationProvider.getActiveUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(10L, "李四"));
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(task));
-        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        assertThrows(BizException.class, () -> service.transferTask(transferParam(), loginUserContext));
         verify(flowTaskDAO, never()).insert(any(FlowTask.class));
     }
 
     @Test
     void shouldNotCreateRecipientTaskWhenConditionalUpdateFails() {
         prepareTransfer(0);
-        assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        assertThrows(BizException.class, () -> service.transferTask(transferParam(), loginUserContext));
         verify(flowTaskDAO, never()).insert(any(FlowTask.class));
     }
 
@@ -932,7 +939,7 @@ class FlowTaskServiceImplTest {
     void shouldLinkConsecutiveTransfersToImmediateSource() {
         FlowTask task = prepareTransfer();
         task.setSourceTaskId(1L);
-        service.transferTask(transferParam());
+        service.transferTask(transferParam(), loginUserContext);
         ArgumentCaptor<FlowTask> captured = ArgumentCaptor.forClass(FlowTask.class);
         verify(flowTaskDAO).insert(captured.capture());
         assertEquals(11L, captured.getValue().getSourceTaskId());
@@ -950,16 +957,16 @@ class FlowTaskServiceImplTest {
         prepareOperationDefinition();
         var definition = flowDefinitionService.getById(31L);
         definition.setFormConfig(Map.of("rule", List.of(Map.of("field", "reason", "title", "原因"))));
-        var permission = new com.plasticene.boot.flow.core.model.dto.FlowFieldPermission();
-        permission.setField("reason"); permission.setPermission(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.WRITE);
+        var permission = new FlowFieldPermission();
+        permission.setField("reason"); permission.setPermission(FlowFieldPermission.Permission.WRITE);
         definition.getModelNode().setFieldsPermission(List.of(permission));
-        var param = new com.plasticene.boot.flow.core.model.param.FlowTaskFormParam();
+        var param = new FlowTaskFormParam();
         param.setTaskId(11L); param.setFormData(Map.of("reason", "new"));
         when(flowRuntimeService.updateById(any(FlowInstance.class))).thenReturn(true);
-        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
-        when(formChangeRecordDAO.insert(any(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class))).thenReturn(1);
-        service.saveForm(param);
-        var recordCaptor = ArgumentCaptor.forClass(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class);
+        when(flowOrganizationProvider.getUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(8L, "张三"));
+        when(formChangeRecordDAO.insert(any(FlowFormChangeRecord.class))).thenReturn(1);
+        service.saveForm(param, loginUserContext);
+        var recordCaptor = ArgumentCaptor.forClass(FlowFormChangeRecord.class);
         verify(formChangeRecordDAO).insert(recordCaptor.capture());
         var record = recordCaptor.getValue();
         assertEquals("张三", record.getOperatorName());
@@ -979,9 +986,9 @@ class FlowTaskServiceImplTest {
         FlowTask after = runningTask(); after.setStatus(FlowTaskStatusEnum.APPROVE.getCode());
         when(flowTaskDAO.selectById(11L)).thenReturn(before, after);
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
-        var param = new com.plasticene.boot.flow.core.model.param.FlowTaskFormParam();
+        var param = new FlowTaskFormParam();
         param.setTaskId(11L); param.setFormData(Map.of("reason", "new"));
-        assertThrows(BizException.class, () -> service.saveForm(param));
+        assertThrows(BizException.class, () -> service.saveForm(param, loginUserContext));
         verify(flowRuntimeService, never()).updateById(any(FlowInstance.class));
     }
 
@@ -993,12 +1000,12 @@ class FlowTaskServiceImplTest {
             instance.setVarMap(call.<FlowInstance>getArgument(0).getVarMap());
             return true;
         });
-        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
-        when(formChangeRecordDAO.insert(any(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class))).thenReturn(1);
-        service.saveForm(param);
+        when(flowOrganizationProvider.getUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(8L, "张三"));
+        when(formChangeRecordDAO.insert(any(FlowFormChangeRecord.class))).thenReturn(1);
+        service.saveForm(param, loginUserContext);
         param.setFormData(Map.of("reason", "latest"));
-        service.saveForm(param);
-        var captured = ArgumentCaptor.forClass(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class);
+        service.saveForm(param, loginUserContext);
+        var captured = ArgumentCaptor.forClass(FlowFormChangeRecord.class);
         verify(formChangeRecordDAO, times(2)).insert(captured.capture());
         assertEquals("old", captured.getAllValues().getFirst().getFieldDetails().getFirst().getOldValue());
         assertEquals("new", captured.getAllValues().getLast().getFieldDetails().getFirst().getOldValue());
@@ -1009,7 +1016,7 @@ class FlowTaskServiceImplTest {
     void shouldNotWriteRecordForUnchangedForm() {
         var param = prepareFormChange();
         param.setFormData(Map.of("reason", "old"));
-        service.saveForm(param);
+        service.saveForm(param, loginUserContext);
         verifyNoInteractions(formChangeRecordDAO);
         verify(flowRuntimeService, never()).updateById(any(FlowInstance.class));
     }
@@ -1018,11 +1025,11 @@ class FlowTaskServiceImplTest {
     void shouldNotWriteRecordForUnauthorizedOrFailedSave() {
         var param = prepareFormChange();
         param.setFormData(Map.of("internal", "bad"));
-        assertThrows(BizException.class, () -> service.saveForm(param));
+        assertThrows(BizException.class, () -> service.saveForm(param, loginUserContext));
         verifyNoInteractions(formChangeRecordDAO);
         param.setFormData(Map.of("reason", "new"));
         when(flowRuntimeService.updateById(any(FlowInstance.class))).thenReturn(false);
-        assertThrows(BizException.class, () -> service.saveForm(param));
+        assertThrows(BizException.class, () -> service.saveForm(param, loginUserContext));
         verifyNoInteractions(formChangeRecordDAO);
     }
 
@@ -1030,16 +1037,16 @@ class FlowTaskServiceImplTest {
     void shouldPropagateRecordFailureSoTransactionRollsBack() throws Exception {
         var param = prepareFormChange();
         when(flowRuntimeService.updateById(any(FlowInstance.class))).thenReturn(true);
-        when(flowOrganizationProvider.getUserMap()).thenReturn(Map.of(8L, "张三"));
-        when(formChangeRecordDAO.insert(any(com.plasticene.boot.flow.core.entity.FlowFormChangeRecord.class)))
+        when(flowOrganizationProvider.getUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(8L, "张三"));
+        when(formChangeRecordDAO.insert(any(FlowFormChangeRecord.class)))
                 .thenThrow(new IllegalStateException("insert failed"));
-        assertThrows(IllegalStateException.class, () -> service.saveForm(param));
-        var transaction = FlowTaskServiceImpl.class.getMethod("saveForm", param.getClass())
-                .getAnnotation(org.springframework.transaction.annotation.Transactional.class);
-        assertTrue(java.util.Arrays.asList(transaction.rollbackFor()).contains(Exception.class));
+        assertThrows(IllegalStateException.class, () -> service.saveForm(param, loginUserContext));
+        var transaction = FlowTaskServiceImpl.class.getMethod("saveForm", param.getClass(), LoginUser.class)
+                .getAnnotation(Transactional.class);
+        assertTrue(Arrays.asList(transaction.rollbackFor()).contains(Exception.class));
     }
 
-    private com.plasticene.boot.flow.core.model.param.FlowTaskFormParam prepareFormChange() {
+    private FlowTaskFormParam prepareFormChange() {
         when(flowTaskDAO.selectById(11L)).thenReturn(runningTask());
         FlowInstance instance = runningInstance();
         instance.setVarMap(Map.of("reason", "old"));
@@ -1047,11 +1054,11 @@ class FlowTaskServiceImplTest {
         prepareOperationDefinition();
         var definition = flowDefinitionService.getById(31L);
         definition.setFormConfig(Map.of("rule", List.of(Map.of("field", "reason", "title", "原因"))));
-        var permission = new com.plasticene.boot.flow.core.model.dto.FlowFieldPermission();
+        var permission = new FlowFieldPermission();
         permission.setField("reason");
-        permission.setPermission(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.WRITE);
+        permission.setPermission(FlowFieldPermission.Permission.WRITE);
         definition.getModelNode().setFieldsPermission(List.of(permission));
-        var param = new com.plasticene.boot.flow.core.model.param.FlowTaskFormParam();
+        var param = new FlowTaskFormParam();
         param.setTaskId(11L);
         param.setFormData(Map.of("reason", "new"));
         return param;
@@ -1062,16 +1069,16 @@ class FlowTaskServiceImplTest {
     }
 
     private FlowTask prepareTransfer(int updated) {
-        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(
-                new org.apache.ibatis.builder.MapperBuilderAssistant(
-                        new com.baomidou.mybatisplus.core.MybatisConfiguration(), "test"), FlowTask.class);
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(
+                        new MybatisConfiguration(), "test"), FlowTask.class);
         FlowTask task = runningTask();
         task.setApproveMode(FlowNodeEnum.ApproveMode.ALL.getCode());
         when(flowTaskDAO.selectById(11L)).thenReturn(task);
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(runningInstance());
         when(flowTaskDAO.update(any(FlowTask.class), any())).thenReturn(updated);
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(task));
-        when(flowOrganizationProvider.getActiveUserMap()).thenReturn(Map.of(10L, "李四"));
+        when(flowOrganizationProvider.getActiveUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(10L, "李四"));
         prepareOperationDefinition();
         return task;
     }
@@ -1090,7 +1097,7 @@ class FlowTaskServiceImplTest {
         prepareOperationDefinition();
         flowDefinitionService.getById(31L).getModelNode().setAllowTransfer(false);
 
-        BizException error = assertThrows(BizException.class, () -> service.transferTask(transferParam()));
+        BizException error = assertThrows(BizException.class, () -> service.transferTask(transferParam(), loginUserContext));
 
         assertEquals("当前审批节点不允许转交", error.getMessage());
         verify(flowTaskDAO, never()).insert(any(FlowTask.class));

@@ -37,7 +37,7 @@
 
     <select id="countByCode" resultType="long">
         SELECT COUNT(*) FROM flow_model
-        WHERE org_id = #{orgId} AND BINARY code = BINARY #{code}
+        WHERE org_id = #{orgId} AND code = #{code}
         <if test="excludeId != null">
             AND id != #{excludeId}
         </if>

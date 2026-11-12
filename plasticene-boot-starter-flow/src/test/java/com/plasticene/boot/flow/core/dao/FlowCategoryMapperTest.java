@@ -30,6 +30,10 @@ class FlowCategoryMapperTest {
                 assertTrue(sql.endsWith("FOR UPDATE"));
             }
             assertFalse(sql.contains("BINARY"));
+            assertFalse(sql.contains("LOWER"));
+            if (!method.equals("selectForUpdate")) {
+                assertTrue(sql.contains("code = ?"));
+            }
         }
     }
 
@@ -40,7 +44,8 @@ class FlowCategoryMapperTest {
         for (String method : new String[]{"findModelReference", "findFormReference", "findDefinitionReference", "findInstanceReference"}) {
             String sql = sql(config, method);
             assertTrue(sql.contains("org_id = ?"));
-            assertTrue(sql.contains("LOWER(category) = LOWER(?)"));
+            assertTrue(sql.contains("category = ?"));
+            assertFalse(sql.contains("LOWER"));
             assertTrue(sql.endsWith("FOR UPDATE"));
             assertFalse(sql.contains("is_delete"));
             assertFalse(sql.contains("status"));

@@ -2,6 +2,7 @@ package com.plasticene.boot.flow.core.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.common.pojo.PageResult;
+import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.entity.FlowForm;
 import com.plasticene.boot.flow.core.model.param.FlowFormParam;
 import com.plasticene.boot.flow.core.model.query.FlowFormQuery;
@@ -20,8 +21,9 @@ public interface FlowFormService extends IService<FlowForm> {
      * 创建表单
      * @param param 表单参数
      * @return 表单id
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    Long create(FlowFormParam param);
+    Long create(FlowFormParam param, LoginUser loginUser);
 
     /**
      * 修改表单
@@ -39,19 +41,22 @@ public interface FlowFormService extends IService<FlowForm> {
      * 分页查询表单
      * @param query 查询参数
      * @return 表单列表
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    PageResult<FlowFormVO> page(FlowFormQuery query);
+    PageResult<FlowFormVO> page(FlowFormQuery query, LoginUser loginUser);
 
     /**
      * 查询所有表单
      * @return 表单列表
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    List<FlowFormVO> listAll();
+    List<FlowFormVO> listAll(LoginUser loginUser);
 
     /**
      * 获取表单详情
      * @param id 表单id
      * @return 表单详情
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    FlowFormVO detail(Long id);
+    FlowFormVO detail(Long id, LoginUser loginUser);
 }

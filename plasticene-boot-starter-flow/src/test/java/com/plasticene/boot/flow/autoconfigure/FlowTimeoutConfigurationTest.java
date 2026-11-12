@@ -7,6 +7,8 @@ import com.plasticene.boot.flow.core.schedule.FlowTimeoutScheduler;
 import com.plasticene.boot.flow.core.service.FlowTimeoutService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
@@ -29,9 +31,9 @@ class FlowTimeoutConfigurationTest {
             assertTrue(context.getBeansOfType(FlowTimeoutNotification.class).isEmpty());
             assertEquals(1, context.getBeansOfType(FlowTimeoutScheduler.class).size());
             var executor = context.getBean("flowTimeoutSchedulerExecutor",
-                    org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler.class);
+                    ThreadPoolTaskScheduler.class);
             assertEquals(2, executor.getPoolSize());
-            var processor = context.getBean(org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.class);
+            var processor = context.getBean(ScheduledAnnotationBeanPostProcessor.class);
             assertEquals(2, processor.getScheduledTasks().size());
         });
     }

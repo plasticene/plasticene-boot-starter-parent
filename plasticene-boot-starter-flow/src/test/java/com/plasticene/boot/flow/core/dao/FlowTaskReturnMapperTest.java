@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.core.dao;
 
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
+import java.util.List;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class FlowTaskReturnMapperTest {
         assertTrue(sql.contains("instance_id = ? and node_key = ?"));
         assertTrue(sql.contains("return_task_id IS NULL"));
         assertTrue(sql.contains("is_delete = 0"));
-        assertEquals(java.util.List.of("count", "instanceId", "nodeKey"),
+        assertEquals(List.of("count", "instanceId", "nodeKey"),
                 bound.getParameterMappings().stream().map(item -> item.getProperty()).toList());
     }
 
@@ -54,7 +55,7 @@ class FlowTaskReturnMapperTest {
     void shouldUseEffectiveRoundForCurrentNodeElapsedTime() throws Exception {
         Configuration configuration = load("mapper/FlowInstanceMapper.xml");
         String sql = configuration.getMappedStatement(FlowInstanceDAO.class.getName() + ".listCurrentNodeStartTimes")
-                .getBoundSql(Map.of("orgId", 9L, "instanceIds", java.util.List.of(1L))).getSql();
+                .getBoundSql(Map.of("orgId", 9L, "instanceIds", List.of(1L))).getSql();
         assertTrue(sql.contains("ft.return_task_id IS NULL"));
     }
 

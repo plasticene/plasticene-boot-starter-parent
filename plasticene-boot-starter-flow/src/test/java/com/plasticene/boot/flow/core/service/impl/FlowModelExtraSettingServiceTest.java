@@ -1,25 +1,32 @@
 package com.plasticene.boot.flow.core.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
+import com.plasticene.boot.flow.core.dao.FlowCategoryDAO;
 import com.plasticene.boot.flow.core.dao.FlowModelDAO;
+import com.plasticene.boot.flow.core.entity.FlowCategory;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
+import com.plasticene.boot.flow.core.model.dto.FlowFieldPermission;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
 import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.validator.FlowNodeValidator;
-import org.junit.jupiter.api.Test;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,6 +44,7 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class FlowModelExtraSettingServiceTest {
+    private LoginUser loginUserContext;
 
     @Mock
     private FlowModelDAO flowModelDAO;
@@ -49,22 +57,26 @@ class FlowModelExtraSettingServiceTest {
     @InjectMocks
     private FlowModelServiceImpl service;
 
+    @Mock
+    private FlowCategoryDAO flowCategoryDAO;
+
     @BeforeEach
     void setupUser() {
+        Mockito.lenient().when(flowCategoryDAO.selectByCodeForUpdate(
+                ArgumentMatchers.anyLong(), ArgumentMatchers.anyString()))
+                .thenReturn(new FlowCategory());
+
         var user = new LoginUser();
         user.setId(8L);
         user.setOrgId(100L);
-        LoginUserHolder.set(user);
+        loginUserContext = user;
         var model = new FlowModel();
+        model.setCategory("leave");
         model.setId(11L);
         model.setOrgId(100L);
-        model.setManagerUserIds(java.util.List.of(8L));
-        org.mockito.Mockito.lenient().when(flowModelDAO.selectById(11L)).thenReturn(model);
-    }
-
-    @AfterEach
-    void cleanupUser() {
-        LoginUserHolder.remove();
+        model.setManagerUserIds(List.of(8L));
+        Mockito.lenient().when(flowModelDAO.selectById(11L)).thenReturn(model);
+        Mockito.lenient().when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(model);
     }
 
     @Test
@@ -72,7 +84,7 @@ class FlowModelExtraSettingServiceTest {
         FlowModelParam param = timeoutParam();
         param.getExtraSetting().getTimeoutRule().setAutoEnabled(true);
 
-        assertThrows(BizException.class, () -> service.create(param));
+        assertThrows(BizException.class, () -> service.create(param, loginUserContext));
         verifyNoInteractions(flowModelDAO);
     }
 
@@ -81,7 +93,7 @@ class FlowModelExtraSettingServiceTest {
         FlowModelParam param = timeoutParam();
         param.getExtraSetting().getTimeoutRule().setReminderEnabled(true);
 
-        assertThrows(BizException.class, () -> service.update(param));
+        assertThrows(BizException.class, () -> service.update(param, loginUserContext));
         verifyNoInteractions(flowModelDAO);
     }
 
@@ -96,7 +108,7 @@ class FlowModelExtraSettingServiceTest {
         draft.setTimeoutMode(FlowTimeoutRule.Mode.CUSTOM);
         param.setModelNode(draft);
 
-        service.update(param);
+        service.update(param, loginUserContext);
 
         ArgumentCaptor<FlowModel> captor = ArgumentCaptor.forClass(FlowModel.class);
         verify(flowModelDAO).updateById(captor.capture());
@@ -110,7 +122,7 @@ class FlowModelExtraSettingServiceTest {
         param.setId(11L);
         param.setModelNode(new FlowNode());
 
-        service.update(param);
+        service.update(param, loginUserContext);
 
         ArgumentCaptor<FlowModel> captor = ArgumentCaptor.forClass(FlowModel.class);
         verify(flowModelDAO).updateById(captor.capture());
@@ -120,6 +132,7 @@ class FlowModelExtraSettingServiceTest {
     @Test
     void shouldCopyExtraSettingToPublishedDefinition() {
         FlowModel model = new FlowModel();
+        model.setCategory("leave");
         model.setId(11L);
         model.setIcon("flow:expense");
         model.setModelNode(new FlowNode());
@@ -132,9 +145,9 @@ class FlowModelExtraSettingServiceTest {
         when(flowDefinitionService.getMaxVersion(11L)).thenReturn(2);
 
         model.setOrgId(100L);
-        model.setManagerUserIds(java.util.List.of(8L));
-        service.publish(11L);
-        verify(flowNodeValidator).validate(model.getModelNode(), java.util.Set.of());
+        model.setManagerUserIds(List.of(8L));
+        service.publish(11L, loginUserContext);
+        verify(flowNodeValidator).validate(model.getModelNode(), null);
 
         ArgumentCaptor<FlowDefinition> captor = ArgumentCaptor.forClass(FlowDefinition.class);
         verify(flowDefinitionService).save(captor.capture());
@@ -156,24 +169,25 @@ class FlowModelExtraSettingServiceTest {
         approval.setAllowTransfer(false);
         approval.setAllowReturn(true);
         approval.setAllowAddSign(false);
-        var fieldPermission = new com.plasticene.boot.flow.core.model.dto.FlowFieldPermission();
+        var fieldPermission = new FlowFieldPermission();
         fieldPermission.setField("reason");
         fieldPermission.setTitle("原因");
-        fieldPermission.setPermission(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.WRITE);
-        approval.setFieldsPermission(java.util.List.of(fieldPermission));
+        fieldPermission.setPermission(FlowFieldPermission.Permission.WRITE);
+        approval.setFieldsPermission(List.of(fieldPermission));
         root.setChildNode(approval);
-        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var mapper = new ObjectMapper();
         FlowModelParam param = new FlowModelParam();
         param.setId(11L);
         param.setModelNode(mapper.readValue(mapper.writeValueAsString(root), FlowNode.class));
-        service.update(param);
+        service.update(param, loginUserContext);
         ArgumentCaptor<FlowModel> draft = ArgumentCaptor.forClass(FlowModel.class);
         verify(flowModelDAO).updateById(draft.capture());
         when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(draft.getValue());
 
+        draft.getValue().setCategory("leave");
         draft.getValue().setOrgId(100L);
-        draft.getValue().setManagerUserIds(java.util.List.of(8L));
-        service.publish(11L);
+        draft.getValue().setManagerUserIds(List.of(8L));
+        service.publish(11L, loginUserContext);
 
         ArgumentCaptor<FlowDefinition> published = ArgumentCaptor.forClass(FlowDefinition.class);
         verify(flowDefinitionService).save(published.capture());
@@ -181,31 +195,32 @@ class FlowModelExtraSettingServiceTest {
         assertEquals(false, restored.getChildNode().getAllowTransfer());
         assertEquals(true, restored.getChildNode().getAllowReturn());
         assertEquals(false, restored.getChildNode().getAllowAddSign());
-        assertEquals(com.plasticene.boot.flow.core.model.dto.FlowFieldPermission.Permission.WRITE, restored.getChildNode().getFieldsPermission().getFirst().getPermission());
+        assertEquals(FlowFieldPermission.Permission.WRITE, restored.getChildNode().getFieldsPermission().getFirst().getPermission());
     }
 
     @Test
     void shouldRejectInvalidFormOnSaveWithoutTraversingDraftNodes() {
         var param = new FlowModelParam();
-        param.setFormConfig(java.util.Map.of("rule", java.util.List.of(
-                java.util.Map.of("type", "input", "field", "name", "title", ""))));
-        assertThrows(BizException.class, () -> service.create(param));
-        assertThrows(BizException.class, () -> service.update(param));
+        param.setFormConfig(Map.of("rule", List.of(
+                Map.of("type", "input", "field", "name", "title", ""))));
+        assertThrows(BizException.class, () -> service.create(param, loginUserContext));
+        assertThrows(BizException.class, () -> service.update(param, loginUserContext));
         verifyNoInteractions(flowModelDAO, flowNodeValidator);
     }
 
     @Test
     void shouldOnlyPassEligibleFieldsWhenPublishingWithoutRevalidatingForm() {
         var model = new FlowModel();
+        model.setCategory("leave");
         model.setModelNode(new FlowNode());
-        model.setFormConfig(java.util.Map.of("rule", java.util.List.of(
-                java.util.Map.of("type", "select", "field", "choice", "title", ""),
-                java.util.Map.of("type", "subForm", "field", "detail", "title", "分组"))));
+        model.setFormConfig(Map.of("rule", List.of(
+                Map.of("type", "select", "field", "choice", "title", ""),
+                Map.of("type", "subForm", "field", "detail", "title", "分组"))));
         when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(model);
         model.setOrgId(100L);
-        model.setManagerUserIds(java.util.List.of(8L));
-        service.publish(11L);
-        verify(flowNodeValidator).validate(model.getModelNode(), java.util.Set.of("choice"));
+        model.setManagerUserIds(List.of(8L));
+        service.publish(11L, loginUserContext);
+        verify(flowNodeValidator).validate(model.getModelNode(), Set.of("choice"));
     }
 
     private FlowModelParam timeoutParam() {

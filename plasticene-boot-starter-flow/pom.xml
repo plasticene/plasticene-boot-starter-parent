@@ -14,6 +14,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations-jakarta</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.plasticene.boot</groupId>
             <artifactId>plasticene-boot-starter-mybatis</artifactId>
         </dependency>
@@ -21,6 +25,7 @@
         <dependency>
             <groupId>com.plasticene.boot</groupId>
             <artifactId>plasticene-boot-starter-web</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>

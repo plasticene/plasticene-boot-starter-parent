@@ -1,11 +1,15 @@
 package com.plasticene.boot.flow.core.controller;
 
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.model.param.FlowCategoryParam;
 import com.plasticene.boot.flow.core.service.FlowCategoryService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentMatchers;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,11 +26,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @since 2026-11-06
  */
 class FlowCategoryControllerTest {
+    private final LoginUser loginUser = new LoginUser();
     private FlowCategoryService service;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
+        loginUser.setId(17L);
+        loginUser.setOrgId(27L);
+        LoginUserHolder.set(loginUser);
         service = mock(FlowCategoryService.class);
         var controller = new FlowCategoryController();
         ReflectionTestUtils.setField(controller, "flowCategoryService", service);
@@ -49,7 +57,7 @@ class FlowCategoryControllerTest {
                 .content("{\"name\":\"办公\",\"code\":\"" + "_".repeat(length)
                         + "\",\"description\":\"" + "描".repeat(100) + "\"}"))
                 .andExpect(status().isOk());
-        verify(service).createCategory(any(FlowCategoryParam.class));
+        verify(service).createCategory(any(FlowCategoryParam.class), ArgumentMatchers.eq(loginUser));
     }
 
     @Test
@@ -67,7 +75,7 @@ class FlowCategoryControllerTest {
         mvc.perform(put("/flow/category").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":21,\"name\":\"办公\",\"code\":\"old\"}"))
                 .andExpect(status().isOk());
-        verify(service).updateCategory(any(FlowCategoryParam.class));
+        verify(service).updateCategory(any(FlowCategoryParam.class), ArgumentMatchers.eq(loginUser));
     }
 
     @Test
@@ -75,6 +83,11 @@ class FlowCategoryControllerTest {
         mvc.perform(put("/flow/category").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":21,\"name\":\"办公\",\"description\":\"\"}"))
                 .andExpect(status().isOk());
-        verify(service).updateCategory(any(FlowCategoryParam.class));
+        verify(service).updateCategory(any(FlowCategoryParam.class), ArgumentMatchers.eq(loginUser));
+    }
+
+    @AfterEach
+    void clearLoginUser() {
+        LoginUserHolder.remove();
     }
 }

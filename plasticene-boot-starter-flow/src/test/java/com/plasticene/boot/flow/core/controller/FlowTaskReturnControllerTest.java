@@ -1,12 +1,17 @@
 package com.plasticene.boot.flow.core.controller;
 
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.model.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskReturnTargetVO;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -23,19 +28,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @since 2026-11-02
  */
 class FlowTaskReturnControllerTest {
+    private final LoginUser loginUser = new LoginUser();
     private final FlowTaskService service = mock(FlowTaskService.class);
     private MockMvc mvc;
 
     @BeforeEach
     void setup() {
+        loginUser.setId(17L);
+        loginUser.setOrgId(27L);
+        LoginUserHolder.set(loginUser);
         FlowTaskController controller = new FlowTaskController();
-        org.springframework.test.util.ReflectionTestUtils.setField(controller, "flowTaskService", service);
+        ReflectionTestUtils.setField(controller, "flowTaskService", service);
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
     void shouldExposeOnlyNodeKeysAndNamesAsReturnTargets() throws Exception {
-        when(service.listReturnTargets(11L)).thenReturn(List.of(new FlowTaskReturnTargetVO("a", "部门审批")));
+        when(service.listReturnTargets(11L, loginUser)).thenReturn(List.of(new FlowTaskReturnTargetVO("a", "部门审批")));
         mvc.perform(get("/flow/task/11/return-targets"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].nodeKey").value("a"))
@@ -48,7 +57,7 @@ class FlowTaskReturnControllerTest {
                 .content("{\"taskId\":11,\"targetNodeKey\":\"a\",\"comment\":\"重新核对\"}"))
                 .andExpect(status().isOk());
         var param = ArgumentCaptor.forClass(FlowTaskReturnParam.class);
-        verify(service).returnTask(param.capture());
+        verify(service).returnTask(param.capture(), ArgumentMatchers.same(loginUser));
         assertEquals(11L, param.getValue().getTaskId());
         assertEquals("a", param.getValue().getTargetNodeKey());
         assertEquals("重新核对", param.getValue().getComment());
@@ -64,5 +73,10 @@ class FlowTaskReturnControllerTest {
                     .andExpect(status().isBadRequest());
         }
         verifyNoInteractions(service);
+    }
+
+    @AfterEach
+    void clearLoginUser() {
+        LoginUserHolder.remove();
     }
 }

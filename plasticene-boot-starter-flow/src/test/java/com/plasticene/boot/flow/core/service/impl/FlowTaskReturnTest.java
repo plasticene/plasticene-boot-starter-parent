@@ -1,47 +1,59 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.conditions.AbstractWrapper;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
-import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.dao.FlowTaskAddSignDAO;
+import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
+import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
+import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.executor.DefaultProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
+import com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.parser.FlowReturnPath;
+import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
+import com.plasticene.boot.flow.core.service.FlowTaskService;
+import java.util.ArrayList;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentMatchers;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.transaction.support.AbstractPlatformTransactionManager;
+import org.springframework.transaction.support.DefaultTransactionStatus;
 
+import com.plasticene.boot.flow.core.event.FlowEventPublisher;
+import com.plasticene.boot.flow.core.event.FlowEventType;
+import com.plasticene.boot.flow.core.event.FlowTaskAction;
+import com.plasticene.boot.flow.core.event.FlowTaskEvent;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
-import com.plasticene.boot.flow.core.event.FlowTaskEvent;
-import com.plasticene.boot.flow.core.event.FlowEventType;
-import com.plasticene.boot.flow.core.event.FlowTaskAction;
-import com.plasticene.boot.flow.core.event.FlowEventPublisher;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
@@ -57,7 +69,8 @@ import static org.mockito.Mockito.*;
  * @since 2026-11-02
  */
 class FlowTaskReturnTest {
-    private final List<FlowTaskEvent> events = new java.util.ArrayList<>();
+    private LoginUser loginUserContext;
+    private final List<FlowTaskEvent> events = new ArrayList<>();
     private final FlowTaskServiceImpl service = new FlowTaskServiceImpl();
     private final DefaultProcessExecutor executor = new DefaultProcessExecutor();
     private final FlowTaskDAO dao = mock(FlowTaskDAO.class);
@@ -77,7 +90,7 @@ class FlowTaskReturnTest {
                 (FlowEventPublisher) event -> events.add((FlowTaskEvent) event));
         when(runtime.getById(anyLong())).thenReturn(instance);
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "return"), FlowTask.class);
-        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "return"), com.plasticene.boot.flow.core.entity.FlowTimeoutNotice.class);
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "return"), FlowTimeoutNotice.class);
         instance.setId(1L);
         instance.setOrgId(9L);
         instance.setUserId(99L);
@@ -93,8 +106,8 @@ class FlowTaskReturnTest {
         FlowTaskTestComponents.setDependency(service, "flowDefinitionService", definitions);
         FlowTaskTestComponents.setDependency(service, "flowTimeoutNoticeDAO", notices);
         FlowTaskTestComponents.setDependency(service, "processExecutor", executor);
-        var provider = mock(com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider.class);
-        when(provider.getAssignees(any())).thenAnswer(call -> call.<FlowNode>getArgument(0).getAssigneeList());
+        var provider = mock(FlowTaskAssigneeProvider.class);
+        when(provider.getAssignees(any(), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())).thenAnswer(call -> call.<FlowNode>getArgument(0).getAssigneeList());
         FlowTaskTestComponents.setDependency(service, "flowTaskAssigneeProvider", provider);
         ReflectionTestUtils.setField(executor, "flowTaskService", service);
         ReflectionTestUtils.setField(executor, "flowRuntimeService", runtime);
@@ -156,9 +169,6 @@ class FlowTaskReturnTest {
         }).when(dao).addCompletedBranches(anyLong(), anyString(), anyInt());
     }
 
-    @AfterEach
-    void cleanup() { LoginUserHolder.remove(); }
-
     @Test
     void shouldExecuteConsecutiveAutomaticResultsBeforeWaitingAndReopenAfterReturn() {
         FlowNode first = approval("first");
@@ -209,7 +219,7 @@ class FlowTaskReturnTest {
         assertEquals(List.of(), pendingKeys());
         assertEquals(2, instance.getStatus());
         verify(runtime).endInstance(instance, empty,
-                com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum.REJECT);
+                FlowInstanceStatusEnum.REJECT);
     }
 
     @Test
@@ -236,7 +246,9 @@ class FlowTaskReturnTest {
         a.setChildNode(b); b.setChildNode(c); start(a);
         approve("a"); approve("b");
         Long oldC = pending("c").getId();
-        assertEquals(List.of("a", "b"), service.listReturnTargets(oldC).stream().map(t -> t.getNodeKey()).toList());
+        clearInvocations(runtime);
+        assertEquals(List.of("a", "b"), service.listReturnTargets(oldC, loginUserContext).stream().map(t -> t.getNodeKey()).toList());
+        verify(runtime, never()).selectInstanceForUpdate(anyLong());
         back("c", "a");
         assertEquals(5, rows.get(oldC).getStatus());
         assertEquals("补充依据", rows.get(oldC).getComment());
@@ -259,7 +271,7 @@ class FlowTaskReturnTest {
         Long taskId = pending("b").getId();
 
         assertEquals("当前审批节点不允许退回", assertThrows(BizException.class,
-                () -> service.listReturnTargets(taskId)).getMessage());
+                () -> service.listReturnTargets(taskId, loginUserContext)).getMessage());
         assertEquals("当前审批节点不允许退回", assertThrows(BizException.class,
                 () -> back("b", "a")).getMessage());
         assertEquals(List.of("b"), pendingKeys());
@@ -276,7 +288,7 @@ class FlowTaskReturnTest {
         start(a);
         approve("a");
 
-        assertEquals(List.of("a"), service.listReturnTargets(pending("b").getId()).stream()
+        assertEquals(List.of("a"), service.listReturnTargets(pending("b").getId(), loginUserContext).stream()
                 .map(target -> target.getNodeKey()).toList());
         back("b", "a");
         assertEquals(List.of("a"), pendingKeys());
@@ -300,7 +312,7 @@ class FlowTaskReturnTest {
         FlowNode b = approval("b"), next = approval("next"), c = approval("c"); b.setChildNode(next);
         start(parallel("g", branch("left", b), branch("right", c)));
         approve("b"); Long sibling = pending("c").getId();
-        assertFalse(service.listReturnTargets(pending("next").getId()).stream().anyMatch(t -> t.getNodeKey().equals("c")));
+        assertFalse(service.listReturnTargets(pending("next").getId(), loginUserContext).stream().anyMatch(t -> t.getNodeKey().equals("c")));
         back("next", "b");
         assertEquals(sibling, pending("c").getId());
         assertEquals(0, active("g").getFirst().getCompletedBranch());
@@ -377,10 +389,10 @@ class FlowTaskReturnTest {
         FlowNode a = approval("a"), b = approval("b"); a.setChildNode(b); start(a); approve("a");
         for (String key : List.of("b", "missing")) assertThrows(BizException.class, () -> back("b", key));
         FlowTaskReturnParam param = request(pending("b").getId(), "a"); param.setComment("   ");
-        assertThrows(BizException.class, () -> service.returnTask(param));
-        param.setComment("x".repeat(501)); assertThrows(BizException.class, () -> service.returnTask(param));
-        login(8L, 12L); assertThrows(BizException.class, () -> service.returnTask(request(pending("b").getId(), "a")));
-        login(10L, 9L); assertThrows(BizException.class, () -> service.listReturnTargets(pending("b").getId()));
+        assertThrows(BizException.class, () -> service.returnTask(param, loginUserContext));
+        param.setComment("x".repeat(501)); assertThrows(BizException.class, () -> service.returnTask(param, loginUserContext));
+        login(8L, 12L); assertThrows(BizException.class, () -> service.returnTask(request(pending("b").getId(), "a"), loginUserContext));
+        login(10L, 9L); assertThrows(BizException.class, () -> service.listReturnTargets(pending("b").getId(), loginUserContext));
         assertEquals(List.of("b"), pendingKeys());
         assertTrue(rows.values().stream().allMatch(FlowReturnPath::isActive));
     }
@@ -390,12 +402,12 @@ class FlowTaskReturnTest {
         FlowNode a = approval("a"), b = approval("b"); a.setChildNode(b); start(a); approve("a");
         FlowTask stale = pending("b"); back("b", "a");
         var action = new FlowTaskParam(); action.setTaskId(stale.getId());
-        assertThrows(BizException.class, () -> service.approveTask(action));
-        assertThrows(BizException.class, () -> service.rejectTask(action));
+        assertThrows(BizException.class, () -> service.approveTask(action, loginUserContext));
+        assertThrows(BizException.class, () -> service.rejectTask(action, loginUserContext));
         var transfer = new FlowTaskTransferParam(); transfer.setTaskId(stale.getId());
-        assertThrows(BizException.class, () -> service.transferTask(transfer));
-        assertThrows(BizException.class, () -> service.withdrawTask(stale.getId()));
-        assertThrows(BizException.class, () -> service.returnTask(request(stale.getId(), "a")));
+        assertThrows(BizException.class, () -> service.transferTask(transfer, loginUserContext));
+        assertThrows(BizException.class, () -> service.withdrawTask(stale.getId(), loginUserContext));
+        assertThrows(BizException.class, () -> service.returnTask(request(stale.getId(), "a"), loginUserContext));
     }
 
     @Test
@@ -405,7 +417,7 @@ class FlowTaskReturnTest {
         when(runtime.selectInstanceForUpdate(1L)).thenAnswer(call -> {
             rows.get(task.getId()).setStatus(1); return instance;
         });
-        assertThrows(BizException.class, () -> service.returnTask(request(task.getId(), "a")));
+        assertThrows(BizException.class, () -> service.returnTask(request(task.getId(), "a"), loginUserContext));
         assertTrue(rows.values().stream().allMatch(FlowReturnPath::isActive));
     }
 
@@ -416,7 +428,7 @@ class FlowTaskReturnTest {
         FlowNode gateway = node("condition", FlowNodeEnum.Type.CONDITION_BRANCH);
         gateway.setConditionNodes(List.of(branch("chosen", a), branch("unchosen", skipped)));
         gateway.setChildNode(d); start(gateway); approve("a");
-        assertEquals(List.of("a"), service.listReturnTargets(pending("d").getId()).stream().map(t -> t.getNodeKey()).toList());
+        assertEquals(List.of("a"), service.listReturnTargets(pending("d").getId(), loginUserContext).stream().map(t -> t.getNodeKey()).toList());
         assertThrows(BizException.class, () -> back("d", "skipped"));
         assertThrows(BizException.class, () -> back("d", "automatic"));
     }
@@ -425,7 +437,7 @@ class FlowTaskReturnTest {
     void skippedParallelBranchMustNotBeReevaluatedDuringPartialReturn() {
         FlowNode b = approval("b"), d = approval("d");
         FlowNode skipped = branch("skipped", approval("never"));
-        var condition = new com.plasticene.boot.flow.core.model.dto.ProcessNodeCondition();
+        var condition = new ProcessNodeCondition();
         condition.setIsDefault(true); skipped.setCondition(condition);
         FlowNode gateway = parallel("g", branch("left", b), skipped); gateway.setChildNode(d);
         start(gateway); approve("b"); back("d", "b");
@@ -451,20 +463,20 @@ class FlowTaskReturnTest {
         start(gateway); approve("b"); approve("c");
         Long sourceId = pending("d").getId();
         Map<Long, FlowTask> snapshot = new LinkedHashMap<>(); rows.forEach((id, task) -> snapshot.put(id, copy(task)));
-        var manager = new org.springframework.transaction.support.AbstractPlatformTransactionManager() {
+        var manager = new AbstractPlatformTransactionManager() {
             protected Object doGetTransaction() { return new Object(); }
-            protected void doBegin(Object transaction, org.springframework.transaction.TransactionDefinition def) { }
-            protected void doCommit(org.springframework.transaction.support.DefaultTransactionStatus status) { }
-            protected void doRollback(org.springframework.transaction.support.DefaultTransactionStatus status) {
+            protected void doBegin(Object transaction, TransactionDefinition def) { }
+            protected void doCommit(DefaultTransactionStatus status) { }
+            protected void doRollback(DefaultTransactionStatus status) {
                 rows.clear(); snapshot.forEach((id, task) -> rows.put(id, copy(task)));
             }
         };
-        var proxy = new org.springframework.aop.framework.ProxyFactory(service);
-        proxy.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(manager,
-                new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
-        var transactional = (com.plasticene.boot.flow.core.service.FlowTaskService) proxy.getProxy();
+        var proxy = new ProxyFactory(service);
+        proxy.addAdvice(new TransactionInterceptor(manager,
+                new AnnotationTransactionAttributeSource()));
+        var transactional = (FlowTaskService) proxy.getProxy();
         when(dao.insert(any(Collection.class))).thenThrow(new IllegalStateException("creation failure"));
-        assertThrows(IllegalStateException.class, () -> transactional.returnTask(request(sourceId, "b")));
+        assertThrows(IllegalStateException.class, () -> transactional.returnTask(request(sourceId, "b"), loginUserContext));
         assertEquals(snapshot, rows);
         assertEquals(List.of("d"), pendingKeys());
         assertEquals(2, active("g").getFirst().getCompletedBranch());
@@ -475,10 +487,10 @@ class FlowTaskReturnTest {
     }
     private void approve(String key) {
         FlowTaskParam param = new FlowTaskParam();
-        param.setTaskId(active(key).stream().filter(t -> t.getStatus() == 0 && Objects.equals(t.getAssignee(), LoginUserHolder.get().getId())).findFirst().orElseThrow().getId());
-        service.approveTask(param);
+        param.setTaskId(active(key).stream().filter(t -> t.getStatus() == 0 && Objects.equals(t.getAssignee(), loginUserContext.getId())).findFirst().orElseThrow().getId());
+        service.approveTask(param, loginUserContext);
     }
-    private void back(String from, String to) { service.returnTask(request(pending(from).getId(), to)); }
+    private void back(String from, String to) { service.returnTask(request(pending(from).getId(), to), loginUserContext); }
     private FlowTaskReturnParam request(Long taskId, String key) {
         var param = new FlowTaskReturnParam(); param.setTaskId(taskId); param.setTargetNodeKey(key); param.setComment("  补充依据  "); return param;
     }
@@ -495,7 +507,7 @@ class FlowTaskReturnTest {
     private FlowNode branch(String key, FlowNode child) { FlowNode node = node(key, FlowNodeEnum.Type.CONDITION_NODE); node.setChildNode(child); return node; }
     private FlowNode parallel(String key, FlowNode... branches) { FlowNode node = node(key, FlowNodeEnum.Type.PARALLEL_BRANCH); node.setConditionNodes(List.of(branches)); return node; }
     private FlowNode node(String key, FlowNodeEnum.Type type) { FlowNode node = new FlowNode(); node.setKey(key); node.setName(key); node.setType(type.getCode()); return node; }
-    private void login(Long id, Long org) { LoginUser user = new LoginUser(); user.setId(id); user.setOrgId(org); LoginUserHolder.set(user); }
+    private void login(Long id, Long org) { LoginUser user = new LoginUser(); user.setId(id); user.setOrgId(org); loginUserContext = user; }
     private FlowTask copy(FlowTask task) { return task == null ? null : PtcBeanUtils.copy(task, FlowTask.class); }
     private int insert(FlowTask task) {
         task.setId(sequence.incrementAndGet()); if (task.getIsDelete() == null) task.setIsDelete(0); rows.put(task.getId(), copy(task)); return 1;
@@ -523,7 +535,7 @@ class FlowTaskReturnTest {
     private Object value(Wrapper<FlowTask> wrapper, String placeholder) {
         if (placeholder.equals("null")) return null;
         String name = placeholder.substring(placeholder.lastIndexOf('.') + 1, placeholder.length() - 1);
-        return ((com.baomidou.mybatisplus.core.conditions.AbstractWrapper<?, ?, ?>) wrapper).getParamNameValuePairs().get(name);
+        return ((AbstractWrapper<?, ?, ?>) wrapper).getParamNameValuePairs().get(name);
     }
     private String property(String column) {
         StringBuilder result = new StringBuilder(); boolean upper = false;

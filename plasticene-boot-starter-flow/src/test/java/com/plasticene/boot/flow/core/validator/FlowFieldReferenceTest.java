@@ -1,10 +1,11 @@
 package com.plasticene.boot.flow.core.validator;
 
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.model.dto.*;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
-import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -54,7 +55,7 @@ class FlowFieldReferenceTest {
     private FlowNodeValidator validator() {
         var validator = new FlowNodeValidator();
         NodeValidator counter = new NodeValidator() {
-            public boolean support(com.plasticene.boot.flow.core.enums.FlowNodeEnum.Type type) { return true; }
+            public boolean support(FlowNodeEnum.Type type) { return true; }
             public void validate(FlowNode node, ValidationContext context) {
                 if (Integer.valueOf(1).equals(node.getType())) {
                     context.setApproveNodeCount(context.getApproveNodeCount() + 1);

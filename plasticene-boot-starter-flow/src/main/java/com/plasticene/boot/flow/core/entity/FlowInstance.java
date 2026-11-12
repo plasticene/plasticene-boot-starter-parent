@@ -6,11 +6,10 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-
 import java.time.LocalDateTime;
 import java.util.Map;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * @author ZFJ
@@ -55,7 +54,7 @@ public class FlowInstance extends BaseDO {
      */
     private String currentNodeName;
     /**
-     * 业务id
+     * 业务申请记录ID，区分大小写；Web独立发起时为空
      */
     private String businessId;
 
@@ -69,4 +68,8 @@ public class FlowInstance extends BaseDO {
      * 流程分类
      */
     private String category;
+    /**
+     * 实例内已分配的最大事件序号。
+     */
+    private Long eventSequence;
 }

@@ -2,18 +2,18 @@ package com.plasticene.boot.flow.core.service.impl;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowCategoryDAO;
 import com.plasticene.boot.flow.core.entity.FlowCategory;
 import com.plasticene.boot.flow.core.model.param.FlowCategoryParam;
 import com.plasticene.boot.flow.core.model.query.FlowCategoryQuery;
+import com.plasticene.boot.flow.core.validation.Insert;
+import com.plasticene.boot.flow.core.validation.Update;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
-import com.plasticene.boot.web.core.validator.Insert;
-import com.plasticene.boot.web.core.validator.Update;
 import jakarta.validation.Validation;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.*;
@@ -37,6 +37,7 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class FlowCategoryServiceImplTest {
+    private LoginUser loginUserContext;
     @Mock
     private FlowCategoryDAO flowCategoryDAO;
     @InjectMocks
@@ -46,17 +47,12 @@ class FlowCategoryServiceImplTest {
     void setUp() {
         LoginUser user = new LoginUser();
         user.setOrgId(9L);
-        LoginUserHolder.set(user);
+        loginUserContext = user;
         lenient().when(flowCategoryDAO.findModelReference(anyLong(), anyString())).thenReturn(null);
         lenient().when(flowCategoryDAO.findFormReference(anyLong(), anyString())).thenReturn(null);
         lenient().when(flowCategoryDAO.findDefinitionReference(anyLong(), anyString())).thenReturn(null);
         lenient().when(flowCategoryDAO.findInstanceReference(anyLong(), anyString())).thenReturn(null);
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "category"), FlowCategory.class);
-    }
-
-    @AfterEach
-    void tearDown() {
-        LoginUserHolder.remove();
     }
 
     @Test
@@ -91,12 +87,12 @@ class FlowCategoryServiceImplTest {
     void shouldRejectDuplicateAndTranslateConcurrentConflict() {
         when(flowCategoryDAO.countByCode(9L, "Office")).thenReturn(1L);
         assertEquals("分类标识已存在", assertThrows(BizException.class,
-                () -> service.createCategory(param("Office"))).getMessage());
+                () -> service.createCategory(param("Office"), loginUserContext)).getMessage());
         verify(flowCategoryDAO, never()).insert(any(FlowCategory.class));
         when(flowCategoryDAO.countByCode(9L, "Office")).thenReturn(0L);
         when(flowCategoryDAO.insert(any(FlowCategory.class))).thenThrow(new DuplicateKeyException("duplicate"));
         assertEquals("分类标识已存在", assertThrows(BizException.class,
-                () -> service.createCategory(param("Office"))).getMessage());
+                () -> service.createCategory(param("Office"), loginUserContext)).getMessage());
     }
 
     @Test
@@ -114,7 +110,7 @@ class FlowCategoryServiceImplTest {
             value.setId(21L);
             return 1;
         });
-        assertEquals(21L, service.createCategory(param));
+        assertEquals(21L, service.createCategory(param, loginUserContext));
         verify(flowCategoryDAO).countByCode(9L, "Office");
     }
 
@@ -125,7 +121,7 @@ class FlowCategoryServiceImplTest {
         var param = param(code);
         param.setId(21L);
         assertEquals("分类标识创建后不可修改", assertThrows(BizException.class,
-                () -> service.updateCategory(param)).getMessage());
+                () -> service.updateCategory(param, loginUserContext)).getMessage());
         verify(flowCategoryDAO, never()).update(any(FlowCategory.class), any(Wrapper.class));
     }
 
@@ -136,7 +132,7 @@ class FlowCategoryServiceImplTest {
         param.setId(21L);
         param.setIcon("flow:form");
         when(flowCategoryDAO.update(any(FlowCategory.class), any(Wrapper.class))).thenAnswer(call -> {
-            var wrapper = (com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<FlowCategory>) call.getArgument(1);
+            var wrapper = (LambdaUpdateWrapper<FlowCategory>) call.getArgument(1);
             assertTrue(wrapper.getSqlSet().contains("description="));
             assertTrue(wrapper.getParamNameValuePairs().containsValue(null));
             wrapper.getSqlSegment();
@@ -144,9 +140,9 @@ class FlowCategoryServiceImplTest {
             assertFalse(wrapper.getSqlSet().contains("code="));
             return 1;
         });
-        service.updateCategory(param);
+        service.updateCategory(param, loginUserContext);
         param.setCode("Office");
-        service.updateCategory(param);
+        service.updateCategory(param, loginUserContext);
         verify(flowCategoryDAO, times(2)).update(any(FlowCategory.class), any(Wrapper.class));
     }
 
@@ -154,9 +150,9 @@ class FlowCategoryServiceImplTest {
     void shouldRejectUnknownOrOtherCompanyCategoryForUpdateDeleteAndSort() {
         var param = param("Office");
         param.setId(21L);
-        assertThrows(BizException.class, () -> service.updateCategory(param));
-        assertThrows(BizException.class, () -> service.delete(List.of(21L)));
-        assertThrows(BizException.class, () -> service.sortCategory(List.of(21L)));
+        assertThrows(BizException.class, () -> service.updateCategory(param, loginUserContext));
+        assertThrows(BizException.class, () -> service.delete(List.of(21L), loginUserContext));
+        assertThrows(BizException.class, () -> service.sortCategory(List.of(21L), loginUserContext));
         verify(flowCategoryDAO, never()).deleteByIds(anyCollection());
     }
 
@@ -171,7 +167,7 @@ class FlowCategoryServiceImplTest {
             case "definition" -> { when(flowCategoryDAO.findDefinitionReference(9L, "Office")).thenReturn(1L); expected = "流程发布版本"; }
             default -> { when(flowCategoryDAO.findInstanceReference(9L, "Office")).thenReturn(1L); expected = "流程实例"; }
         }
-        assertTrue(assertThrows(BizException.class, () -> service.delete(List.of(21L))).getMessage().contains(expected));
+        assertTrue(assertThrows(BizException.class, () -> service.delete(List.of(21L), loginUserContext)).getMessage().contains(expected));
         verify(flowCategoryDAO, never()).deleteByIds(anyCollection());
     }
 
@@ -181,7 +177,7 @@ class FlowCategoryServiceImplTest {
         system.setIsSys(1);
         when(flowCategoryDAO.selectForUpdate(9L, 21L)).thenReturn(category(21L));
         when(flowCategoryDAO.selectForUpdate(9L, 22L)).thenReturn(system);
-        assertThrows(BizException.class, () -> service.delete(List.of(22L, 21L)));
+        assertThrows(BizException.class, () -> service.delete(List.of(22L, 21L), loginUserContext));
         verify(flowCategoryDAO, never()).deleteByIds(anyCollection());
     }
 
@@ -189,7 +185,7 @@ class FlowCategoryServiceImplTest {
     void shouldLockBatchInStableOrderAndDeleteOnlyAfterAllChecks() {
         when(flowCategoryDAO.selectForUpdate(9L, 21L)).thenReturn(category(21L));
         when(flowCategoryDAO.selectForUpdate(9L, 22L)).thenReturn(category(22L));
-        service.delete(List.of(22L, 21L, 21L));
+        service.delete(List.of(22L, 21L, 21L), loginUserContext);
         var order = inOrder(flowCategoryDAO);
         order.verify(flowCategoryDAO).selectForUpdate(9L, 21L);
         order.verify(flowCategoryDAO).selectForUpdate(9L, 22L);
@@ -212,7 +208,7 @@ class FlowCategoryServiceImplTest {
             assertTrue(wrapper.getParamNameValuePairs().containsValue(9L));
             return new PageResult<>(List.of(category(21L)), 1L, 1L);
         });
-        assertEquals("Office", service.page(query).getList().getFirst().getCode());
+        assertEquals("Office", service.page(query, loginUserContext).getList().getFirst().getCode());
     }
 
     @Test
@@ -222,10 +218,10 @@ class FlowCategoryServiceImplTest {
         when(flowCategoryDAO.selectForUpdate(9L, 21L)).thenReturn(existing);
         var param = param("old");
         param.setId(21L);
-        service.updateCategory(param);
+        service.updateCategory(param, loginUserContext);
         verify(flowCategoryDAO).update(any(FlowCategory.class), any(Wrapper.class));
         param.setCode("new");
-        assertThrows(BizException.class, () -> service.updateCategory(param));
+        assertThrows(BizException.class, () -> service.updateCategory(param, loginUserContext));
     }
 
     private FlowCategory category(Long id) {

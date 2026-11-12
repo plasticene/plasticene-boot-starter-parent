@@ -6,27 +6,35 @@ import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowDefinitionDAO;
-import com.plasticene.boot.flow.core.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
+import com.plasticene.boot.flow.core.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
-import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
+import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
 import com.plasticene.boot.flow.core.model.vo.FlowDefinitionVO;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.service.FlowCategoryService;
+import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
+import javax.sql.DataSource;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,6 +51,7 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class FlowModelVersionServiceTest {
+    private LoginUser loginUserContext;
     @Mock
     private FlowDefinitionDAO definitions;
     @Mock
@@ -61,21 +70,17 @@ class FlowModelVersionServiceTest {
         LoginUser user = new LoginUser();
         user.setId(8L);
         user.setOrgId(100L);
-        LoginUserHolder.set(user);
+        loginUserContext = user;
         for (Class<?> entity : List.of(FlowDefinition.class, FlowModel.class, FlowInstance.class)) {
             TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "version"), entity);
         }
-    }
-
-    @AfterEach
-    void cleanup() {
-        LoginUserHolder.remove();
     }
 
     @Test
     void shouldListDescendingAndMarkOnlyActiveDefinitionWithoutChangingModel() {
         FlowModel model = model(100L);
         when(models.selectById(11L)).thenReturn(model);
+        Mockito.lenient().when(models.selectFlowModelForUpdate(11L)).thenReturn(model);
         FlowDefinition latest = definition(31L, 3);
         FlowDefinition old = definition(21L, 2);
         when(definitions.selectList(any(Wrapper.class))).thenAnswer(invocation -> {
@@ -89,9 +94,9 @@ class FlowModelVersionServiceTest {
             assertFalse(query.getSqlSelect().contains("model_node"));
             return List.of(latest, old);
         });
-        when(organization.getUserMap()).thenReturn(Map.of(8L, "张三"));
+        when(organization.getUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(8L, "张三"));
 
-        List<FlowDefinitionVO> versions = service.listModelVersions(11L);
+        List<FlowDefinitionVO> versions = service.listModelVersions(11L, loginUserContext);
 
         assertEquals(List.of(3, 2), versions.stream().map(v -> v.getVersion()).toList());
         assertTrue(versions.get(0).getActive());
@@ -109,6 +114,7 @@ class FlowModelVersionServiceTest {
         FlowModel model = model(100L);
         model.setStatus(-1);
         when(models.selectById(11L)).thenReturn(model);
+        Mockito.lenient().when(models.selectFlowModelForUpdate(11L)).thenReturn(model);
         FlowDefinition old = definition(21L, 2);
         old.setIcon("flow:expense");
         old.setStartUserType(3);
@@ -126,9 +132,9 @@ class FlowModelVersionServiceTest {
             assertTrue(query.getParamNameValuePairs().containsValue(100L));
             return old;
         });
-        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("finance", "财务"));
+        when(flowCategoryService.getCategoryMap(loginUserContext)).thenReturn(Map.of("finance", "财务"));
 
-        FlowDefinitionVO snapshot = service.getModelVersion(11L, 21L);
+        FlowDefinitionVO snapshot = service.getModelVersion(11L, 21L, loginUserContext);
 
         assertEquals("flow:expense", snapshot.getIcon());
         assertEquals(21L, snapshot.getDefinitionId());
@@ -147,10 +153,11 @@ class FlowModelVersionServiceTest {
     @Test
     void shouldRejectOtherOrganizationOrMissingModelBeforeReadingDefinitions() {
         when(models.selectById(11L)).thenReturn(model(200L));
-        assertThrows(BizException.class, () -> service.listModelVersions(11L));
-        assertThrows(BizException.class, () -> service.getModelVersion(11L, 21L));
+        assertThrows(BizException.class, () -> service.listModelVersions(11L, loginUserContext));
+        assertThrows(BizException.class, () -> service.getModelVersion(11L, 21L, loginUserContext));
         when(models.selectById(11L)).thenReturn(null);
-        assertThrows(BizException.class, () -> service.listModelVersions(11L));
+        Mockito.lenient().when(models.selectFlowModelForUpdate(11L)).thenReturn(null);
+        assertThrows(BizException.class, () -> service.listModelVersions(11L, loginUserContext));
         verifyNoInteractions(definitions);
     }
 
@@ -158,7 +165,7 @@ class FlowModelVersionServiceTest {
     void shouldRejectVersionOutsideModelOrOrganization() {
         when(models.selectById(11L)).thenReturn(model(100L));
         when(definitions.selectOne(any(Wrapper.class))).thenReturn(null);
-        assertThrows(BizException.class, () -> service.getModelVersion(11L, 99L));
+        assertThrows(BizException.class, () -> service.getModelVersion(11L, 99L, loginUserContext));
         verifyNoInteractions(flowCategoryService);
     }
 
@@ -168,7 +175,7 @@ class FlowModelVersionServiceTest {
         FlowModelParam omitted = mapper.readValue("{\"id\":11,\"modelNode\":{\"key\":\"start\",\"name\":\"发起人\",\"type\":0}}", FlowModelParam.class);
         FlowModelParam cleared = mapper.readValue("{\"id\":11,\"formConfig\":{}}", FlowModelParam.class);
         FlowModelServiceImpl modelService = new FlowModelServiceImpl();
-        org.springframework.test.util.ReflectionTestUtils.setField(modelService, "flowModelDAO", models);
+        ReflectionTestUtils.setField(modelService, "flowModelDAO", models);
         when(models.updateById(any(FlowModel.class))).thenAnswer(invocation -> {
             FlowModel update = invocation.getArgument(0);
             if (update.getModelNode() != null) {
@@ -180,9 +187,9 @@ class FlowModelVersionServiceTest {
             return 1;
         });
 
-        when(models.selectById(11L)).thenReturn(model(100L));
-        modelService.update(omitted);
-        modelService.update(cleared);
+        when(models.selectFlowModelForUpdate(11L)).thenReturn(model(100L));
+        modelService.update(omitted, loginUserContext);
+        modelService.update(cleared, loginUserContext);
         verify(models, times(2)).updateById(any(FlowModel.class));
         verify(models, never()).update(any(FlowModel.class), any(Wrapper.class));
     }
@@ -193,12 +200,44 @@ class FlowModelVersionServiceTest {
         when(models.selectOne(any(Wrapper.class))).thenReturn(model);
         FlowDefinition deleted = definition(31L, 3);
         deleted.setIsDelete(1);
-        org.springframework.test.util.ReflectionTestUtils.setField(service, "baseMapper", definitions);
+        ReflectionTestUtils.setField(service, "baseMapper", definitions);
         when(definitions.selectById(31L)).thenReturn(deleted);
 
-        assertThrows(BizException.class, () -> service.getStartableDefinition(31L));
+        assertThrows(BizException.class, () -> service.getStartableDefinition(31L, loginUserContext));
         assertSame(deleted, service.getById(31L));
         assertFalse(TableInfoHelper.getTableInfo(FlowDefinition.class).isWithLogicDelete());
+    }
+
+    @Test
+    void shouldUseTheValidatedSnapshotWithoutLockingOrRecheckingALaterModelChange() {
+        FlowModel model = model(100L);
+        model.setStatus(1);
+        FlowDefinition published = definition(31L, 3);
+        published.setStartUserType(0);
+        published.setIsDelete(0);
+        when(models.selectOne(any(Wrapper.class))).thenAnswer(invocation -> {
+            PtcLambdaQueryWrapper<FlowModel> query = invocation.getArgument(0);
+            assertFalse(query.getSqlSegment().contains("FOR SHARE"));
+            assertFalse(TransactionSynchronizationManager.isActualTransactionActive());
+            return model;
+        });
+        when(definitions.selectById(31L)).thenAnswer(invocation -> {
+            // 模拟模型在有效状态读取之后被停用、切换版本；本次仍使用刚校验的发布快照。
+            model.setStatus(-1);
+            model.setActiveDefinitionId(41L);
+            return published;
+        });
+        ReflectionTestUtils.setField(service, "baseMapper", definitions);
+        var datasource = mock(DataSource.class);
+        var proxy = new ProxyFactory(service);
+        proxy.addAdvice(new TransactionInterceptor(
+                new DataSourceTransactionManager(datasource),
+                new AnnotationTransactionAttributeSource()));
+        var queries = (FlowDefinitionService) proxy.getProxy();
+
+        assertSame(published, queries.getStartableDefinition(31L, loginUserContext));
+        verify(models, times(1)).selectOne(any(Wrapper.class));
+        verifyNoInteractions(datasource);
     }
 
     @Test
@@ -211,12 +250,12 @@ class FlowModelVersionServiceTest {
         published.setStartUserType(0);
         published.setIcon("flow:expense");
         when(models.selectList(any(Wrapper.class))).thenReturn(List.of(model));
-        when(flowCategoryService.getCategoryMap()).thenReturn(Map.of("finance", "财务"));
+        when(flowCategoryService.getCategoryMap(loginUserContext)).thenReturn(Map.of("finance", "财务"));
         when(instances.selectList(any(Wrapper.class))).thenReturn(List.of());
         FlowDefinitionServiceImpl catalogService = spy(service);
         doReturn(List.of(published)).when(catalogService).listByIds(List.of(31L));
 
-        var catalog = catalogService.getStartableCatalog();
+        var catalog = catalogService.getStartableCatalog(loginUserContext);
 
         assertEquals(1, catalog.getModels().size());
         assertEquals("flow:expense", catalog.getModels().get(0).getIcon());

@@ -7,6 +7,7 @@ import com.plasticene.boot.flow.core.model.query.FlowDashboardQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowDashboardVO;
 import com.plasticene.boot.flow.core.service.FlowDashboardService;
 import jakarta.annotation.Resource;
+import java.time.DayOfWeek;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -110,7 +111,7 @@ public class FlowDashboardServiceImpl implements FlowDashboardService {
     private LocalDate firstBucket(LocalDate date, FlowDashboardGranularityEnum granularity) {
         return switch (granularity) {
             case DAY -> date;
-            case WEEK -> date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+            case WEEK -> date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             case MONTH -> date.withDayOfMonth(1);
         };
     }

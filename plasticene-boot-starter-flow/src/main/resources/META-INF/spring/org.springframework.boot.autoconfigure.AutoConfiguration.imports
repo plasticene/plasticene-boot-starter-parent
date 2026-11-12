@@ -1,2 +1,4 @@
 com.plasticene.boot.flow.autoconfigure.FlowAutoConfiguration
 com.plasticene.boot.flow.autoconfigure.FlowTimeoutConfiguration
+com.plasticene.boot.flow.autoconfigure.FlowHttpConfiguration
+com.plasticene.boot.flow.autoconfigure.FlowEventConfiguration

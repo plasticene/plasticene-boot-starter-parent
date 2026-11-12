@@ -3,7 +3,6 @@ package com.plasticene.boot.flow.core.service.task;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Objects;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -49,23 +47,22 @@ public class FlowTaskExecution {
 
     /** 初读已经完成，供需要在锁前校验审批意见的入口使用。 */
     public void execute(FlowTask initialTask, LoginUser user, BiConsumer<FlowTask, FlowInstance> operation) {
-        withTask(initialTask, user, (task, instance) -> {
-            operation.accept(task, instance);
-            return null;
-        });
+        FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(initialTask.getInstanceId());
+        FlowTask task = getExecutableTask(initialTask.getId(), user);
+        validateRunningInstance(instance, user, task);
+        operation.accept(task, instance);
     }
 
-    public <T> T withTask(Long taskId, LoginUser user, BiFunction<FlowTask, FlowInstance, T> operation) {
-        return withTask(getExecutableTask(taskId, user), user, operation);
-    }
-
-
-    public LoginUser getLoginUser() {
-        LoginUser loginUser = LoginUserHolder.get();
-        if (loginUser == null || loginUser.getId() == null || loginUser.getOrgId() == null) {
-            throw new BizException("登录用户信息不存在");
-        }
-        return loginUser;
+    /**
+     * 按读取时状态校验任务所属实例，供查询操作使用，不申请行锁。
+     * @param task 已校验办理权限的任务
+     * @param user 可信操作者及其组织上下文
+     * @return 当前仍在运行且属于操作者组织的实例
+     */
+    public FlowInstance getRunningInstance(FlowTask task, LoginUser user) {
+        FlowInstance instance = flowRuntimeService.getById(task.getInstanceId());
+        validateRunningInstance(instance, user, task);
+        return instance;
     }
 
     public void requireNodeOperation(FlowNode root, FlowTask task,
@@ -114,12 +111,4 @@ public class FlowTaskExecution {
             throw new BizException("流程实例已结束，不能继续审批");
         }
     }
-
-    private <T> T withTask(FlowTask initialTask, LoginUser user, BiFunction<FlowTask, FlowInstance, T> operation) {
-        FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(initialTask.getInstanceId());
-        FlowTask task = getExecutableTask(initialTask.getId(), user);
-        validateRunningInstance(instance, user, task);
-        return operation.apply(task, instance);
-    }
-
 }

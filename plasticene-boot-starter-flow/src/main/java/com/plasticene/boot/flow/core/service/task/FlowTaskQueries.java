@@ -22,14 +22,13 @@ import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import com.plasticene.boot.mybatis.core.utils.MybatisUtils;
 import jakarta.annotation.Resource;
-import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.springframework.stereotype.Service;
 
 /**
  * 查询流程任务及组装任务展示数据。
@@ -50,9 +49,6 @@ public class FlowTaskQueries {
     @Resource
     private FlowTaskAddSignDAO flowTaskAddSignDAO;
 
-    @Resource
-    private FlowTaskExecution flowTaskExecution;
-
     private static final List<Integer> DONE_STATUSES = List.of(
             FlowTaskStatusEnum.APPROVE.getCode(),
             FlowTaskStatusEnum.REJECT.getCode(),
@@ -64,13 +60,25 @@ public class FlowTaskQueries {
             .map(FlowInstanceStatusEnum::getCode)
             .toList();
 
-    public PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query) {
+    /**
+     * 分页查询操作者所属组织中分配给本人的待办任务。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
+     */
+    public PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query, LoginUser loginUser) {
         query.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
         query.setStatuses(List.of(FlowTaskStatusEnum.RUNNING.getCode(), FlowTaskStatusEnum.WAITING_ADD_SIGN.getCode()));
-        return pageMyTask(query);
+        return pageMyTask(query, loginUser);
     }
 
-    public PageResult<FlowTaskPageVO> pageMyDone(FlowTaskQuery query) {
+    /**
+     * 分页查询操作者所属组织中本人已处理的任务。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
+     */
+    public PageResult<FlowTaskPageVO> pageMyDone(FlowTaskQuery query, LoginUser loginUser) {
         query.setNodeType(FlowNodeEnum.Type.APPROVE.getCode());
         List<Integer> statuses = query.getStatuses();
         if (CollUtil.isEmpty(statuses)) {
@@ -82,13 +90,19 @@ public class FlowTaskQueries {
             }
             query.setStatuses(statuses.stream().distinct().toList());
         }
-        return pageMyTask(query);
+        return pageMyTask(query, loginUser);
     }
 
-    public PageResult<FlowTaskPageVO> pageMyCopy(FlowTaskQuery query) {
+    /**
+     * 分页查询操作者所属组织中抄送给本人的任务。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
+     */
+    public PageResult<FlowTaskPageVO> pageMyCopy(FlowTaskQuery query, LoginUser loginUser) {
         query.setNodeType(FlowNodeEnum.Type.COPY.getCode());
         query.setStatuses(List.of(FlowTaskStatusEnum.APPROVE.getCode()));
-        return pageMyTask(query);
+        return pageMyTask(query, loginUser);
     }
 
     public List<FlowTaskAddSign> listAddSigns(Long instanceId) {
@@ -127,20 +141,25 @@ public class FlowTaskQueries {
         return flowTaskDAO.selectList(queryWrapper);
     }
 
-    private PageResult<FlowTaskPageVO> pageMyTask(FlowTaskQuery query) {
+    /**
+     * 按操作者组织和用户限定任务查询，并补全分类、人员及耗时信息。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
+     */
+    private PageResult<FlowTaskPageVO> pageMyTask(FlowTaskQuery query, LoginUser loginUser) {
         query.setKeyword(StrUtil.trim(query.getKeyword()));
         query.setCategory(StrUtil.trim(query.getCategory()));
         normalizeInstanceStatuses(query);
         validateTimeRange(query.getTaskStartTimeBegin(), query.getTaskStartTimeEnd(), "任务接收时间");
         validateTimeRange(query.getTaskEndTimeBegin(), query.getTaskEndTimeEnd(), "任务完成时间");
 
-        LoginUser loginUser = flowTaskExecution.getLoginUser();
         query.setAssignee(loginUser.getId());
         query.setOrgId(loginUser.getOrgId());
         IPage<FlowTaskPageVO> page = flowTaskDAO.pageTask(MybatisUtils.buildPage(query), query);
 
-        Map<String, String> categoryMap = flowCategoryService.getCategoryMap();
-        Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap(loginUser);
+        Map<Long, String> userMap = flowOrganizationProvider.getUserMap(loginUser.getOrgId());
         LocalDateTime now = LocalDateTime.now();
         page.getRecords().forEach(vo -> enrichTaskPageVO(vo, categoryMap, userMap, now));
         return new PageResult<>(page.getRecords(), page.getTotal(), page.getPages());

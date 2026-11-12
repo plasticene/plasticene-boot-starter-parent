@@ -51,6 +51,7 @@
 
         <!-- knife4j 依赖版本 -->
         <knife4j.version>4.5.0</knife4j.version>
+        <swagger-annotations.version>2.2.30</swagger-annotations.version>
         <!-- ttl 解决线程池 多线程之间父子线程上下文传递  -->
         <transmittable-thread-local.version>2.14.5</transmittable-thread-local.version>
         <!-- redisson 基于 Netty 框架的高性能异步且无锁的 Redis 和 Valkey Java 客户端。   -->
@@ -106,6 +107,11 @@
     <!-- 统一依赖版本管理 -->
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>${swagger-annotations.version}</version>
+            </dependency>
             <!-- spring boot -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>

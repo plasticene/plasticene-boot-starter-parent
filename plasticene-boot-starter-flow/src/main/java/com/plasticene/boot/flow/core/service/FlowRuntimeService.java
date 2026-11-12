@@ -2,18 +2,17 @@ package com.plasticene.boot.flow.core.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.common.pojo.PageResult;
-import com.plasticene.boot.flow.core.model.dto.FlowNode;
+import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
+import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author ZFJ
@@ -22,49 +21,40 @@ import java.util.List;
 public interface FlowRuntimeService extends IService<FlowInstance> {
 
     /**
-     * 根据流程模型发布id发起一次流程实例
-     * @param definitionId 流程模型发布id
-     * @return 实例id
+     * 供 Web 动态表单发起独立流程，每次调用创建新实例，不关联外部业务申请记录。
+     * @param definitionId 流程发布定义 ID
+     * @param varMap 审批变量及表单数据
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 新建的实例 ID
      */
-    @Transactional(rollbackFor = Exception.class)
-    default long startFlowInstanceById(Long definitionId) {
-        return startFlowInstanceById(definitionId, null, null);
-    }
+    Long startInstance(Long definitionId, Map<String, Object> varMap, LoginUser loginUser);
 
     /**
-     * 根据流程模型发布id发起一次流程实例
-     * @param definitionId 流程模型发布id
-     * @param businessId 申请业务id
-     * @return 实例id
+     * 按发布定义在当前事务内发起流程；同一组织和流程分类下的业务申请记录不能重复发起。
+     * @param definitionId 流程发布定义 ID
+     * @param businessId 业务申请记录 ID，按传入值直接插入；Web 独立发起时为 null
+     * @param varMap 审批变量及表单数据
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 新建的实例 ID
      */
-    @Transactional(rollbackFor = Exception.class)
-    default long startFlowInstanceById(Long definitionId, String businessId) {
-        return startFlowInstanceById(definitionId, businessId, null);
-    }
+    Long startInstance(Long definitionId, String businessId, Map<String, Object> varMap, LoginUser loginUser);
 
     /**
-     * 根据流程模型发布id发起一次流程实例
-     * @param definitionId 流程模型发布id
-     * @param businessId  申请业务id
-     * @param varMap 变量map
-     * @return 实例id
+     * 校验操作者的发起权限后，根据变量计算当前生效定义的预计流转路径。
+     * @param definitionId 流程发布定义 ID
+     * @param varMap 审批变量及表单数据
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 按执行顺序排列的预计路径节点
      */
-    long startFlowInstanceById(Long definitionId, String businessId, Map<String, Object> varMap);
+    List<FlowRouteNodeVO> calculateRoute(Long definitionId, Map<String, Object> varMap, LoginUser loginUser);
 
     /**
-     * 计算当前用户可发起流程的预计路径
-     * @param definitionId 流程发布id
-     * @param varMap 表单变量
-     * @return 预计路径节点
+     * 在指定组织查询条件下分页返回流程数据，并使用操作者组织解析关联信息。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
      */
-    List<FlowRouteNodeVO> calculateRoute(Long definitionId, Map<String, Object> varMap);
-
-    /**
-     * 分页查询流程实例
-     * @param query 查询参数
-     * @return 流程实例分页结果
-     */
-    PageResult<FlowInstanceVO> page(FlowInstanceQuery query);
+    PageResult<FlowInstanceVO> page(FlowInstanceQuery query, LoginUser loginUser);
 
     /**
      * 统计流程实例状态数量
@@ -74,24 +64,20 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
     FlowInstanceStatisticsVO statistics(FlowInstanceQuery query);
 
     /**
-     * 获取流程实例详情
-     * @param instanceId 实例id
-     * @return 流程实例详情
+     * 校验实例组织归属，按操作者和可选任务计算表单读写权限并返回实例详情。
+     * @param instanceId 流程实例 ID
+     * @param taskId 任务 ID；为空时按操作者的实例可读范围返回
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 按操作者权限过滤后的实例详情
      */
-    FlowInstanceDetailVO getInstanceDetail(Long instanceId);
+    FlowInstanceDetailVO getInstanceDetail(Long instanceId, Long taskId, LoginUser loginUser);
 
     /**
-     * 按具体任务计算详情字段权限；不传任务时仅返回本人可读范围。
-     * @param instanceId 实例id
-     * @param taskId 任务id
+     * 校验操作者为申请人及流程允许撤销后，取消运行中的实例并发布结束事件。
+     * @param instanceId 流程实例 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    FlowInstanceDetailVO getInstanceDetail(Long instanceId, Long taskId);
-
-    /**
-     * 取消发起的流程实例
-     * @param instanceId 实例id
-     */
-    void cancelInstance(Long instanceId);
+    void cancelInstance(Long instanceId, LoginUser loginUser);
 
     /**
      * 对实例加行锁，保证并发情况下数据准确性
@@ -117,5 +103,4 @@ public interface FlowRuntimeService extends IService<FlowInstance> {
      * @param status 实例状态
      */
     void endInstance(FlowInstance instance, FlowNode currentNode, FlowInstanceStatusEnum status);
-
 }

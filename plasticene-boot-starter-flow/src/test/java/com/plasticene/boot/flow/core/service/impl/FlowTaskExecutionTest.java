@@ -80,17 +80,18 @@ class FlowTaskExecutionTest {
     }
 
     @Test
-    void shouldUseLatestTaskAndReturnOperationResult() {
+    void shouldExecuteUsingTheLatestTaskUnderTheInstanceLock() {
         FlowTask latest = runningTask();
         latest.setComment("锁内最新数据");
         when(tasks.selectById(11L)).thenReturn(runningTask(), latest);
         when(runtime.selectInstanceForUpdate(21L)).thenReturn(instance);
-        String result = execution.withTask(11L, user, (task, locked) -> {
+        AtomicBoolean executed = new AtomicBoolean();
+        execution.execute(11L, user, (task, locked) -> {
             assertSame(latest, task);
             assertSame(instance, locked);
-            return task.getComment();
+            executed.set(true);
         });
-        assertEquals("锁内最新数据", result);
+        assertTrue(executed.get());
     }
 
     @Test
@@ -100,6 +101,21 @@ class FlowTaskExecutionTest {
         when(runtime.selectInstanceForUpdate(21L)).thenReturn(instance);
         assertThrows(BizException.class, () -> execution.execute(11L, user,
                 (latest, locked) -> fail("实例取消后不能执行业务")));
+    }
+
+    @Test
+    void shouldReadRunningInstanceWithoutAcquiringALock() {
+        when(runtime.getById(21L)).thenReturn(instance);
+        assertSame(instance, execution.getRunningInstance(runningTask(), user));
+        verify(runtime, never()).selectInstanceForUpdate(anyLong());
+    }
+
+    @Test
+    void shouldRejectAnotherOrganizationInTheUnlockedQuery() {
+        instance.setOrgId(99L);
+        when(runtime.getById(21L)).thenReturn(instance);
+        assertThrows(BizException.class, () -> execution.getRunningInstance(runningTask(), user));
+        verify(runtime, never()).selectInstanceForUpdate(anyLong());
     }
 
     private FlowTask runningTask() {

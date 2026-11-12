@@ -4,6 +4,7 @@ import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.dto.FlowTimeoutRule;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -66,12 +67,12 @@ class ApproveNodeValidatorTest {
         branch.setChildNode(nested);
 
         child.setTimeoutMode(FlowTimeoutRule.Mode.CUSTOM);
-        assertThrows(BizException.class, () -> treeValidator.validate(root, java.util.Set.of()));
+        assertThrows(BizException.class, () -> treeValidator.validate(root, Set.of()));
         child.setTimeoutRule(new FlowTimeoutRule());
         nested.setTimeoutMode(FlowTimeoutRule.Mode.CUSTOM);
-        assertThrows(BizException.class, () -> treeValidator.validate(root, java.util.Set.of()));
+        assertThrows(BizException.class, () -> treeValidator.validate(root, Set.of()));
         nested.setTimeoutRule(new FlowTimeoutRule());
-        assertDoesNotThrow(() -> treeValidator.validate(root, java.util.Set.of()));
+        assertDoesNotThrow(() -> treeValidator.validate(root, Set.of()));
     }
 
     private FlowNode approveNode(String key) {

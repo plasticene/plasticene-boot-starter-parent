@@ -1,43 +1,41 @@
 package com.plasticene.boot.flow.core.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO;
-import com.plasticene.boot.flow.core.entity.FlowFormChangeRecord;
-import com.plasticene.boot.flow.core.model.vo.FlowFormChangeRecordVO;
-import com.plasticene.boot.flow.core.utils.FlowFormChanges;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
+import com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO;
 import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.dao.FlowTimeoutNoticeDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
+import com.plasticene.boot.flow.core.entity.FlowFormChangeRecord;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.entity.FlowTaskAddSign;
 import com.plasticene.boot.flow.core.entity.FlowTimeoutNotice;
-import com.plasticene.boot.flow.core.event.FlowEventType;
-import com.plasticene.boot.flow.core.event.FlowEventPublisher;
 import com.plasticene.boot.flow.core.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
+import com.plasticene.boot.flow.core.event.FlowEventPublisher;
+import com.plasticene.boot.flow.core.event.FlowEventType;
 import com.plasticene.boot.flow.core.event.FlowInstanceEvent;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowInstanceNodeTimeDTO;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
-import com.plasticene.boot.flow.core.utils.FlowFormPermissions;
 import com.plasticene.boot.flow.core.model.query.FlowInstanceQuery;
+import com.plasticene.boot.flow.core.model.vo.FlowFormChangeRecordVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.model.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.model.vo.FlowRouteNodeVO;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskAddSignVO;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskVO;
+import com.plasticene.boot.flow.core.model.vo.FlowTimeoutNoticeVO;
 import com.plasticene.boot.flow.core.parser.FlowParser;
 import com.plasticene.boot.flow.core.parser.FlowReturnPath;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
@@ -45,12 +43,11 @@ import com.plasticene.boot.flow.core.service.FlowCategoryService;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
+import com.plasticene.boot.flow.core.utils.FlowActors;
+import com.plasticene.boot.flow.core.utils.FlowFormChanges;
+import com.plasticene.boot.flow.core.utils.FlowFormPermissions;
 import com.plasticene.boot.mybatis.core.utils.MybatisUtils;
 import jakarta.annotation.Resource;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -59,6 +56,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @author ZFJ
@@ -87,12 +89,32 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Resource
     private FlowFormChangeRecordDAO formChangeRecordDAO;
 
-
-
-    @Transactional(rollbackFor = Exception.class)
+    /**
+     * 供 Web 动态表单发起独立流程，每次调用创建新实例，不关联外部业务申请记录。
+     * @param definitionId 流程发布定义 ID
+     * @param varMap 审批变量及表单数据
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 新建的实例 ID
+     */
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     @Override
-    public long startFlowInstanceById(Long definitionId, String businessId, Map<String, Object> varMap) {
-        FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId);
+    public Long startInstance(Long definitionId, Map<String, Object> varMap, LoginUser loginUser) {
+        return startInstance(definitionId, null, varMap, loginUser);
+    }
+
+    /**
+     * 按发布定义在当前事务内发起流程；同一组织和流程分类下的业务申请记录不能重复发起。
+     * @param definitionId 流程发布定义 ID
+     * @param businessId 业务申请记录 ID，按传入值直接插入；Web 独立发起时为 null
+     * @param varMap 审批变量及表单数据
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 新建的实例 ID
+     */
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public Long startInstance(Long definitionId, String businessId, Map<String, Object> varMap, LoginUser loginUser) {
+        FlowActors.require(loginUser);
+        FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId, loginUser);
         // 发布了的流程模型是合法的，可以直接使用，这里不需要再校验合法性，发布的时候已经校验过合法性了
         FlowNode flowNode = flowDefinition.getModelNode();
         FlowInstance instance = new FlowInstance();
@@ -105,9 +127,14 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         instance.setStatus(FlowInstanceStatusEnum.RUNNING.getCode());
         instance.setCurrentNodeKey(flowNode.getKey());
         instance.setCurrentNodeName(flowNode.getName());
-        LoginUser loginUser = LoginUserHolder.get();
         instance.setUserId(loginUser.getId());
-        flowInstanceDAO.insert(instance);
+        instance.setCreator(loginUser.getId());
+        instance.setUpdater(loginUser.getId());
+        try {
+            flowInstanceDAO.insert(instance);
+        } catch (DuplicateKeyException exception) {
+            throw new BizException("同一businessId不能重复发起实例");
+        }
 
         // 发布流程实例开始事件
         flowEventPublisher.publish(FlowInstanceEvent.of(instance, FlowEventType.INSTANCE_STARTED));
@@ -119,9 +146,16 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         return instance.getId();
     }
 
+    /**
+     * 校验操作者的发起权限后，根据变量计算当前生效定义的预计流转路径。
+     * @param definitionId 流程发布定义 ID
+     * @param varMap 审批变量及表单数据
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 按执行顺序排列的预计路径节点
+     */
     @Override
-    public List<FlowRouteNodeVO> calculateRoute(Long definitionId, Map<String, Object> varMap) {
-        FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId);
+    public List<FlowRouteNodeVO> calculateRoute(Long definitionId, Map<String, Object> varMap, LoginUser loginUser) {
+        FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId, loginUser);
         FlowNode flowNode = flowDefinition.getModelNode();
         FlowParser.makeParentNode(flowNode);
         Map<String, Object> variables = varMap == null ? Map.of() : varMap;
@@ -130,20 +164,26 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .toList();
     }
 
+    /**
+     * 在指定组织查询条件下分页返回流程数据，并使用操作者组织解析关联信息。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
+     */
     @Override
-    public PageResult<FlowInstanceVO> page(FlowInstanceQuery query) {
+    public PageResult<FlowInstanceVO> page(FlowInstanceQuery query, LoginUser loginUser) {
         normalizeQuery(query);
         IPage<FlowInstanceVO> page = flowInstanceDAO.pageInstance(MybatisUtils.buildPage(query), query, true);
         List<FlowInstanceVO> records = page.getRecords();
-        Map<String, String> categoryMap = flowCategoryService.getCategoryMap();
-        Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap(loginUser);
+        Map<Long, String> userMap = flowOrganizationProvider.getUserMap(loginUser.getOrgId());
         Map<Long, FlowDefinition> definitionMap = getDefinitionMap(records);
         Map<Long, LocalDateTime> nodeStartTimeMap = getCurrentNodeStartTimeMap(query.getOrgId(), records);
         LocalDateTime now = LocalDateTime.now();
         records.forEach(vo -> enrichInstanceVO(vo, categoryMap, userMap, nodeStartTimeMap.get(vo.getId()), now,
                 allowSubmitterCancel(vo.getDefinitionId() == null
                         ? null
-                        : definitionMap.get(vo.getDefinitionId()))));
+                        : definitionMap.get(vo.getDefinitionId())), loginUser));
         return new PageResult<>(records, page.getTotal(), page.getPages());
     }
 
@@ -153,17 +193,18 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         return flowInstanceDAO.statisticsInstance(query, false);
     }
 
+    /**
+     * 校验实例组织归属，按操作者和可选任务计算表单读写权限并返回实例详情。
+     * @param instanceId 流程实例 ID
+     * @param taskId 任务 ID；为空时按操作者的实例可读范围返回
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 按操作者权限过滤后的实例详情
+     */
     @Override
-    public FlowInstanceDetailVO getInstanceDetail(Long instanceId) {
-        return getInstanceDetail(instanceId, null);
-    }
-
-    @Override
-    public FlowInstanceDetailVO getInstanceDetail(Long instanceId, Long taskId) {
+    public FlowInstanceDetailVO getInstanceDetail(Long instanceId, Long taskId, LoginUser loginUser) {
         if (instanceId == null) {
             throw new BizException("流程实例id不能为空");
         }
-        LoginUser loginUser = LoginUserHolder.get();
         FlowInstance instance = flowInstanceDAO.selectById(instanceId);
         if (instance == null || !Objects.equals(instance.getOrgId(), loginUser.getOrgId())) {
             throw new BizException("流程实例不存在");
@@ -174,7 +215,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
             throw new BizException("流程发布定义不存在");
         }
 
-        Map<Long, String> userMap = flowOrganizationProvider.getUserMap();
+        Map<Long, String> userMap = flowOrganizationProvider.getUserMap(loginUser.getOrgId());
         var timeoutNotices = timeoutNoticeDAO.selectList(new LambdaQueryWrapper<FlowTimeoutNotice>()
                 .eq(FlowTimeoutNotice::getInstanceId, instanceId)
                 .eq(FlowTimeoutNotice::getOrgId, instance.getOrgId())
@@ -182,7 +223,8 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         List<FlowTaskVO> taskVOList = taskList.stream()
                 .map(task -> {
                     FlowTaskVO vo = toTaskVO(task, userMap);
-                    vo.setTimeoutNotices(timeoutNotices.stream().filter(notice -> Objects.equals(notice.getTaskId(), task.getId())).toList());
+                    vo.setTimeoutNotices(timeoutNotices.stream().filter(notice -> Objects.equals(notice.getTaskId(), task.getId()))
+                            .map(notice -> PtcBeanUtils.copy(notice, FlowTimeoutNoticeVO.class)).toList());
                     vo.setProcessable(FlowReturnPath.isActive(task) && Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
                             && Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
                             && Objects.equals(task.getAssignee(), loginUser.getId())
@@ -198,7 +240,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                         FlowNode target = FlowParser.findNodeByKey(definition.getModelNode(), task.getReturnTargetNodeKey());
                         vo.setReturnTargetNodeName(target == null ? task.getReturnTargetNodeKey() : target.getName());
                     }
-                    vo.setWithdrawable(flowTaskService.canWithdrawTask(task, instance, definition, taskList));
+                    vo.setWithdrawable(flowTaskService.canWithdrawTask(task, instance, definition, taskList, loginUser));
                     return vo;
                 })
                 .toList();
@@ -212,8 +254,8 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 .filter(Objects::nonNull)
                 .min(LocalDateTime::compareTo)
                 .orElse(null);
-        enrichInstanceVO(instanceVO, flowCategoryService.getCategoryMap(), userMap,
-                currentNodeStartTime, LocalDateTime.now(), allowSubmitterCancel(definition));
+        enrichInstanceVO(instanceVO, flowCategoryService.getCategoryMap(loginUser), userMap,
+                currentNodeStartTime, LocalDateTime.now(), allowSubmitterCancel(definition), loginUser);
 
         FlowInstanceDetailVO detail = new FlowInstanceDetailVO();
         detail.setInstance(instanceVO);
@@ -245,13 +287,17 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         return detail;
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    /**
+     * 校验操作者为申请人及流程允许撤销后，取消运行中的实例并发布结束事件。
+     * @param instanceId 流程实例 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     */
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     @Override
-    public void cancelInstance(Long instanceId) {
+    public void cancelInstance(Long instanceId, LoginUser loginUser) {
         if (instanceId == null) {
             throw new BizException("流程实例id不能为空");
         }
-        LoginUser loginUser = LoginUserHolder.get();
         FlowInstance instance = selectInstanceForUpdate(instanceId);
         if (instance == null
                 || !Objects.equals(instance.getOrgId(), loginUser.getOrgId())
@@ -399,12 +445,22 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         return result;
     }
 
+    /**
+     * 补全实例分类、人员、耗时与当前操作者可执行的操作信息。
+     * @param vo 流程实例展示对象
+     * @param categoryMap 分类编码与名称映射
+     * @param userMap 用户 ID 与名称映射
+     * @param currentNodeStartTime 当前节点开始时间
+     * @param now 统计时间
+     * @param allowCancel 是否允许申请人撤销申请
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     */
     private void enrichInstanceVO(FlowInstanceVO vo,
                                   Map<String, String> categoryMap,
                                   Map<Long, String> userMap,
                                   LocalDateTime currentNodeStartTime,
                                   LocalDateTime now,
-                                  boolean allowCancel) {
+                                  boolean allowCancel, LoginUser loginUser) {
         String category = vo.getCategory();
         vo.setCategoryName(category == null ? null : categoryMap.getOrDefault(category, category));
         Long startUserId = vo.getStartUserId();
@@ -413,7 +469,6 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
                 : userMap.getOrDefault(startUserId, String.valueOf(startUserId)));
         FlowInstanceStatusEnum status = getStatus(vo.getStatus());
         vo.setStatusName(status == null ? null : status.getName());
-        LoginUser loginUser = LoginUserHolder.get();
         vo.setCancelable(Objects.equals(vo.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
                 && startUserId != null
                 && Objects.equals(startUserId, loginUser.getId())

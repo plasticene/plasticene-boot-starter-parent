@@ -1,7 +1,5 @@
 package com.plasticene.boot.flow.autoconfigure;
 
-import com.plasticene.boot.flow.core.event.FlowEventPublisher;
-import com.plasticene.boot.flow.core.event.SpringFlowEventPublisher;
 import com.plasticene.boot.flow.core.executor.DefaultProcessExecutor;
 import com.plasticene.boot.flow.core.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.provider.DefaultFlowTaskAssigneeProvider;
@@ -12,17 +10,19 @@ import com.plasticene.boot.flow.core.validator.ConditionNodeValidator;
 import com.plasticene.boot.flow.core.validator.NodeValidator;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.context.annotation.FilterType;
 
 /**
  * @author ZFJ
  * @date 2025/9/3
  */
-@Configuration
-@ComponentScan(basePackages = {"com.plasticene.boot.flow"})
+@AutoConfiguration(afterName = "com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration")
+@ComponentScan(basePackages = {"com.plasticene.boot.flow.core"},
+        excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX,
+                pattern = "com\\.plasticene\\.boot\\.flow\\.core\\.controller\\..*"))
 @MapperScan(basePackages = {"com.plasticene.boot.flow.core.dao"})
 public class FlowAutoConfiguration {
 
@@ -58,9 +58,4 @@ public class FlowAutoConfiguration {
     }
 
 
-    @Bean
-    @ConditionalOnMissingBean(FlowEventPublisher.class)
-    public FlowEventPublisher flowEventPublisher(ApplicationEventPublisher publisher) {
-        return new SpringFlowEventPublisher(publisher);
-    }
 }

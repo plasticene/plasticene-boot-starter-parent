@@ -3,7 +3,8 @@ package com.plasticene.boot.flow.core.service.impl;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
+import com.plasticene.boot.flow.core.FlowEngine;
+import com.plasticene.boot.flow.core.FlowEngineImpl;
 import com.plasticene.boot.flow.core.dao.FlowFormChangeRecordDAO;
 import com.plasticene.boot.flow.core.dao.FlowTaskAddSignDAO;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
@@ -22,17 +23,24 @@ import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
 import com.plasticene.boot.flow.core.service.task.FlowTaskExecution;
+import java.util.Map;
+import javax.sql.DataSource;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.springframework.transaction.support.AbstractPlatformTransactionManager;
 import org.springframework.transaction.support.DefaultTransactionStatus;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -51,6 +59,7 @@ import static org.mockito.Mockito.*;
  * @since 2026-11-10
  */
 class FlowTaskTransactionTest {
+    private LoginUser loginUserContext;
     private final FlowTaskDAO tasks = mock(FlowTaskDAO.class);
     private final FlowRuntimeService runtime = mock(FlowRuntimeService.class);
     private final FlowDefinitionService definitions = mock(FlowDefinitionService.class);
@@ -90,7 +99,7 @@ class FlowTaskTransactionTest {
         LoginUser user = new LoginUser();
         user.setId(8L);
         user.setOrgId(9L);
-        LoginUserHolder.set(user);
+        loginUserContext = user;
         FlowTask task = new FlowTask();
         task.setId(11L);
         task.setInstanceId(21L);
@@ -126,10 +135,28 @@ class FlowTaskTransactionTest {
 
     @AfterEach
     void cleanup() {
-        LoginUserHolder.remove();
         if (context != null) {
             context.close();
         }
+    }
+
+    @Test
+    void shouldPreviewRouteThroughTheFacadeWithoutStartingATransaction() {
+        var facade = new FlowEngineImpl();
+        ReflectionTestUtils.setField(facade, "flowRuntimeService", runtime);
+        var datasource = mock(DataSource.class);
+        var proxy = new ProxyFactory(facade);
+        proxy.addAdvice(new TransactionInterceptor(
+                new DataSourceTransactionManager(datasource),
+                new AnnotationTransactionAttributeSource()));
+        var engine = (FlowEngine) proxy.getProxy();
+        when(runtime.calculateRoute(31L, Map.of(), loginUserContext)).thenAnswer(invocation -> {
+            assertFalse(TransactionSynchronizationManager.isActualTransactionActive());
+            return List.of();
+        });
+
+        assertEquals(List.of(), engine.calculateRoute(31L, Map.of(), loginUserContext));
+        verifyNoInteractions(datasource);
     }
 
     @Test
@@ -141,7 +168,7 @@ class FlowTaskTransactionTest {
             assertEquals(0, transactions.commits);
             return null;
         }).when(executor).moveToNextNode(any(), any());
-        service.approveTask(param());
+        service.approveTask(param(), loginUserContext);
         verify(executor).moveToNextNode(any(), any());
         assertEquals(TransactionDefinition.ISOLATION_READ_COMMITTED, transactions.isolation);
         assertEquals(1, transactions.commits);
@@ -153,7 +180,7 @@ class FlowTaskTransactionTest {
     @Test
     void shouldRollbackTaskUpdateWhenNodeProgressionFails() {
         doThrow(new IllegalStateException("节点推进失败")).when(executor).moveToNextNode(any(), any());
-        assertThrows(IllegalStateException.class, () -> service.approveTask(param()));
+        assertThrows(IllegalStateException.class, () -> service.approveTask(param(), loginUserContext));
         assertEquals(0, transactions.taskStatus);
         assertEquals(0, transactions.commits);
         assertEquals(1, transactions.rollbacks);

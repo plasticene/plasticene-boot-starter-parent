@@ -12,6 +12,14 @@
         SELECT * FROM `flow_instance` WHERE id = #{instanceId} FOR UPDATE
     </select>
 
+    <update id="incrementEventSequence">
+        UPDATE flow_instance SET event_sequence = event_sequence + 1 WHERE id = #{instanceId} AND org_id = #{orgId}
+    </update>
+
+    <select id="selectEventSequence" resultType="java.lang.Long">
+        SELECT event_sequence FROM flow_instance WHERE id = #{instanceId} AND org_id = #{orgId}
+    </select>
+
     <sql id="instanceFilters">
         fi.org_id = #{query.orgId}
         <if test="query.userId != null">

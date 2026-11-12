@@ -17,8 +17,6 @@ import com.plasticene.boot.flow.core.parser.FlowReturnPath;
 import com.plasticene.boot.flow.core.provider.FlowTaskAssigneeProvider;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import jakarta.annotation.Resource;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +24,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
 
 /**
  * 创建流程节点任务并初始化审批与超时信息。
@@ -62,7 +61,7 @@ public class FlowTaskCreation {
             return FlowApproveTaskResult.REJECTED;
         }
         // 人工手动审批
-        List<Long> assignees = new ArrayList<>(flowTaskAssigneeProvider.getAssignees(currentNode).stream()
+        List<Long> assignees = new ArrayList<>(flowTaskAssigneeProvider.getAssignees(currentNode, instance.getOrgId(), instance.getUserId()).stream()
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList());
@@ -121,7 +120,7 @@ public class FlowTaskCreation {
     }
 
     public void createCopyTask(FlowInstance instance, FlowNode currentNode) {
-        List<Long> assignees = flowTaskAssigneeProvider.getAssignees(currentNode).stream()
+        List<Long> assignees = flowTaskAssigneeProvider.getAssignees(currentNode, instance.getOrgId(), instance.getUserId()).stream()
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
@@ -257,12 +256,12 @@ public class FlowTaskCreation {
         }
         // 将本人替换成直属上级审批
         if (Objects.equals(selfApprove, FlowNodeEnum.SelfApprove.TO_LEADER.getCode())) {
-            Long leaderId = flowTaskAssigneeProvider.getLeader(userId);
+            Long leaderId = flowTaskAssigneeProvider.getLeader(instance.getOrgId(), userId);
             assignees.set(assignees.indexOf(userId), leaderId);
         }
         // 将本人替换成部门 负责人审批
         if (Objects.equals(selfApprove, FlowNodeEnum.SelfApprove.TO_DEPT_LEADER.getCode())) {
-            Long leaderId = flowTaskAssigneeProvider.getDeptLeader(userId);
+            Long leaderId = flowTaskAssigneeProvider.getDeptLeader(instance.getOrgId(), userId);
             assignees.set(assignees.indexOf(userId), leaderId);
         }
         return Optional.empty();

@@ -4,6 +4,8 @@ import com.plasticene.boot.flow.autoconfigure.FlowAutoConfiguration;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.event.EventListener;
 
@@ -20,62 +22,50 @@ import static org.junit.jupiter.api.Assertions.*;
 class FlowEventPublisherTest {
 
     @Test
-    void shouldCreateWorkingSpringPublisherFromAutoConfiguration() {
-        try (var context = new AnnotationConfigApplicationContext()) {
-            context.register(Subscriber.class);
-            context.refresh();
-            FlowEventPublisher publisher = new FlowAutoConfiguration().flowEventPublisher(context);
-            assertInstanceOf(SpringFlowEventPublisher.class, publisher);
-            FlowInstanceEvent event = FlowInstanceEvent.of(instance(), FlowEventType.INSTANCE_STARTED);
-            publisher.publish(event);
-            assertEquals(List.of(event), context.getBean(Subscriber.class).events);
-        }
+    void shouldRejectDuplicateCategoriesIgnoringCase() {
+        var first = new CategorySubscriber();
+        FlowEventConsumer second = new FlowEventConsumer() {
+            public String businessType() {
+                return "LEAVE";
+            }
+            public void receive(FlowEvent event) {
+            }
+        };
+        assertThrows(IllegalArgumentException.class, () -> new FlowEventConsumers(List.of(first, second)));
     }
 
     @Test
-    void shouldDispatchPojoEventsByTypeAndRetainCategoryFiltering() {
-        try (var context = new AnnotationConfigApplicationContext()) {
-            context.register(Subscriber.class, CategorySubscriber.class);
-            context.refresh();
-            FlowEventPublisher publisher = new SpringFlowEventPublisher(context);
-            FlowInstance instance = instance();
-            FlowInstanceEvent started = FlowInstanceEvent.of(instance, FlowEventType.INSTANCE_STARTED);
-            publisher.publish(started);
-            FlowTaskEvent created = FlowTaskEvent.of(instance, new FlowTask(), FlowEventType.TASK_CREATED, 0, null, null);
-            publisher.publish(created);
-            instance.setCategory("other");
-            publisher.publish(FlowInstanceEvent.of(instance, FlowEventType.INSTANCE_APPROVED));
-            assertEquals(3, context.getBean(Subscriber.class).events.size());
-            publisher.publish(FlowTaskEvent.of(instance, new FlowTask(), FlowEventType.TASK_CREATED, 0, null, null));
-            assertEquals(List.of(started, created), context.getBean(CategorySubscriber.class).events);
-        }
+    void shouldFailInsteadOfSilentlyDroppingAnUnmatchedEvent() {
+        var consumers = new FlowEventConsumers(List.of());
+        assertThrows(IllegalStateException.class, () -> consumers.deliver(
+                FlowInstanceEvent.of(instance(), FlowEventType.INSTANCE_STARTED)));
     }
 
-    @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.EnumSource(FlowEventType.class)
-    void shouldHandleEveryEventTypeAndFilterOtherCategories(FlowEventType type) {
-        try (var context = new AnnotationConfigApplicationContext()) {
-            context.register(CategorySubscriber.class);
-            context.refresh();
-            FlowEventPublisher publisher = new SpringFlowEventPublisher(context);
-            FlowInstance instance = instance();
-            FlowEvent matched = event(instance, type);
-            publisher.publish(matched);
-            instance.setCategory("other");
-            publisher.publish(event(instance, type));
-            assertEquals(List.of(matched), context.getBean(CategorySubscriber.class).events);
-        }
+    @ParameterizedTest
+    @EnumSource(FlowEventType.class)
+    void shouldDeliverAllEventTypesUsingCategoryIgnoringCase(FlowEventType type) throws Exception {
+        var subscriber = new CategorySubscriber();
+        var consumers = new FlowEventConsumers(List.of(subscriber));
+        FlowInstance instance = instance();
+        instance.setCategory("LEAVE");
+        FlowEvent event = event(instance, type);
+        consumers.deliver(event);
+        assertEquals(List.of(event), subscriber.events);
     }
 
     @Test
-    void shouldPropagateListenerFailures() {
-        try (var context = new AnnotationConfigApplicationContext()) {
-            context.register(FailingSubscriber.class);
-            context.refresh();
-            var publisher = new SpringFlowEventPublisher(context);
-            assertThrows(IllegalStateException.class, () -> publisher.publish(
-                    FlowInstanceEvent.of(instance(), FlowEventType.INSTANCE_STARTED)));
-        }
+    void shouldPropagateReceiverFailureForDeliveryRetry() {
+        FlowEventConsumer failing = new FlowEventConsumer() {
+            public String businessType() {
+                return "leave";
+            }
+            public void receive(FlowEvent event) {
+                throw new IllegalStateException("接收失败");
+            }
+        };
+        var consumers = new FlowEventConsumers(List.of(failing));
+        assertThrows(IllegalStateException.class, () -> consumers.deliver(
+                FlowInstanceEvent.of(instance(), FlowEventType.INSTANCE_STARTED)));
     }
 
     @Test

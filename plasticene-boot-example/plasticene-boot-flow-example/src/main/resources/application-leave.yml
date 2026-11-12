@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: ${FLOW_LEAVE_JDBC_URL}
+    username: ${FLOW_LEAVE_JDBC_USER}
+    password: ${FLOW_LEAVE_JDBC_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+ptc:
+  flow:
+    http:
+      enabled: false
+    timeout:
+      enabled: false
+    event:
+      poll-interval: 100ms
+  tenant:
+    enable: false
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/*.xml
+leave:
+  demo:
+    enabled: false

@@ -2,17 +2,16 @@ package com.plasticene.boot.flow.core.model.param;
 
 import com.plasticene.boot.flow.core.model.dto.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
-import com.plasticene.boot.web.core.validator.Insert;
-import com.plasticene.boot.web.core.validator.Update;
+import com.plasticene.boot.flow.core.validation.Insert;
+import com.plasticene.boot.flow.core.validation.Update;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
-
 import java.util.List;
 import java.util.Map;
+import lombok.Data;
 
 /**
  *

@@ -24,9 +24,6 @@ import com.plasticene.boot.flow.core.parser.FlowReturnPath;
 import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import jakarta.annotation.Resource;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,6 +34,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
 
 /**
  * 管理加签批次、成员审批及原任务恢复。
@@ -251,7 +250,7 @@ public class FlowTaskAddSignOperations {
                 && Arrays.stream(FlowNodeEnum.ApproveMode.values()).noneMatch(mode -> Objects.equals(mode.getCode(), param.getApproveMode()))) {
             throw new BizException("请选择加签审批方式");
         }
-        Map<Long, String> activeUsers = flowOrganizationProvider.getActiveUserMap();
+        Map<Long, String> activeUsers = flowOrganizationProvider.getActiveUserMap(user.getOrgId());
         if (ids.contains(user.getId()) || ids.stream().anyMatch(id -> !activeUsers.containsKey(id))) {
             throw new BizException("加签人员不能为本人，且须为本组织启用用户");
         }

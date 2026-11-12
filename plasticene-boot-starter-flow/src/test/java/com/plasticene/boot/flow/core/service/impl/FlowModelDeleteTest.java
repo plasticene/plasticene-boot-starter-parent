@@ -6,13 +6,11 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +31,7 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class FlowModelDeleteTest {
+    private LoginUser loginUserContext;
     @Mock
     private FlowModelDAO models;
     @Mock
@@ -45,13 +44,8 @@ class FlowModelDeleteTest {
         LoginUser user = new LoginUser();
         user.setOrgId(100L);
         user.setId(8L);
-        LoginUserHolder.set(user);
+        loginUserContext = user;
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "delete"), FlowDefinition.class);
-    }
-
-    @AfterEach
-    void cleanup() {
-        LoginUserHolder.remove();
     }
 
     @Test
@@ -67,7 +61,7 @@ class FlowModelDeleteTest {
             assertTrue(query.getParamNameValuePairs().containsValue(1));
             return true;
         });
-        service.delete(List.of(11L, 11L));
+        service.delete(List.of(11L, 11L), loginUserContext);
         var order = inOrder(models, definitions);
         order.verify(models).selectFlowModelForUpdate(11L);
         order.verify(definitions).update(any(Wrapper.class));
@@ -79,22 +73,22 @@ class FlowModelDeleteTest {
     void shouldNotDeleteModelWhenVersionMarkingFails() {
         when(models.selectFlowModelForUpdate(11L)).thenReturn(model(100L));
         when(definitions.update(any(Wrapper.class))).thenThrow(new IllegalStateException("database failure"));
-        assertThrows(IllegalStateException.class, () -> service.delete(List.of(11L)));
+        assertThrows(IllegalStateException.class, () -> service.delete(List.of(11L), loginUserContext));
         verify(models, never()).deleteByIds(any());
     }
 
     @Test
     void shouldRejectOtherOrganizationsBeforeMarkingVersions() {
         when(models.selectFlowModelForUpdate(11L)).thenReturn(model(200L));
-        assertThrows(BizException.class, () -> service.delete(List.of(11L)));
+        assertThrows(BizException.class, () -> service.delete(List.of(11L), loginUserContext));
         verifyNoInteractions(definitions);
         verify(models, never()).deleteByIds(any());
     }
 
     @Test
     void shouldIgnoreEmptyOrMissingModels() {
-        service.delete(List.of());
-        service.delete(List.of(11L));
+        service.delete(List.of(), loginUserContext);
+        service.delete(List.of(11L), loginUserContext);
         verifyNoInteractions(definitions);
         verify(models, never()).deleteByIds(any());
     }

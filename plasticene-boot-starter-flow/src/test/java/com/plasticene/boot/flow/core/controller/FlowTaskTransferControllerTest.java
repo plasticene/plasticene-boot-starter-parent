@@ -1,11 +1,15 @@
 package com.plasticene.boot.flow.core.controller;
 
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.service.FlowTaskService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @ExtendWith(MockitoExtension.class)
 class FlowTaskTransferControllerTest {
+    private final LoginUser loginUser = new LoginUser();
     @Mock
     private FlowTaskService service;
     @InjectMocks
@@ -34,6 +39,9 @@ class FlowTaskTransferControllerTest {
 
     @BeforeEach
     void setUp() {
+        loginUser.setId(17L);
+        loginUser.setOrgId(27L);
+        LoginUserHolder.set(loginUser);
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -43,7 +51,7 @@ class FlowTaskTransferControllerTest {
                 .content("{\"taskId\":11,\"assignee\":10,\"comment\":\"出差交接\"}"))
                 .andExpect(status().isOk());
         ArgumentCaptor<FlowTaskTransferParam> param = ArgumentCaptor.forClass(FlowTaskTransferParam.class);
-        verify(service).transferTask(param.capture());
+        verify(service).transferTask(param.capture(), ArgumentMatchers.same(loginUser));
         assertEquals(11L, param.getValue().getTaskId());
         assertEquals(10L, param.getValue().getAssignee());
         assertEquals("出差交接", param.getValue().getComment());
@@ -68,4 +76,8 @@ class FlowTaskTransferControllerTest {
         verifyNoInteractions(service);
     }
 
+    @AfterEach
+    void clearLoginUser() {
+        LoginUserHolder.remove();
+    }
 }

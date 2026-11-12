@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.model.dto;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,7 +24,7 @@ class FlowFieldPermissionTest {
     void shouldRejectUnknownJsonPermissions() {
         ObjectMapper mapper = new ObjectMapper();
         for (String value : new String[]{"3", "\"NONE\"", "\"INVALID\""}) {
-            assertThrows(com.fasterxml.jackson.core.JsonProcessingException.class,
+            assertThrows(JsonProcessingException.class,
                     () -> mapper.readValue("{\"field\":\"reason\",\"permission\":" + value + "}", FlowFieldPermission.class));
         }
     }

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.core.NestedExceptionUtils;
 
 import java.util.Set;
 
@@ -43,7 +44,7 @@ class FlowProcessExecutorConfigurationTest {
     @Test
     void shouldRegisterDefaultExecutorWhenNoCustomExecutorExists() {
         runner.run(context -> {
-            assertNull(context.getStartupFailure(), () -> org.springframework.core.NestedExceptionUtils
+            assertNull(context.getStartupFailure(), () -> NestedExceptionUtils
                     .getMostSpecificCause(context.getStartupFailure()).toString());
             assertEquals(1, context.getBeansOfType(ProcessExecutor.class).size());
             assertInstanceOf(DefaultProcessExecutor.class, context.getBean(ProcessExecutor.class));
@@ -54,7 +55,7 @@ class FlowProcessExecutorConfigurationTest {
     void shouldBackOffForCustomExecutorWithDifferentBeanName() {
         ProcessExecutor custom = mock(ProcessExecutor.class);
         runner.withBean("customProcessExecutor", ProcessExecutor.class, () -> custom).run(context -> {
-            assertNull(context.getStartupFailure(), () -> org.springframework.core.NestedExceptionUtils
+            assertNull(context.getStartupFailure(), () -> NestedExceptionUtils
                     .getMostSpecificCause(context.getStartupFailure()).toString());
             assertEquals(1, context.getBeansOfType(ProcessExecutor.class).size());
             assertSame(custom, context.getBean(ProcessExecutor.class));
@@ -66,7 +67,7 @@ class FlowProcessExecutorConfigurationTest {
     void shouldBackOffForCustomExecutorWithDefaultBeanName() {
         ProcessExecutor custom = mock(ProcessExecutor.class);
         runner.withBean("processExecutor", ProcessExecutor.class, () -> custom).run(context -> {
-            assertNull(context.getStartupFailure(), () -> org.springframework.core.NestedExceptionUtils
+            assertNull(context.getStartupFailure(), () -> NestedExceptionUtils
                     .getMostSpecificCause(context.getStartupFailure()).toString());
             assertEquals(1, context.getBeansOfType(ProcessExecutor.class).size());
             assertSame(custom, context.getBean(ProcessExecutor.class));

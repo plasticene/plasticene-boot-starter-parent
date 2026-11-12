@@ -2,19 +2,23 @@ package com.plasticene.boot.flow.core.service.impl;
 
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
+import com.plasticene.boot.flow.core.dao.FlowCategoryDAO;
 import com.plasticene.boot.flow.core.dao.FlowModelDAO;
+import com.plasticene.boot.flow.core.entity.FlowCategory;
 import com.plasticene.boot.flow.core.entity.FlowModel;
 import com.plasticene.boot.flow.core.model.param.FlowModelParam;
-import com.plasticene.boot.web.core.validator.Insert;
-import com.plasticene.boot.web.core.validator.Update;
+import com.plasticene.boot.flow.core.service.FlowDefinitionService;
+import com.plasticene.boot.flow.core.validation.Insert;
+import com.plasticene.boot.flow.core.validation.Update;
 import jakarta.validation.Validation;
-import org.junit.jupiter.api.AfterEach;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 
@@ -29,27 +33,35 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class FlowModelCodeTest {
+    private LoginUser loginUserContext;
     @Mock
     private FlowModelDAO flowModelDAO;
     @InjectMocks
     private FlowModelServiceImpl service;
 
+    @Mock
+    private FlowCategoryDAO flowCategoryDAO;
+
+    @Mock
+    private FlowDefinitionService flowDefinitionService;
+
     @BeforeEach
     void setUp() {
+        Mockito.lenient().when(flowCategoryDAO.selectByCodeForUpdate(
+                ArgumentMatchers.anyLong(), ArgumentMatchers.anyString()))
+                .thenReturn(new FlowCategory());
+
         LoginUser user = new LoginUser();
         user.setOrgId(9L);
         user.setId(8L);
-        LoginUserHolder.set(user);
+        loginUserContext = user;
         FlowModel existing = new FlowModel();
+        existing.setCategory("leave");
         existing.setId(11L);
         existing.setOrgId(9L);
-        existing.setManagerUserIds(java.util.List.of(8L));
+        existing.setManagerUserIds(List.of(8L));
         lenient().when(flowModelDAO.selectById(11L)).thenReturn(existing);
-    }
-
-    @AfterEach
-    void tearDown() {
-        LoginUserHolder.remove();
+        lenient().when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(existing);
     }
 
     @Test
@@ -76,7 +88,7 @@ class FlowModelCodeTest {
     void shouldRejectDuplicateOnCreate() {
         when(flowModelDAO.countByCode(9L, "tests", null)).thenReturn(1L);
         assertEquals("流程标识已存在", assertThrows(BizException.class,
-                () -> service.create(param("tests"))).getMessage());
+                () -> service.create(param("tests"), loginUserContext)).getMessage());
         verify(flowModelDAO, never()).insert(any(FlowModel.class));
     }
 
@@ -84,7 +96,7 @@ class FlowModelCodeTest {
     void shouldExcludeSelfOnUpdate() {
         var param = param("tests");
         param.setId(11L);
-        service.update(param);
+        service.update(param, loginUserContext);
         verify(flowModelDAO).countByCode(9L, "tests", 11L);
         verify(flowModelDAO).updateById(any(FlowModel.class));
     }
@@ -94,7 +106,7 @@ class FlowModelCodeTest {
         var param = param("tests");
         param.setId(11L);
         when(flowModelDAO.countByCode(9L, "tests", 11L)).thenReturn(1L);
-        assertThrows(BizException.class, () -> service.update(param));
+        assertThrows(BizException.class, () -> service.update(param, loginUserContext));
         verify(flowModelDAO, never()).updateById(any(FlowModel.class));
     }
 
@@ -102,14 +114,14 @@ class FlowModelCodeTest {
     void shouldTranslateConcurrentDuplicateInsert() {
         when(flowModelDAO.insert(any(FlowModel.class))).thenThrow(new DuplicateKeyException("duplicate"));
         assertEquals("流程标识已存在", assertThrows(BizException.class,
-                () -> service.create(param("tests"))).getMessage());
+                () -> service.create(param("tests"), loginUserContext)).getMessage());
     }
 
     @Test
     void shouldAllowPartialUpdateWithoutCode() {
         var param = param(null);
         param.setId(11L);
-        service.update(param);
+        service.update(param, loginUserContext);
         verify(flowModelDAO, never()).countByCode(any(), any(), any());
         verify(flowModelDAO).updateById(any(FlowModel.class));
     }
@@ -120,18 +132,19 @@ class FlowModelCodeTest {
         existing.setId(11L);
         existing.setOrgId(9L);
         existing.setCode("old");
-        existing.setManagerUserIds(java.util.List.of(8L));
+        existing.setManagerUserIds(List.of(8L));
         when(flowModelDAO.selectById(11L)).thenReturn(existing);
+        lenient().when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(existing);
         var param = param("old");
         param.setId(11L);
-        assertDoesNotThrow(() -> service.update(param));
+        assertDoesNotThrow(() -> service.update(param, loginUserContext));
         verify(flowModelDAO).updateById(any(FlowModel.class));
         param.setCode("new");
-        assertThrows(BizException.class, () -> service.update(param));
+        assertThrows(BizException.class, () -> service.update(param, loginUserContext));
         param.setCode("old");
         existing.setOrgId(10L);
-        assertThrows(BizException.class, () -> service.update(param));
-        assertThrows(BizException.class, () -> service.create(param("abcd")));
+        assertThrows(BizException.class, () -> service.update(param, loginUserContext));
+        assertThrows(BizException.class, () -> service.create(param("abcd"), loginUserContext));
         verify(flowModelDAO, times(1)).updateById(any(FlowModel.class));
     }
 
@@ -149,12 +162,13 @@ class FlowModelCodeTest {
         for (Integer status : new Integer[]{null, 0, 1, -1}) {
             var param = param("tests_copy");
             param.setStatus(status);
-            assertEquals(88L, service.create(param));
+            assertEquals(88L, service.create(param, loginUserContext));
         }
     }
 
     private FlowModelParam param(String code) {
         var param = new FlowModelParam();
+        param.setCategory("leave");
         param.setCode(code);
         return param;
     }

@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.dao.FlowTaskDAO;
 import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
@@ -22,13 +21,13 @@ import com.plasticene.boot.flow.core.parser.FlowReturnPath;
 import com.plasticene.boot.flow.core.service.FlowDefinitionService;
 import com.plasticene.boot.flow.core.service.FlowRuntimeService;
 import jakarta.annotation.Resource;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 判断并执行审批结果撤回。
@@ -54,16 +53,18 @@ public class FlowTaskWithdraw {
     private FlowTaskLifecycle flowTaskLifecycle;
 
     @Resource
-    private FlowTaskExecution flowTaskExecution;
-
-    @Resource
     private FlowTaskAddSignOperations flowTaskAddSign;
 
-    public void withdrawTask(Long taskId) {
+    /**
+     * 校验操作者的撤回权限，撤回其已同意的审批结果并恢复相应待办。
+     * @param taskId 任务 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void withdrawTask(Long taskId, LoginUser loginUser) {
         if (taskId == null) {
             throw new BizException("任务id不能为空");
         }
-        LoginUser loginUser = flowTaskExecution.getLoginUser();
         FlowTask task = flowTaskDAO.selectById(taskId);
         if (task == null
                 || !Objects.equals(task.getOrgId(), loginUser.getOrgId())
@@ -73,7 +74,7 @@ public class FlowTaskWithdraw {
         FlowInstance instance = flowRuntimeService.selectInstanceForUpdate(task.getInstanceId());
         FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
         List<FlowTask> instanceTasks = flowTaskQuery.listTaskByInstanceId(instance.getId());
-        if (!canWithdrawTask(task, instance, definition, instanceTasks)) {
+        if (!canWithdrawTask(task, instance, definition, instanceTasks, loginUser)) {
             throw new BizException("当前审批结果不允许撤回");
         }
 
@@ -111,9 +112,17 @@ public class FlowTaskWithdraw {
         flowRuntimeService.updateInstanceCurrentNode(instance.getId(), node);
     }
 
+    /**
+     * 根据操作者身份、流程配置和当前任务状态判断审批结果是否允许撤回。
+     * @param task 任务快照
+     * @param instance 流程实例快照
+     * @param definition 流程发布定义快照
+     * @param instanceTasks 实例内当前任务记录
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 当前操作者是否允许撤回该审批结果
+     */
     public boolean canWithdrawTask(FlowTask task, FlowInstance instance,
-                                   FlowDefinition definition, List<FlowTask> instanceTasks) {
-        LoginUser loginUser = LoginUserHolder.get();
+                                   FlowDefinition definition, List<FlowTask> instanceTasks, LoginUser loginUser) {
         if (task == null || instance == null || definition == null || loginUser == null
                 || !Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
                 || !Objects.equals(instance.getOrgId(), loginUser.getOrgId())

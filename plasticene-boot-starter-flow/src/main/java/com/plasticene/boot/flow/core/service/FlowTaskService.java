@@ -1,7 +1,5 @@
 package com.plasticene.boot.flow.core.service;
 
-import com.plasticene.boot.flow.core.enums.FlowApproveTaskResult;
-import com.plasticene.boot.flow.core.model.param.FlowTaskFormParam;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
@@ -9,15 +7,16 @@ import com.plasticene.boot.flow.core.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.entity.FlowInstance;
 import com.plasticene.boot.flow.core.entity.FlowTask;
 import com.plasticene.boot.flow.core.entity.FlowTaskAddSign;
+import com.plasticene.boot.flow.core.enums.FlowApproveTaskResult;
 import com.plasticene.boot.flow.core.model.dto.FlowNode;
 import com.plasticene.boot.flow.core.model.param.FlowTaskAddSignParam;
+import com.plasticene.boot.flow.core.model.param.FlowTaskFormParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.model.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.model.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.model.vo.FlowTaskReturnTargetVO;
-
 import java.util.List;
 
 /**
@@ -27,24 +26,35 @@ import java.util.List;
 public interface FlowTaskService extends IService<FlowTask> {
 
     /**
-     * 仅保存当前可办理任务的可编辑字段，不执行审批。
+     * 校验操作者的任务办理权限，仅保存允许编辑的表单字段并记录变更，不推进审批。
+     * @param param 操作参数
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    void saveForm(FlowTaskFormParam param);
+    void saveForm(FlowTaskFormParam param, LoginUser loginUser);
 
     /**
-     * 分页查询当前用户待办任务
+     * 分页查询操作者所属组织中分配给本人的待办任务。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
      */
-    PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query);
+    PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query, LoginUser loginUser);
 
     /**
-     * 分页查询当前用户已办任务
+     * 分页查询操作者所属组织中本人已处理的任务。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
      */
-    PageResult<FlowTaskPageVO> pageMyDone(FlowTaskQuery query);
+    PageResult<FlowTaskPageVO> pageMyDone(FlowTaskQuery query, LoginUser loginUser);
 
     /**
-     * 分页查询抄送给当前用户的任务
+     * 分页查询操作者所属组织中抄送给本人的任务。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
      */
-    PageResult<FlowTaskPageVO> pageMyCopy(FlowTaskQuery query);
+    PageResult<FlowTaskPageVO> pageMyCopy(FlowTaskQuery query, LoginUser loginUser);
 
     /**
      * 创建开始节点任务
@@ -79,32 +89,29 @@ public interface FlowTaskService extends IService<FlowTask> {
 
     /**
      * 审批任务
-     */
-    void approveTask(FlowTaskParam param);
-
-    /**
-     * 审批任务
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
     void approveTask(FlowTaskParam param, LoginUser loginUser);
 
     /**
      * 拒绝任务
-     */
-    void rejectTask(FlowTaskParam param);
-
-    /**
-     * 拒绝任务
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
     void rejectTask(FlowTaskParam param, LoginUser loginUser);
 
     /**
-     * 撤回已同意的审批结果
-     * @param taskId 任务id
+     * 校验操作者的撤回权限，撤回其已同意的审批结果并恢复相应待办。
+     * @param taskId 任务 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    void withdrawTask(Long taskId);
+    void withdrawTask(Long taskId, LoginUser loginUser);
 
-    /** 对当前待办发起前加签、后加签或并加签。 */
-    void addSign(FlowTaskAddSignParam param);
+    /**
+     * 校验操作者的任务办理权限，在实例锁内发起前加签、后加签或并加签。
+     * @param param 操作参数
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     */
+    void addSign(FlowTaskAddSignParam param, LoginUser loginUser);
 
     /** 判断任务是否属于只能审批的前后加签组。 */
     boolean isAddSignGroupTask(FlowTask task);
@@ -112,20 +119,38 @@ public interface FlowTaskService extends IService<FlowTask> {
     /** 查询实例加签记录；调用方须先校验实例组织权限。 */
     List<FlowTaskAddSign> listAddSigns(Long instanceId);
 
-    /** 将当前待办转交给同组织有效用户，保留原任务记录。 */
-    void transferTask(FlowTaskTransferParam param);
-
-    /** 查询本人待办可退回的前序人工审批节点。 */
-    List<FlowTaskReturnTargetVO> listReturnTargets(Long taskId);
-
-    /** 退回并重新创建目标审批节点待办。 */
-    void returnTask(FlowTaskReturnParam param);
+    /**
+     * 校验操作者的任务办理权限，将待办转交给同组织的有效用户并保留原办理记录。
+     * @param param 操作参数
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     */
+    void transferTask(FlowTaskTransferParam param, LoginUser loginUser);
 
     /**
-     * 判断当前用户是否可以撤回任务
+     * 校验操作者的任务办理权限，查询当前待办可退回的前序人工审批节点。
+     * @param taskId 任务 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 可退回的前序人工审批节点
      */
-    boolean canWithdrawTask(FlowTask task, FlowInstance instance,
-                            FlowDefinition definition, List<FlowTask> instanceTasks);
+    List<FlowTaskReturnTargetVO> listReturnTargets(Long taskId, LoginUser loginUser);
+
+    /**
+     * 校验操作者的任务办理权限，退回指定前序审批节点并重建待办。
+     * @param param 操作参数
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     */
+    void returnTask(FlowTaskReturnParam param, LoginUser loginUser);
+
+    /**
+     * 根据操作者身份、流程配置和当前任务状态判断审批结果是否允许撤回。
+     * @param task 任务快照
+     * @param instance 流程实例快照
+     * @param definition 流程发布定义快照
+     * @param instanceTasks 实例内当前任务记录
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 当前操作者是否允许撤回该审批结果
+     */
+    boolean canWithdrawTask(FlowTask task, FlowInstance instance, FlowDefinition definition, List<FlowTask> instanceTasks, LoginUser loginUser);
 
     /**
      * 累计并行网关跳过的分支数量，不查询汇合结果。
@@ -161,6 +186,4 @@ public interface FlowTaskService extends IService<FlowTask> {
      * @return 任务列表
      */
     List<FlowTask> listTaskByInstanceId(Long instanceId);
-
-
 }

@@ -25,6 +25,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -59,7 +60,7 @@ class FlowTimeoutServiceImplTest {
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "test"), FlowTask.class);
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "test"), FlowTimeoutNotice.class);
         service = spy(new FlowTimeoutServiceImpl(dao, runtime, tasks));
-        org.springframework.test.util.ReflectionTestUtils.setField(service, "flowTimeoutNotification", channel);
+        ReflectionTestUtils.setField(service, "flowTimeoutNotification", channel);
         task = new FlowTask();
         task.setId(11L);
         task.setOrgId(9L);
