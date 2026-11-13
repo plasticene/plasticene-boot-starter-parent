@@ -1,9 +1,9 @@
 package com.plasticene.boot.example.flow.service;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.plasticene.boot.flow.core.entity.FlowTask;
-import com.plasticene.boot.flow.core.enums.FlowTaskStatusEnum;
-import com.plasticene.boot.flow.core.service.FlowTaskService;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowTask;
+import com.plasticene.boot.flow.core.model.enums.FlowTaskStatusEnum;
+import com.plasticene.boot.flow.core.impl.service.task.FlowTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;

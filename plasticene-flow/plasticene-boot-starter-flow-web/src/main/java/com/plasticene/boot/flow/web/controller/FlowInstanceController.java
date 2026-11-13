@@ -1,0 +1,97 @@
+package com.plasticene.boot.flow.web.controller;
+
+import com.plasticene.boot.common.pojo.PageResult;
+import com.plasticene.boot.common.pojo.ResponseVO;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.user.LoginUserHolder;
+import com.plasticene.boot.flow.core.impl.model.param.FlowInstanceParam;
+import com.plasticene.boot.flow.core.impl.model.param.FlowRouteParam;
+import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
+import com.plasticene.boot.flow.core.impl.model.vo.FlowInstanceStatisticsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
+import com.plasticene.boot.flow.core.api.vo.FlowRouteNodeVO;
+import com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
+import java.util.List;
+import java.util.Map;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * @author ZFJ
+ * @since 2026/9/4
+ */
+@RestController
+@RequestMapping("/flow/instance")
+@Tag(name = "工作流-实例管理")
+public class FlowInstanceController {
+    @Resource
+    private FlowRuntimeService flowRuntimeService;
+
+    @Operation(summary = "基于流程模型发起实例")
+    @PostMapping("/start")
+    public ResponseVO<Long> startFlowInstance(@RequestBody @Validated FlowInstanceParam param) {
+        LoginUser loginUser = LoginUserHolder.get();
+        Long definitionId = param.getDefinitionId();
+        Map<String, Object> varMap = param.getVarMap();
+        Long instanceId = flowRuntimeService.startInstance(definitionId, varMap, loginUser);
+        return ResponseVO.success(instanceId);
+    }
+
+    @Operation(summary = "计算流程预计审批路径")
+    @PostMapping("/route")
+    public ResponseVO<List<FlowRouteNodeVO>> calculateRoute(@RequestBody @Validated FlowRouteParam param) {
+        LoginUser loginUser = LoginUserHolder.get();
+        return ResponseVO.success(flowRuntimeService.calculateRoute(param.getDefinitionId(), param.getVarMap(), loginUser));
+    }
+
+    @Operation(summary = "分页查询流程实例")
+    @GetMapping("/page")
+    public ResponseVO<PageResult<FlowInstanceVO>> page(@Validated FlowInstanceQuery query) {
+        LoginUser loginUser = LoginUserHolder.get();
+        query.setOrgId(loginUser.getOrgId());
+        return ResponseVO.success(flowRuntimeService.page(query, loginUser));
+    }
+
+    @Operation(summary = "统计流程实例状态数量")
+    @GetMapping("/statistics")
+    public ResponseVO<FlowInstanceStatisticsVO> statistics(@Validated FlowInstanceQuery query) {
+        LoginUser loginUser = LoginUserHolder.get();
+        query.setOrgId(loginUser.getOrgId());
+        return ResponseVO.success(flowRuntimeService.statistics(query));
+    }
+
+    @Operation(summary = "分页查询当前用户发起的流程实例")
+    @GetMapping("/my/page")
+    public ResponseVO<PageResult<FlowInstanceVO>> pageMyApplications(@Validated FlowInstanceQuery query) {
+        LoginUser loginUser = LoginUserHolder.get();
+        query.setUserId(loginUser.getId());
+        query.setOrgId(loginUser.getOrgId());
+        return ResponseVO.success(flowRuntimeService.page(query, loginUser));
+    }
+
+    @Operation(summary = "查询流程实例详情")
+    @GetMapping("/{instanceId}")
+    public ResponseVO<FlowInstanceDetailVO> getInstanceDetail(@PathVariable("instanceId") Long instanceId,
+            @RequestParam(value = "taskId", required = false) Long taskId) {
+        LoginUser loginUser = LoginUserHolder.get();
+        return ResponseVO.success(flowRuntimeService.getInstanceDetail(instanceId, taskId, loginUser));
+    }
+
+    @Operation(summary = "取消当前用户发起的流程实例")
+    @PostMapping("/{instanceId}/cancel")
+    public ResponseVO<Void> cancelInstance(@PathVariable("instanceId") Long instanceId) {
+        LoginUser loginUser = LoginUserHolder.get();
+        flowRuntimeService.cancelInstance(instanceId, loginUser);
+        return ResponseVO.success();
+    }
+}

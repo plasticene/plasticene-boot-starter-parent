@@ -1,8 +1,10 @@
 package com.plasticene.boot.example.flow.leave;
 
+import com.plasticene.boot.flow.core.impl.support.FlowActors;
+
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.FlowEngine;
+import com.plasticene.boot.flow.core.api.FlowEngine;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -27,7 +29,7 @@ public class LeaveApplicationService {
 
     @Transactional(rollbackFor = Exception.class)
     public Long submit(String applicationId, int days, String reason, LoginUser actor) {
-        com.plasticene.boot.flow.core.utils.FlowActors.require(actor);
+        com.plasticene.boot.flow.core.impl.support.FlowActors.require(actor);
         if (applicationId == null || applicationId.isBlank() || days <= 0 || reason == null || reason.isBlank()) {
             throw new BizException("申请标识、正数请假天数及原因不能为空");
         }

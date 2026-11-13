@@ -1,0 +1,47 @@
+package com.plasticene.boot.flow.core.impl.condition;
+
+import com.plasticene.boot.flow.core.model.enums.FieldTypeEnum;
+import lombok.extern.slf4j.Slf4j;
+
+import java.math.BigDecimal;
+import java.util.Objects;
+
+/**
+ * @author ZFJ
+ * @date 2025/9/8
+ */
+@Slf4j
+public class LessThanOperator implements Operator {
+    @Override
+    public boolean compare(Integer fieldType, Object fieldValue, String inputValue) {
+        try {
+            if (fieldValue == null || inputValue == null) {
+                return false;
+            }
+            if (Objects.equals(fieldType, FieldTypeEnum.NUMBER.getCode())) {
+                // 数字类型统一转换成bigDecimal，防止小数精度丢失
+                BigDecimal value = new BigDecimal(fieldValue.toString());
+                BigDecimal input = new BigDecimal(inputValue);
+                return value.compareTo(input) < 0;
+          }
+          if (Objects.equals(fieldType, FieldTypeEnum.DATE.getCode())) {
+              return getDateTime(fieldValue).isBefore(getDateTime(inputValue));
+          }
+        } catch (Exception e) {
+            log.error("【{}】operator error: fieldValue={}, inputValue={}", op(), fieldValue, inputValue, e);
+            throw e;
+        }
+        return false;
+    }
+
+    @Override
+    public void validate(Integer fieldType, String inputValue) {
+        checkInputValue(fieldType, inputValue);
+        checkNumberOperator(fieldType);
+    }
+
+    @Override
+    public String op() {
+        return "<";
+    }
+}

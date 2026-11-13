@@ -1,0 +1,569 @@
+package com.plasticene.boot.flow.core.impl.service.instance;
+
+import com.plasticene.boot.flow.core.impl.event.FlowEventFactory;
+
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.common.pojo.PageResult;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.utils.PtcBeanUtils;
+import com.plasticene.boot.flow.core.impl.persistence.dao.FlowFormChangeRecordDAO;
+import com.plasticene.boot.flow.core.impl.persistence.dao.FlowInstanceDAO;
+import com.plasticene.boot.flow.core.impl.persistence.dao.FlowTimeoutNoticeDAO;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowDefinition;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowFormChangeRecord;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowInstance;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowTask;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowTaskAddSign;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowTimeoutNotice;
+import com.plasticene.boot.flow.core.model.enums.FlowInstanceStatusEnum;
+import com.plasticene.boot.flow.core.model.enums.FlowNodeEnum;
+import com.plasticene.boot.flow.core.model.enums.FlowTaskStatusEnum;
+import com.plasticene.boot.flow.core.impl.event.FlowEventPublisher;
+import com.plasticene.boot.flow.core.api.event.FlowEventType;
+import com.plasticene.boot.flow.core.api.event.FlowInstanceEvent;
+import com.plasticene.boot.flow.core.impl.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.FlowExtraSetting;
+import com.plasticene.boot.flow.core.impl.persistence.dto.FlowInstanceNodeTimeDTO;
+import com.plasticene.boot.flow.core.model.FlowNode;
+import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
+import com.plasticene.boot.flow.core.api.vo.FlowFormChangeRecordVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
+import com.plasticene.boot.flow.core.impl.model.vo.FlowInstanceStatisticsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
+import com.plasticene.boot.flow.core.api.vo.FlowRouteNodeVO;
+import com.plasticene.boot.flow.core.api.vo.FlowTaskAddSignVO;
+import com.plasticene.boot.flow.core.api.vo.FlowTaskVO;
+import com.plasticene.boot.flow.core.api.vo.FlowTimeoutNoticeVO;
+import com.plasticene.boot.flow.core.impl.tree.FlowParser;
+import com.plasticene.boot.flow.core.impl.tree.FlowReturnPath;
+import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
+import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
+import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
+import com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeService;
+import com.plasticene.boot.flow.core.impl.service.task.FlowTaskService;
+import com.plasticene.boot.flow.core.impl.support.FlowActors;
+import com.plasticene.boot.flow.core.impl.form.FlowFormChanges;
+import com.plasticene.boot.flow.core.impl.form.FlowFormPermissions;
+import com.plasticene.boot.mybatis.core.utils.MybatisUtils;
+import jakarta.annotation.Resource;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * @author ZFJ
+ * @date 2025/9/4
+ */
+@Service
+public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowInstance> implements FlowRuntimeService {
+    @Resource
+    private FlowInstanceDAO flowInstanceDAO;
+    @Resource
+    @Lazy
+    private ProcessExecutor processExecutor;
+    @Resource
+    private FlowEventPublisher flowEventPublisher;
+    @Resource
+    private FlowDefinitionService flowDefinitionService;
+    @Resource
+    private FlowCategoryService flowCategoryService;
+    @Resource
+    @Lazy
+    private FlowTaskService flowTaskService;
+    @Resource
+    private FlowOrganizationProvider flowOrganizationProvider;
+    @Resource
+    private FlowTimeoutNoticeDAO timeoutNoticeDAO;
+    @Resource
+    private FlowFormChangeRecordDAO formChangeRecordDAO;
+
+    /**
+     * 供 Web 动态表单发起独立流程，每次调用创建新实例，不关联外部业务申请记录。
+     * @param definitionId 流程发布定义 ID
+     * @param varMap 审批变量及表单数据
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 新建的实例 ID
+     */
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public Long startInstance(Long definitionId, Map<String, Object> varMap, LoginUser loginUser) {
+        return startInstance(definitionId, null, varMap, loginUser);
+    }
+
+    /**
+     * 按发布定义在当前事务内发起流程；同一组织和流程分类下的业务申请记录不能重复发起。
+     * @param definitionId 流程发布定义 ID
+     * @param businessId 业务申请记录 ID，按传入值直接插入；Web 独立发起时为 null
+     * @param varMap 审批变量及表单数据
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 新建的实例 ID
+     */
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public Long startInstance(Long definitionId, String businessId, Map<String, Object> varMap, LoginUser loginUser) {
+        FlowActors.require(loginUser);
+        FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId, loginUser);
+        // 发布了的流程模型是合法的，可以直接使用，这里不需要再校验合法性，发布的时候已经校验过合法性了
+        FlowNode flowNode = flowDefinition.getModelNode();
+        FlowInstance instance = new FlowInstance();
+        instance.setDefinitionId(definitionId);
+        instance.setBusinessId(businessId);
+        instance.setVarMap(varMap);
+        instance.setCategory(flowDefinition.getCategory());
+        instance.setOrgId(flowDefinition.getOrgId());
+        instance.setStartTime(LocalDateTime.now());
+        instance.setStatus(FlowInstanceStatusEnum.RUNNING.getCode());
+        instance.setCurrentNodeKey(flowNode.getKey());
+        instance.setCurrentNodeName(flowNode.getName());
+        instance.setUserId(loginUser.getId());
+        instance.setCreator(loginUser.getId());
+        instance.setUpdater(loginUser.getId());
+        try {
+            flowInstanceDAO.insert(instance);
+        } catch (DuplicateKeyException exception) {
+            throw new BizException("同一businessId不能重复发起实例");
+        }
+
+        // 发布流程实例开始事件
+        flowEventPublisher.publish(FlowEventFactory.instanceEvent(instance, FlowEventType.INSTANCE_STARTED));
+
+        // 开始流转流程
+        FlowParser.makeParentNode(flowNode);
+        processExecutor.executeNode(instance, flowNode);
+
+        return instance.getId();
+    }
+
+    /**
+     * 校验操作者的发起权限后，根据变量计算当前生效定义的预计流转路径。
+     * @param definitionId 流程发布定义 ID
+     * @param varMap 审批变量及表单数据
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 按执行顺序排列的预计路径节点
+     */
+    @Override
+    public List<FlowRouteNodeVO> calculateRoute(Long definitionId, Map<String, Object> varMap, LoginUser loginUser) {
+        FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId, loginUser);
+        FlowNode flowNode = flowDefinition.getModelNode();
+        FlowParser.makeParentNode(flowNode);
+        Map<String, Object> variables = varMap == null ? Map.of() : varMap;
+        return processExecutor.calculateRouteTrace(flowNode, variables).stream()
+                .map(this::toRouteNodeVO)
+                .toList();
+    }
+
+    /**
+     * 在指定组织查询条件下分页返回流程数据，并使用操作者组织解析关联信息。
+     * @param query 查询条件
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 分页结果
+     */
+    @Override
+    public PageResult<FlowInstanceVO> page(FlowInstanceQuery query, LoginUser loginUser) {
+        normalizeQuery(query);
+        IPage<FlowInstanceVO> page = flowInstanceDAO.pageInstance(MybatisUtils.buildPage(query), query, true);
+        List<FlowInstanceVO> records = page.getRecords();
+        Map<String, String> categoryMap = flowCategoryService.getCategoryMap(loginUser);
+        Map<Long, String> userMap = flowOrganizationProvider.getUserMap(loginUser.getOrgId());
+        Map<Long, FlowDefinition> definitionMap = getDefinitionMap(records);
+        Map<Long, LocalDateTime> nodeStartTimeMap = getCurrentNodeStartTimeMap(query.getOrgId(), records);
+        LocalDateTime now = LocalDateTime.now();
+        records.forEach(vo -> enrichInstanceVO(vo, categoryMap, userMap, nodeStartTimeMap.get(vo.getId()), now,
+                allowSubmitterCancel(vo.getDefinitionId() == null
+                        ? null
+                        : definitionMap.get(vo.getDefinitionId())), loginUser));
+        return new PageResult<>(records, page.getTotal(), page.getPages());
+    }
+
+    @Override
+    public FlowInstanceStatisticsVO statistics(FlowInstanceQuery query) {
+        normalizeQuery(query);
+        return flowInstanceDAO.statisticsInstance(query, false);
+    }
+
+    /**
+     * 校验实例组织归属，按操作者和可选任务计算表单读写权限并返回实例详情。
+     * @param instanceId 流程实例 ID
+     * @param taskId 任务 ID；为空时按操作者的实例可读范围返回
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     * @return 按操作者权限过滤后的实例详情
+     */
+    @Override
+    public FlowInstanceDetailVO getInstanceDetail(Long instanceId, Long taskId, LoginUser loginUser) {
+        if (instanceId == null) {
+            throw new BizException("流程实例id不能为空");
+        }
+        FlowInstance instance = flowInstanceDAO.selectById(instanceId);
+        if (instance == null || !Objects.equals(instance.getOrgId(), loginUser.getOrgId())) {
+            throw new BizException("流程实例不存在");
+        }
+        List<FlowTask> taskList = flowTaskService.listTaskByInstanceId(instanceId);
+        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+        if (definition == null || !Objects.equals(definition.getOrgId(), loginUser.getOrgId())) {
+            throw new BizException("流程发布定义不存在");
+        }
+
+        Map<Long, String> userMap = flowOrganizationProvider.getUserMap(loginUser.getOrgId());
+        var timeoutNotices = timeoutNoticeDAO.selectList(new LambdaQueryWrapper<FlowTimeoutNotice>()
+                .eq(FlowTimeoutNotice::getInstanceId, instanceId)
+                .eq(FlowTimeoutNotice::getOrgId, instance.getOrgId())
+                .orderByAsc(FlowTimeoutNotice::getId));
+        List<FlowTaskVO> taskVOList = taskList.stream()
+                .map(task -> {
+                    FlowTaskVO vo = toTaskVO(task, userMap);
+                    vo.setTimeoutNotices(timeoutNotices.stream().filter(notice -> Objects.equals(notice.getTaskId(), task.getId()))
+                            .map(notice -> PtcBeanUtils.copy(notice, FlowTimeoutNoticeVO.class)).toList());
+                    vo.setProcessable(FlowReturnPath.isActive(task) && Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
+                            && Objects.equals(task.getStatus(), FlowTaskStatusEnum.RUNNING.getCode())
+                            && Objects.equals(task.getAssignee(), loginUser.getId())
+                            && Objects.equals(task.getNodeType(), FlowNodeEnum.Type.APPROVE.getCode()));
+                    boolean groupTask = flowTaskService.isAddSignGroupTask(task);
+                    FlowNode node = FlowParser.findNodeByKey(definition.getModelNode(), task.getNodeKey());
+                    boolean canOperate = Boolean.TRUE.equals(vo.getProcessable()) && !groupTask && node != null;
+                    vo.setTransferable(canOperate && !Boolean.FALSE.equals(node.getAllowTransfer()));
+                    vo.setAddSignable(canOperate && !Boolean.FALSE.equals(node.getAllowAddSign()));
+                    vo.setReturnable(canOperate && !Boolean.FALSE.equals(node.getAllowReturn())
+                            && !FlowReturnPath.targets(definition.getModelNode(), task.getNodeKey(), taskList).isEmpty());
+                    if (task.getReturnTargetNodeKey() != null) {
+                        FlowNode target = FlowParser.findNodeByKey(definition.getModelNode(), task.getReturnTargetNodeKey());
+                        vo.setReturnTargetNodeName(target == null ? task.getReturnTargetNodeKey() : target.getName());
+                    }
+                    vo.setWithdrawable(flowTaskService.canWithdrawTask(task, instance, definition, taskList, loginUser));
+                    return vo;
+                })
+                .toList();
+        Map<String, Object> variables = instance.getVarMap() == null ? Map.of() : instance.getVarMap();
+
+        FlowInstanceVO instanceVO = toInstanceVO(instance, definition);
+        LocalDateTime currentNodeStartTime = taskList.stream()
+                .filter(FlowReturnPath::isActive)
+                .filter(task -> Objects.equals(task.getNodeKey(), instance.getCurrentNodeKey()))
+                .map(FlowTask::getStartTime)
+                .filter(Objects::nonNull)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
+        enrichInstanceVO(instanceVO, flowCategoryService.getCategoryMap(loginUser), userMap,
+                currentNodeStartTime, LocalDateTime.now(), allowSubmitterCancel(definition), loginUser);
+
+        FlowInstanceDetailVO detail = new FlowInstanceDetailVO();
+        detail.setInstance(instanceVO);
+        detail.setStartUserId(instance.getUserId());
+        detail.setStartUserName(userMap.getOrDefault(instance.getUserId(), String.valueOf(instance.getUserId())));
+        detail.setVersion(definition.getVersion());
+        var permissions = FlowFormPermissions.resolve(definition, instance, taskList, loginUser.getId(), taskId);
+        detail.setFieldPermissions(permissions);
+        detail.setFormChangeRecords(formChangeRecordDAO.selectList(new LambdaQueryWrapper<FlowFormChangeRecord>()
+                .eq(FlowFormChangeRecord::getOrgId, instance.getOrgId())
+                .eq(FlowFormChangeRecord::getInstanceId, instanceId)
+                .orderByDesc(FlowFormChangeRecord::getOperationTime, FlowFormChangeRecord::getId)).stream()
+                .map(record -> {
+                    FlowFormChangeRecordVO vo = PtcBeanUtils.copy(record, FlowFormChangeRecordVO.class);
+                    vo.setFieldDetails(FlowFormChanges.visible(record.getFieldDetails(), permissions));
+                    return vo;
+                }).filter(record -> !record.getFieldDetails().isEmpty()).toList());
+        detail.setFormConfig(FlowFormPermissions.filterConfig(definition.getFormConfig(), permissions));
+        detail.setFormData(FlowFormPermissions.filterData(variables, permissions));
+        detail.setModelNode(definition.getModelNode());
+        detail.setRouteNodeKeys(processExecutor.calculateRouteTrace(definition.getModelNode(), variables).stream()
+                .map(FlowNode::getKey)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+        detail.setTasks(taskVOList);
+        detail.setAddSigns(flowTaskService.listAddSigns(instanceId).stream()
+                .map(batch -> toAddSignVO(batch, userMap)).toList());
+        return detail;
+    }
+
+    /**
+     * 校验操作者为申请人及流程允许撤销后，取消运行中的实例并发布结束事件。
+     * @param instanceId 流程实例 ID
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     */
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Override
+    public void cancelInstance(Long instanceId, LoginUser loginUser) {
+        if (instanceId == null) {
+            throw new BizException("流程实例id不能为空");
+        }
+        FlowInstance instance = selectInstanceForUpdate(instanceId);
+        if (instance == null
+                || !Objects.equals(instance.getOrgId(), loginUser.getOrgId())
+                || !Objects.equals(instance.getUserId(), loginUser.getId())) {
+            throw new BizException("流程实例不存在");
+        }
+        if (!Objects.equals(instance.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())) {
+            throw new BizException("流程实例已结束，不能取消");
+        }
+        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+        if (!allowSubmitterCancel(definition)) {
+            throw new BizException("当前流程不允许提交人撤销申请");
+        }
+
+        flowTaskService.cancelInstanceRunningTask(instanceId);
+        endInstance(instance, resolveCurrentNode(instance), FlowInstanceStatusEnum.CANCEL);
+    }
+
+    @Override
+    public FlowInstance selectInstanceForUpdate(Long instanceId) {
+        return flowInstanceDAO.selectInstanceForUpdate(instanceId);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void updateInstanceCurrentNode(Long instanceId, FlowNode currentNode) {
+        FlowInstance instance = new FlowInstance();
+        instance.setId(instanceId);
+        instance.setCurrentNodeKey(currentNode.getKey());
+        instance.setCurrentNodeName(currentNode.getName());
+        flowInstanceDAO.updateById(instance);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void endInstance(FlowInstance instance, FlowNode currentNode, FlowInstanceStatusEnum status) {
+        if (status == FlowInstanceStatusEnum.REJECT) {
+            flowTaskService.delInstanceRunningTask(instance.getId());
+        }
+        // 更新按照规范只更新必须的字段
+        FlowInstance updateInstance = new FlowInstance();
+        updateInstance.setId(instance.getId());
+        updateInstance.setStatus(status.getCode());
+        updateInstance.setEndTime(LocalDateTime.now());
+        updateInstance.setCurrentNodeKey(currentNode.getKey());
+        updateInstance.setCurrentNodeName(currentNode.getName());
+        flowInstanceDAO.updateById(updateInstance);
+        // 上下文instance需要传递最新状态
+        instance.setStatus(status.getCode());
+        // 发布流程结束事件
+        FlowEventType eventType = switch (status) {
+            case APPROVE -> FlowEventType.INSTANCE_APPROVED;
+            case REJECT -> FlowEventType.INSTANCE_REJECTED;
+            case CANCEL -> FlowEventType.INSTANCE_CANCELLED;
+            default -> throw new IllegalArgumentException("非终态不能发布实例结束事件");
+        };
+        flowEventPublisher.publish(FlowEventFactory.instanceEvent(instance, eventType));
+
+    }
+
+    private FlowRouteNodeVO toRouteNodeVO(FlowNode flowNode) {
+        FlowRouteNodeVO vo = new FlowRouteNodeVO();
+        vo.setKey(flowNode.getKey());
+        vo.setName(flowNode.getName());
+        vo.setType(flowNode.getType());
+        vo.setShowText(flowNode.getShowText());
+        vo.setApproveMode(flowNode.getApproveMode());
+        return vo;
+    }
+
+    private FlowNode resolveCurrentNode(FlowInstance instance) {
+        FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+        if (definition != null) {
+            FlowNode modelNode = definition.getModelNode();
+            FlowParser.makeParentNode(modelNode);
+            FlowNode currentNode = FlowParser.findNodeByKey(modelNode, instance.getCurrentNodeKey());
+            if (currentNode != null) {
+                return currentNode;
+            }
+        }
+        FlowNode currentNode = new FlowNode();
+        currentNode.setKey(instance.getCurrentNodeKey());
+        currentNode.setName(instance.getCurrentNodeName());
+        return currentNode;
+    }
+
+    private FlowInstanceStatusEnum getStatus(Integer code) {
+        for (FlowInstanceStatusEnum status : FlowInstanceStatusEnum.values()) {
+            if (Objects.equals(status.getCode(), code)) {
+                return status;
+            }
+        }
+        return null;
+    }
+
+    private FlowInstanceVO toInstanceVO(FlowInstance instance, FlowDefinition definition) {
+        FlowInstanceVO vo = new FlowInstanceVO();
+        vo.setId(instance.getId());
+        vo.setDefinitionId(instance.getDefinitionId());
+        vo.setBusinessId(instance.getBusinessId());
+        vo.setName(definition.getName());
+        vo.setCode(definition.getCode());
+        vo.setCategory(instance.getCategory());
+        vo.setStartUserId(instance.getUserId());
+        vo.setCurrentNodeKey(instance.getCurrentNodeKey());
+        vo.setCurrentNodeName(instance.getCurrentNodeName());
+        vo.setStatus(instance.getStatus());
+        vo.setStartTime(instance.getStartTime());
+        vo.setEndTime(instance.getEndTime());
+        return vo;
+    }
+
+    private void normalizeQuery(FlowInstanceQuery query) {
+        query.setKeyword(StrUtil.trim(query.getKeyword()));
+        query.setKeywordInstanceId(parseKeywordInstanceId(query.getKeyword()));
+        query.setCategory(StrUtil.trim(query.getCategory()));
+        query.setCurrentNodeName(StrUtil.trim(query.getCurrentNodeName()));
+        if (query.getStartTimeBegin() != null && query.getStartTimeEnd() != null
+                && query.getStartTimeBegin().isAfter(query.getStartTimeEnd())) {
+            throw new BizException("发起时间开始值不能晚于结束值");
+        }
+    }
+
+    private Long parseKeywordInstanceId(String keyword) {
+        if (StrUtil.isBlank(keyword)) {
+            return null;
+        }
+        String value = StrUtil.removePrefix(keyword, "#");
+        try {
+            long instanceId = Long.parseLong(value);
+            return instanceId > 0 ? instanceId : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private Map<Long, LocalDateTime> getCurrentNodeStartTimeMap(Long orgId, List<FlowInstanceVO> instances) {
+        if (instances.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> instanceIds = instances.stream().map(FlowInstanceVO::getId).toList();
+        List<FlowInstanceNodeTimeDTO> nodeTimes = flowInstanceDAO.listCurrentNodeStartTimes(orgId, instanceIds);
+        Map<Long, LocalDateTime> result = new HashMap<>();
+        nodeTimes.forEach(item -> result.put(item.getInstanceId(), item.getStartTime()));
+        return result;
+    }
+
+    /**
+     * 补全实例分类、人员、耗时与当前操作者可执行的操作信息。
+     * @param vo 流程实例展示对象
+     * @param categoryMap 分类编码与名称映射
+     * @param userMap 用户 ID 与名称映射
+     * @param currentNodeStartTime 当前节点开始时间
+     * @param now 统计时间
+     * @param allowCancel 是否允许申请人撤销申请
+     * @param loginUser 宿主提供的可信操作者及其组织上下文
+     */
+    private void enrichInstanceVO(FlowInstanceVO vo,
+                                  Map<String, String> categoryMap,
+                                  Map<Long, String> userMap,
+                                  LocalDateTime currentNodeStartTime,
+                                  LocalDateTime now,
+                                  boolean allowCancel, LoginUser loginUser) {
+        String category = vo.getCategory();
+        vo.setCategoryName(category == null ? null : categoryMap.getOrDefault(category, category));
+        Long startUserId = vo.getStartUserId();
+        vo.setStartUserName(startUserId == null
+                ? null
+                : userMap.getOrDefault(startUserId, String.valueOf(startUserId)));
+        FlowInstanceStatusEnum status = getStatus(vo.getStatus());
+        vo.setStatusName(status == null ? null : status.getName());
+        vo.setCancelable(Objects.equals(vo.getStatus(), FlowInstanceStatusEnum.RUNNING.getCode())
+                && startUserId != null
+                && Objects.equals(startUserId, loginUser.getId())
+                && allowCancel);
+        LocalDateTime elapsedEndTime = vo.getEndTime() == null ? now : vo.getEndTime();
+        vo.setElapsedTime(elapsedSeconds(vo.getStartTime(), elapsedEndTime));
+        vo.setCurrentNodeElapsedTime(elapsedSeconds(currentNodeStartTime, elapsedEndTime));
+    }
+
+    private Map<Long, FlowDefinition> getDefinitionMap(List<FlowInstanceVO> instances) {
+        List<Long> definitionIds = instances.stream()
+                .map(FlowInstanceVO::getDefinitionId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (definitionIds.isEmpty()) {
+            return Map.of();
+        }
+        List<FlowDefinition> definitions = flowDefinitionService.listByIds(definitionIds);
+        if (definitions == null || definitions.isEmpty()) {
+            return Map.of();
+        }
+        return definitions.stream()
+                .collect(Collectors.toMap(FlowDefinition::getId, Function.identity()));
+    }
+
+    private boolean allowSubmitterCancel(FlowDefinition definition) {
+        if (definition == null) {
+            return true;
+        }
+        FlowExtraSetting setting = FlowExtraSetting.normalize(definition.getExtraSetting());
+        return Boolean.TRUE.equals(setting.getAllowSubmitterCancel());
+    }
+
+    private Long elapsedSeconds(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            return null;
+        }
+        return Math.max(0, Duration.between(startTime, endTime).getSeconds());
+    }
+
+    private FlowTaskVO toTaskVO(FlowTask task, Map<Long, String> userMap) {
+        FlowTaskVO vo = new FlowTaskVO();
+        vo.setId(task.getId());
+        vo.setNodeKey(task.getNodeKey());
+        vo.setNodeName(task.getNodeName());
+        vo.setNodeType(task.getNodeType());
+        vo.setAssignee(task.getAssignee());
+        vo.setAssigneeName(task.getAssignee() == null
+                ? "系统"
+                : userMap.getOrDefault(task.getAssignee(), String.valueOf(task.getAssignee())));
+        vo.setReturnTargetNodeKey(task.getReturnTargetNodeKey());
+        vo.setReturnTaskId(task.getReturnTaskId());
+        vo.setSourceTaskId(task.getSourceTaskId());
+        vo.setAddSignId(task.getAddSignId());
+        vo.setAssigneeList(task.getAssigneeList());
+        vo.setTransferTo(task.getTransferTo());
+        vo.setTransferToName(task.getTransferTo() == null ? null
+                : userMap.getOrDefault(task.getTransferTo(), String.valueOf(task.getTransferTo())));
+        vo.setApproveType(task.getApproveType());
+        vo.setApproveMode(task.getApproveMode());
+        vo.setStatus(task.getStatus());
+        FlowTaskStatusEnum status = getTaskStatus(task.getStatus());
+        vo.setStatusName(status == null ? null : status.getName());
+        vo.setStartTime(task.getStartTime());
+        vo.setEndTime(task.getEndTime());
+        vo.setComment(task.getComment());
+        vo.setDeadline(task.getDeadline());
+        vo.setNextRemindTime(task.getNextRemindTime());
+        vo.setTimeoutAction(task.getTimeoutRule() == null || task.getTimeoutRule().getAction() == null
+                ? null : task.getTimeoutRule().getAction().name());
+        vo.setTimeoutHandled(task.getTimeoutHandled());
+        if (task.getStartTime() != null) {
+            LocalDateTime endTime = task.getEndTime() == null ? LocalDateTime.now() : task.getEndTime();
+            vo.setDurationMillis(Math.max(0, Duration.between(task.getStartTime(), endTime).toMillis()));
+        }
+        return vo;
+    }
+
+    private FlowTaskAddSignVO toAddSignVO(FlowTaskAddSign batch, Map<Long, String> users) {
+        FlowTaskAddSignVO vo = PtcBeanUtils.copy(batch, FlowTaskAddSignVO.class);
+        vo.setInitiatorName(users.getOrDefault(batch.getInitiatorId(), String.valueOf(batch.getInitiatorId())));
+        vo.setAssigneeNames(batch.getAssigneeIds().stream()
+                .map(id -> users.getOrDefault(id, String.valueOf(id))).toList());
+        return vo;
+    }
+
+    private FlowTaskStatusEnum getTaskStatus(Integer code) {
+        for (FlowTaskStatusEnum status : FlowTaskStatusEnum.values()) {
+            if (Objects.equals(status.getCode(), code)) {
+                return status;
+            }
+        }
+        return null;
+    }
+}

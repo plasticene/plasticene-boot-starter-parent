@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow.listener;
 
-import com.plasticene.boot.flow.core.event.FlowEvent;
-import com.plasticene.boot.flow.core.event.SpringFlowEventListener;
+import com.plasticene.boot.flow.core.api.event.FlowEvent;
+import com.plasticene.boot.flow.core.api.event.SpringFlowEventListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

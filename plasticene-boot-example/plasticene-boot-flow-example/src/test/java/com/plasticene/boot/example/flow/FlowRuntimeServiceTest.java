@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow;
 
-import com.plasticene.boot.flow.core.entity.FlowInstance;
-import com.plasticene.boot.flow.core.service.FlowRuntimeService;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowInstance;
+import com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.test.context.SpringBootTest;

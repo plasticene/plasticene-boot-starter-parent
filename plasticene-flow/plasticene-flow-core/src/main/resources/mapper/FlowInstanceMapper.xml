@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.plasticene.boot.flow.core.impl.persistence.dao.FlowInstanceDAO">
+    
+    <resultMap id="instanceResultMap" type="com.plasticene.boot.flow.core.impl.persistence.entity.FlowInstance">
+        <result column="var_map" jdbcType="VARCHAR" property="varMap" javaType="java.util.Map"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+    </resultMap>
+
+
+    <select id="selectInstanceForUpdate" resultMap="instanceResultMap">
+        SELECT * FROM `flow_instance` WHERE id = #{instanceId} FOR UPDATE
+    </select>
+
+    <update id="incrementEventSequence">
+        UPDATE flow_instance SET event_sequence = event_sequence + 1 WHERE id = #{instanceId} AND org_id = #{orgId}
+    </update>
+
+    <select id="selectEventSequence" resultType="java.lang.Long">
+        SELECT event_sequence FROM flow_instance WHERE id = #{instanceId} AND org_id = #{orgId}
+    </select>
+
+    <sql id="instanceFilters">
+        fi.org_id = #{query.orgId}
+        <if test="query.userId != null">
+            AND fi.user_id = #{query.userId}
+        </if>
+        <if test="query.startUserId != null">
+            AND fi.user_id = #{query.startUserId}
+        </if>
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (fd.name LIKE CONCAT('%', #{query.keyword}, '%')
+            OR fd.code LIKE CONCAT('%', #{query.keyword}, '%')
+            <if test="query.keywordInstanceId != null">
+                OR fi.id = #{query.keywordInstanceId}
+            </if>
+            )
+        </if>
+        <if test="query.category != null and query.category != ''">
+            AND fi.category = #{query.category}
+        </if>
+        <if test="query.currentNodeName != null and query.currentNodeName != ''">
+            AND fi.current_node_name LIKE CONCAT('%', #{query.currentNodeName}, '%')
+        </if>
+        <if test="includeStatus and query.status != null">
+            AND fi.status = #{query.status}
+        </if>
+        <if test="query.startTimeBegin != null">
+            AND fi.start_time <![CDATA[>=]]> #{query.startTimeBegin}
+        </if>
+        <if test="query.startTimeEnd != null">
+            AND fi.start_time <![CDATA[<=]]> #{query.startTimeEnd}
+        </if>
+    </sql>
+
+    <select id="pageInstance" resultType="com.plasticene.boot.flow.core.api.vo.FlowInstanceVO">
+        SELECT fi.id,
+               fi.definition_id,
+               fi.business_id,
+               fd.name,
+               fd.code,
+               fi.category,
+               fi.user_id AS start_user_id,
+               fi.current_node_key,
+               fi.current_node_name,
+               fi.status,
+               fi.start_time,
+               fi.end_time
+        FROM flow_instance fi
+        INNER JOIN flow_definition fd ON fd.id = fi.definition_id AND fd.org_id = fi.org_id
+        <where>
+            <include refid="instanceFilters"/>
+        </where>
+        ORDER BY fi.start_time DESC, fi.id DESC
+    </select>
+
+    <select id="statisticsInstance"
+            resultType="com.plasticene.boot.flow.core.impl.model.vo.FlowInstanceStatisticsVO">
+        SELECT COUNT(*) AS total,
+               COALESCE(SUM(CASE WHEN fi.status = 0 THEN 1 ELSE 0 END), 0) AS running,
+               COALESCE(SUM(CASE WHEN fi.status = 1 THEN 1 ELSE 0 END), 0) AS approved,
+               COALESCE(SUM(CASE WHEN fi.status = 2 THEN 1 ELSE 0 END), 0) AS rejected,
+               COALESCE(SUM(CASE WHEN fi.status = 3 THEN 1 ELSE 0 END), 0) AS cancelled
+        FROM flow_instance fi
+        INNER JOIN flow_definition fd ON fd.id = fi.definition_id AND fd.org_id = fi.org_id
+        <where>
+            <include refid="instanceFilters"/>
+        </where>
+    </select>
+
+    <select id="listCurrentNodeStartTimes"
+            resultType="com.plasticene.boot.flow.core.impl.persistence.dto.FlowInstanceNodeTimeDTO">
+        SELECT fi.id AS instance_id,
+               MIN(ft.start_time) AS start_time
+        FROM flow_instance fi
+        INNER JOIN flow_task ft ON ft.instance_id = fi.id
+            AND ft.org_id = fi.org_id
+            AND ft.node_key = fi.current_node_key
+            AND ft.is_delete = 0
+            AND ft.return_task_id IS NULL
+        WHERE fi.org_id = #{orgId}
+          AND fi.id IN
+        <foreach collection="instanceIds" item="instanceId" open="(" separator="," close=")">
+            #{instanceId}
+        </foreach>
+        GROUP BY fi.id
+    </select>
+</mapper>

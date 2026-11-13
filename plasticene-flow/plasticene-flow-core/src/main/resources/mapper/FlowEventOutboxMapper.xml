@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.plasticene.boot.flow.core.impl.persistence.dao.FlowEventOutboxDAO">
+    <resultMap id="eventResultMap" type="com.plasticene.boot.flow.core.impl.persistence.entity.FlowEventOutbox">
+        <id column="event_id" property="eventId"/>
+        <result column="org_id" property="orgId"/>
+        <result column="instance_id" property="instanceId"/>
+        <result column="sequence_no" property="sequenceNo"/>
+        <result column="category" property="category"/>
+        <result column="business_id" property="businessId"/>
+        <result column="definition_id" property="definitionId"/>
+        <result column="event_type" property="eventType"/>
+        <result column="event_time" property="eventTime"/>
+        <result column="payload" property="payload"/>
+        <result column="status" property="status"/>
+        <result column="retry_count" property="retryCount"/>
+        <result column="total_failures" property="totalFailures"/>
+        <result column="next_attempt_at" property="nextAttemptAt"/>
+        <result column="last_error" property="lastError"/>
+        <result column="lease_token" property="leaseToken"/>
+        <result column="lease_until" property="leaseUntil"/>
+        <result column="delivered_at" property="deliveredAt"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insertEvent" parameterType="com.plasticene.boot.flow.core.impl.persistence.entity.FlowEventOutbox">
+        INSERT INTO flow_event_outbox (event_id, org_id, instance_id, sequence_no,
+            category, business_id, definition_id, event_type, event_time, payload,
+            status, retry_count, total_failures, next_attempt_at, created_at)
+        VALUES (#{eventId}, #{orgId}, #{instanceId}, #{sequenceNo}, #{category},
+            #{businessId}, #{definitionId}, #{eventType}, #{eventTime}, #{payload,jdbcType=VARCHAR},
+            #{status}, #{retryCount}, #{totalFailures}, #{nextAttemptAt}, #{createdAt})
+    </insert>
+
+    <select id="selectClaimCandidate" resultMap="eventResultMap">
+        SELECT e.event_id, e.event_type, e.payload FROM flow_event_outbox e
+        WHERE ((e.status = 'PENDING' AND e.next_attempt_at &lt;= #{now})
+            OR (e.status = 'PROCESSING' AND e.lease_until &lt;= #{now}))
+          AND NOT EXISTS (SELECT 1 FROM flow_event_outbox p
+            WHERE p.instance_id = e.instance_id AND p.sequence_no &lt; e.sequence_no
+              AND p.status &lt;> 'DELIVERED')
+        ORDER BY e.next_attempt_at, e.event_id LIMIT 1 FOR UPDATE SKIP LOCKED
+    </select>
+
+    <update id="markProcessing">
+        UPDATE flow_event_outbox SET status = 'PROCESSING', lease_token = #{token}, lease_until = #{leaseUntil}
+        WHERE event_id = #{eventId}
+    </update>
+
+    <update id="renewLease">
+        UPDATE flow_event_outbox SET lease_until = #{leaseUntil} WHERE event_id = #{eventId}
+            AND status = 'PROCESSING' AND lease_token = #{token} AND lease_until > #{now}
+    </update>
+
+    <update id="markDelivered">
+        UPDATE flow_event_outbox SET status = 'DELIVERED', delivered_at = #{now}, lease_token = NULL,
+            lease_until = NULL WHERE event_id = #{eventId} AND status = 'PROCESSING' AND lease_token = #{token}
+            AND lease_until > #{now}
+    </update>
+
+    <select id="selectRetryCountForUpdate" resultType="java.lang.Integer">
+        SELECT retry_count FROM flow_event_outbox WHERE event_id = #{eventId}
+            AND status = 'PROCESSING' AND lease_token = #{token} AND lease_until > #{now} FOR UPDATE
+    </select>
+
+    <update id="markFailed">
+        UPDATE flow_event_outbox SET status = #{status}, retry_count = #{retryCount}, total_failures = total_failures + 1,
+            next_attempt_at = #{nextAttemptAt}, last_error = #{lastError}, lease_token = NULL, lease_until = NULL
+        WHERE event_id = #{eventId} AND lease_token = #{token}
+    </update>
+
+    <select id="selectFailures" resultMap="eventResultMap">
+        SELECT event_id, org_id, instance_id, category, event_type, status, retry_count,
+            last_error, next_attempt_at FROM flow_event_outbox
+        WHERE org_id = #{orgId} AND status IN ('PENDING', 'PAUSED') AND last_error IS NOT NULL
+        ORDER BY created_at, event_id LIMIT #{limit}
+    </select>
+
+    <update id="retryPaused">
+        UPDATE flow_event_outbox SET status = 'PENDING', retry_count = 0, next_attempt_at = #{now}
+        WHERE org_id = #{orgId} AND event_id = #{eventId} AND status = 'PAUSED'
+    </update>
+
+    <delete id="deleteDeliveredBefore">
+        DELETE FROM flow_event_outbox WHERE status = 'DELIVERED' AND delivered_at &lt; #{cutoff}
+    </delete>
+</mapper>

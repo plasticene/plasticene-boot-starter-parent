@@ -2,14 +2,14 @@ package com.plasticene.boot.example.flow.leave;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.plasticene.boot.flow.autoconfigure.FlowEventProperties;
-import com.plasticene.boot.flow.core.FlowEngine;
-import com.plasticene.boot.flow.core.dao.FlowEventOutboxDAO;
-import com.plasticene.boot.flow.core.dao.FlowInstanceDAO;
-import com.plasticene.boot.flow.core.event.FlowEventDispatcher;
-import com.plasticene.boot.flow.core.event.FlowEventStore;
-import com.plasticene.boot.flow.core.event.FlowInstanceEvent;
-import com.plasticene.boot.flow.core.model.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.config.FlowEventProperties;
+import com.plasticene.boot.flow.core.api.FlowEngine;
+import com.plasticene.boot.flow.core.impl.persistence.dao.FlowEventOutboxDAO;
+import com.plasticene.boot.flow.core.impl.persistence.dao.FlowInstanceDAO;
+import com.plasticene.boot.flow.core.impl.event.FlowEventDispatcher;
+import com.plasticene.boot.flow.core.impl.event.FlowEventStore;
+import com.plasticene.boot.flow.core.api.event.FlowInstanceEvent;
+import com.plasticene.boot.flow.core.api.param.FlowTaskParam;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -59,7 +59,7 @@ class LeaveWorkflowIntegrationTest {
     void initializeDedicatedTestDatabase() throws Exception {
         try (var connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new FileSystemResource(System.getProperty("flow.example.schema",
-                    "../../plasticene-boot-starter-flow/docs/sql/leave-example.sql")));
+                    "../../plasticene-flow/docs/sql/leave-example.sql")));
         }
         // 仅在上方显式指定的专用测试库清理演示组织，不接触其他组织。
         for (String table : new String[]{"flow_event_outbox", "flow_task", "flow_instance",

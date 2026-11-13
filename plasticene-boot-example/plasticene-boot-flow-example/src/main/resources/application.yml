@@ -24,7 +24,7 @@ spring:
 
 #logging:
 #  level:
-#    com.plasticene.boot.flow.core.dao: debug
+#    com.plasticene.boot.flow.core.impl.persistence.dao: debug
 mybatis-plus:
   configuration:
     local-cache-scope: statement

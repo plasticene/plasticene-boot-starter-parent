@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow.provider;
 
 import cn.hutool.core.util.StrUtil;
-import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
+import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.ParameterizedTypeReference;

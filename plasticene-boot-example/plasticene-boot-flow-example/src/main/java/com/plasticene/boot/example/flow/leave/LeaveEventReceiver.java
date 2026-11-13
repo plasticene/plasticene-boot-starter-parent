@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow.leave;
 
-import com.plasticene.boot.flow.core.event.FlowEvent;
-import com.plasticene.boot.flow.core.event.FlowEventConsumer;
+import com.plasticene.boot.flow.core.api.event.FlowEvent;
+import com.plasticene.boot.flow.core.api.event.FlowEventConsumer;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;

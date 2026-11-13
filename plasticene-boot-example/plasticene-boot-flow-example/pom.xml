@@ -37,7 +37,7 @@
         </dependency>
         <dependency>
             <groupId>com.plasticene.boot</groupId>
-            <artifactId>plasticene-boot-starter-flow</artifactId>
+            <artifactId>plasticene-boot-starter-flow-web</artifactId>
         </dependency>
         <dependency>
             <groupId>com.plasticene.boot</groupId>

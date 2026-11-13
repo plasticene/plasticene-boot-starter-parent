@@ -11,7 +11,7 @@
 - `plasticene-boot-starter-mybatis`：MyBatis-Plus 扩展、多租户、字段处理、代码生成器与模板。
 - `plasticene-boot-starter-redis`：Redis 工具、分布式锁、限流和消息监听。
 - `plasticene-boot-starter-cache`：Caffeine + Redis 多级缓存。
-- `plasticene-boot-starter-flow`：流程模型、运行时、任务、表单及其持久层。
+- `plasticene-flow`：审批流聚合目录；`plasticene-flow-core` 提供核心能力，`plasticene-boot-starter-flow` 提供自动装配，`plasticene-boot-starter-flow-web` 提供可选 HTTP 接口。
 - `plasticene-boot-starter-delay-queue`：基于 Redis 的分布式延迟队列。
 - `plasticene-boot-starter-banner`、`license`、`oss`、`data-scope`、`excel`：对应的可插拔 Starter。
 - `plasticene-boot-example`：示例应用聚合项目；当前未加入根项目 reactor，需单独构建。

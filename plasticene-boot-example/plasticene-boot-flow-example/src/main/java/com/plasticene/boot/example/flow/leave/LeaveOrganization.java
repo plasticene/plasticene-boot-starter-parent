@@ -1,8 +1,8 @@
 package com.plasticene.boot.example.flow.leave;
 
-import com.plasticene.boot.flow.core.model.dto.FlowNode;
-import com.plasticene.boot.flow.core.provider.DefaultFlowTaskAssigneeProvider;
-import com.plasticene.boot.flow.core.provider.FlowOrganizationProvider;
+import com.plasticene.boot.flow.core.model.FlowNode;
+import com.plasticene.boot.flow.core.impl.task.DefaultFlowTaskAssigneeProvider;
+import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import java.util.List;

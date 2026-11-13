@@ -1,14 +1,14 @@
 package com.plasticene.boot.example.flow;
 
 import com.plasticene.boot.example.flow.service.TestService;
-import com.plasticene.boot.flow.core.entity.FlowDefinition;
-import com.plasticene.boot.flow.core.executor.ProcessExecutor;
-import com.plasticene.boot.flow.core.model.dto.FlowNode;
-import com.plasticene.boot.flow.core.model.dto.ProcessConditionRule;
-import com.plasticene.boot.flow.core.factory.OperatorFactory;
-import com.plasticene.boot.flow.core.operator.Operator;
-import com.plasticene.boot.flow.core.parser.FlowParser;
-import com.plasticene.boot.flow.core.service.FlowDefinitionService;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowDefinition;
+import com.plasticene.boot.flow.core.impl.executor.ProcessExecutor;
+import com.plasticene.boot.flow.core.model.FlowNode;
+import com.plasticene.boot.flow.core.model.ProcessConditionRule;
+import com.plasticene.boot.flow.core.impl.condition.OperatorFactory;
+import com.plasticene.boot.flow.core.impl.condition.Operator;
+import com.plasticene.boot.flow.core.impl.tree.FlowParser;
+import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;

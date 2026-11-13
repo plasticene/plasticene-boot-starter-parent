@@ -20,7 +20,7 @@
         <module>plasticene-boot-starter-data-scope</module>
         <module>plasticene-boot-starter-excel</module>
 <!--        <module>plasticene-boot-example</module>-->
-        <module>plasticene-boot-starter-flow</module>
+        <module>plasticene-flow</module>
         <module>plasticene-boot-starter-delay-queue</module>
     </modules>
 
@@ -44,6 +44,7 @@
 
         <!-- mybatis-plus 依赖版本 -->
         <mybatis-plus.version>3.5.12</mybatis-plus.version>
+        <mybatis-spring.version>3.0.4</mybatis-spring.version>
         <!--screw 版本 生成数据库文档  -->
         <screw.version>1.0.5</screw.version>
         <!-- druid 依赖版本 -->
@@ -163,6 +164,21 @@
                 <groupId>com.plasticene.boot</groupId>
                 <artifactId>plasticene-boot-starter-redis</artifactId>
                 <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-flow-core</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-boot-starter-flow-web</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mybatis</groupId>
+                <artifactId>mybatis-spring</artifactId>
+                <version>${mybatis-spring.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.plasticene.boot</groupId>

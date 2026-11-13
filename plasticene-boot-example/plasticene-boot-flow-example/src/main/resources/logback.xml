@@ -239,6 +239,6 @@
         </root>
     </springProfile>
 
-    <logger name="com.plasticene.boot.flow.core.dao" level="DEBUG" />
+    <logger name="com.plasticene.boot.flow.core.impl.persistence.dao" level="DEBUG" />
 
 </configuration>
