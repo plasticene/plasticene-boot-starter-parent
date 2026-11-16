@@ -15,7 +15,7 @@ import java.util.Objects;
  */
 public class DefaultFlowTaskAssigneeProvider implements FlowTaskAssigneeProvider {
     @Override
-    public List<Long> getAssignees(FlowNode currentNode) {
+    public List<Long> getAssignees(FlowNode currentNode, Long orgId, Long applicantId) {
         Integer assigneeType = currentNode.getAssigneeType();
         List<Long> assigneeList = currentNode.getAssigneeList();
         if (Objects.equals(assigneeType, FlowNodeEnum.AssigneeType.USER.getCode())) {
@@ -27,12 +27,12 @@ public class DefaultFlowTaskAssigneeProvider implements FlowTaskAssigneeProvider
     }
 
     @Override
-    public Long getLeader(Long userId) {
+    public Long getLeader(Long orgId, Long userId) {
         return 0L;
     }
 
     @Override
-    public Long getDeptLeader(Long userId) {
+    public Long getDeptLeader(Long orgId, Long userId) {
         return 0L;
     }
 

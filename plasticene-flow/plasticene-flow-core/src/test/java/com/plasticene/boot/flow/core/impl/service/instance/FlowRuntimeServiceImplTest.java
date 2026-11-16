@@ -23,7 +23,7 @@ import com.plasticene.boot.flow.core.impl.persistence.dto.FlowInstanceNodeTimeDT
 import com.plasticene.boot.flow.core.model.FlowNode;
 import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowInstanceStatisticsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
@@ -88,6 +88,8 @@ class FlowRuntimeServiceImplTest {
     private FlowTimeoutNoticeDAO timeoutNoticeDAO;
     @Mock
     private FlowFormChangeRecordDAO formChangeRecordDAO;
+    @org.mockito.Spy
+    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
     @InjectMocks
     private FlowRuntimeServiceImpl service;
 
@@ -151,6 +153,11 @@ class FlowRuntimeServiceImplTest {
     @ValueSource(strings = {"BIZ-000041", "000041", "9223372036854775808"})
     void shouldPublishStartedSnapshotBeforeExecutingNodes(String businessId) {
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
+        definition.setFormMode(businessId == null ? 0 : 1);
         definition.setOrgId(10L);
         definition.setCategory("leave");
         FlowNode node = new FlowNode();
@@ -181,6 +188,10 @@ class FlowRuntimeServiceImplTest {
     void shouldFilterHistoricalFieldsUsingCurrentTaskPermissions() {
         var instance = runningInstance(8L);
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setOrgId(10L);
         FlowNode node = new FlowNode();
         node.setKey("approve");
@@ -226,6 +237,10 @@ class FlowRuntimeServiceImplTest {
     void shouldSeparateGroupApprovalPermissionFromTransferAndAddSignCapabilities() {
         FlowInstance instance = runningInstance(8L);
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setOrgId(10L);
         FlowNode node = new FlowNode();
         node.setKey("approve"); node.setType(1); node.setApproveType(0);
@@ -362,6 +377,10 @@ class FlowRuntimeServiceImplTest {
         currentNode.setKey("approve");
         currentNode.setName("负责人审批");
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setIsDelete(deleted);
         definition.setModelNode(currentNode);
         when(flowInstanceDAO.selectInstanceForUpdate(21L)).thenReturn(instance);
@@ -406,6 +425,10 @@ class FlowRuntimeServiceImplTest {
     void shouldRejectCancelWhenDefinitionDisablesIt() {
         FlowInstance instance = runningInstance(8L);
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         FlowExtraSetting setting = new FlowExtraSetting();
         setting.setAllowSubmitterCancel(false);
         definition.setExtraSetting(setting);
@@ -425,6 +448,10 @@ class FlowRuntimeServiceImplTest {
         instance.setCategory("purchase");
         instance.setVarMap(Map.of("amount", 68000));
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setIsDelete(deleted);
         definition.setId(31L);
         definition.setOrgId(10L);
@@ -462,6 +489,10 @@ class FlowRuntimeServiceImplTest {
     void shouldExposeOnlyValidRoundCapabilitiesAndSerializeReturnTargetWithoutParentCycles() throws Exception {
         FlowInstance instance = runningInstance(8L);
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setOrgId(10L);
         FlowNode previous = new FlowNode();
         previous.setKey("previous");
@@ -530,6 +561,10 @@ class FlowRuntimeServiceImplTest {
     void shouldReturnTransferChainAndOnlyAllowCurrentRecipientToProcess() {
         FlowInstance instance = runningInstance(8L);
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setId(31L);
         definition.setOrgId(10L);
         FlowNode node = new FlowNode();
@@ -580,6 +615,10 @@ class FlowRuntimeServiceImplTest {
     void shouldReturnDetailForAnotherUserInSameOrganization() {
         FlowInstance instance = runningInstance(9L);
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setId(31L);
         definition.setOrgId(10L);
         definition.setName("采购付款申请");

@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 /**
- * 验证默认执行器注册及自定义执行器的自动退让。
+ * 验证默认执行器始终装配，不因宿主另一个同类型 Bean 退让。
  * @author ZFJ
  * @since 2026-11-10
  */
@@ -52,25 +52,21 @@ class FlowProcessExecutorConfigurationTest {
     }
 
     @Test
-    void shouldBackOffForCustomExecutorWithDifferentBeanName() {
+    void shouldRetainInternalExecutorWhenAnotherTypeBeanIsPresent() {
         ProcessExecutor custom = mock(ProcessExecutor.class);
         runner.withBean("customProcessExecutor", ProcessExecutor.class, () -> custom).run(context -> {
             assertNull(context.getStartupFailure(), () -> NestedExceptionUtils
                     .getMostSpecificCause(context.getStartupFailure()).toString());
-            assertEquals(1, context.getBeansOfType(ProcessExecutor.class).size());
-            assertSame(custom, context.getBean(ProcessExecutor.class));
-            assertFalse(context.containsBean("processExecutor"));
+            assertEquals(2, context.getBeansOfType(ProcessExecutor.class).size());
+            assertInstanceOf(DefaultProcessExecutor.class, context.getBean("processExecutor"));
         });
     }
 
     @Test
-    void shouldBackOffForCustomExecutorWithDefaultBeanName() {
+    void shouldRejectAUserBeanWithTheInternalExecutorName() {
         ProcessExecutor custom = mock(ProcessExecutor.class);
-        runner.withBean("processExecutor", ProcessExecutor.class, () -> custom).run(context -> {
-            assertNull(context.getStartupFailure(), () -> NestedExceptionUtils
-                    .getMostSpecificCause(context.getStartupFailure()).toString());
-            assertEquals(1, context.getBeansOfType(ProcessExecutor.class).size());
-            assertSame(custom, context.getBean(ProcessExecutor.class));
-        });
+        runner.withAllowBeanDefinitionOverriding(false)
+                .withBean("processExecutor", ProcessExecutor.class, () -> custom)
+                .run(context -> assertNotNull(context.getStartupFailure()));
     }
 }

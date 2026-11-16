@@ -13,6 +13,6 @@
     <modules>
         <module>plasticene-flow-core</module>
         <module>plasticene-boot-starter-flow</module>
-        <module>plasticene-boot-starter-flow-web</module>
+        <module>plasticene-flow-rest</module>
     </modules>
 </project>

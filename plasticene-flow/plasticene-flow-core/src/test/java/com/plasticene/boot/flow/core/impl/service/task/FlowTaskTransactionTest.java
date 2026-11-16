@@ -3,8 +3,10 @@ package com.plasticene.boot.flow.core.impl.service.task;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.api.FlowEngine;
-import com.plasticene.boot.flow.core.impl.FlowEngineImpl;
+import com.plasticene.boot.flow.core.api.service.FlowInstanceOperations;
+import com.plasticene.boot.flow.core.impl.application.FlowInstanceApplication;
+import com.plasticene.boot.flow.core.impl.application.FlowAccess;
+import com.plasticene.boot.flow.core.api.param.FlowRoutePreviewParam;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowFormChangeRecordDAO;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowTaskAddSignDAO;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowTaskDAO;
@@ -93,6 +95,7 @@ class FlowTaskTransactionTest {
                 }
             });
         });
+        context.register(com.plasticene.boot.flow.core.impl.application.FlowVariables.class);
         context.register(TaskConfiguration.class);
         context.refresh();
         service = context.getBean(FlowTaskService.class);
@@ -127,6 +130,10 @@ class FlowTaskTransactionTest {
             return instance;
         });
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         FlowNode node = new FlowNode();
         node.setKey("approve");
         definition.setModelNode(node);
@@ -142,20 +149,22 @@ class FlowTaskTransactionTest {
 
     @Test
     void shouldPreviewRouteThroughTheFacadeWithoutStartingATransaction() {
-        var facade = new FlowEngineImpl();
-        ReflectionTestUtils.setField(facade, "flowRuntimeService", runtime);
+        var facade = new FlowInstanceApplication();
+        ReflectionTestUtils.setField(facade, "runtimeService", runtime);
+        ReflectionTestUtils.setField(facade, "access", mock(FlowAccess.class));
         var datasource = mock(DataSource.class);
         var proxy = new ProxyFactory(facade);
         proxy.addAdvice(new TransactionInterceptor(
                 new DataSourceTransactionManager(datasource),
                 new AnnotationTransactionAttributeSource()));
-        var engine = (FlowEngine) proxy.getProxy();
+        var engine = (FlowInstanceOperations) proxy.getProxy();
         when(runtime.calculateRoute(31L, Map.of(), loginUserContext)).thenAnswer(invocation -> {
             assertFalse(TransactionSynchronizationManager.isActualTransactionActive());
             return List.of();
         });
 
-        assertEquals(List.of(), engine.calculateRoute(31L, Map.of(), loginUserContext));
+        var preview = new FlowRoutePreviewParam(); preview.setDefinitionId(31L); preview.setVarMap(Map.of());
+        assertEquals(List.of(), engine.previewRoute(preview, loginUserContext));
         verifyNoInteractions(datasource);
     }
 

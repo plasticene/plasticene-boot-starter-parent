@@ -3,7 +3,7 @@ package com.plasticene.boot.example.flow.leave;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.plasticene.boot.flow.core.config.FlowEventProperties;
-import com.plasticene.boot.flow.core.api.FlowEngine;
+import com.plasticene.boot.flow.core.api.service.FlowTaskOperations;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowEventOutboxDAO;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowInstanceDAO;
 import com.plasticene.boot.flow.core.impl.event.FlowEventDispatcher;
@@ -45,7 +45,8 @@ class LeaveWorkflowIntegrationTest {
     @Autowired private DataSource dataSource;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private PlatformTransactionManager manager;
-    @Autowired private FlowEngine engine;
+    @Autowired private FlowTaskOperations engine;
+    @Autowired private com.plasticene.boot.flow.core.api.service.FlowInstanceOperations instanceOperations;
     @Autowired private FlowEventStore events;
     @Autowired private FlowEventOutboxDAO eventDAO;
     @Autowired private FlowInstanceDAO instanceDAO;
@@ -77,7 +78,7 @@ class LeaveWorkflowIntegrationTest {
         FlowTaskParam task = new FlowTaskParam();
         task.setTaskId(jdbc.queryForObject("SELECT id FROM flow_task WHERE instance_id = ? AND assignee = 2 AND status = 0", Long.class, id));
         task.setComment("同意");
-        engine.approveTask(task, LeaveDemoRunner.actor(2L));
+        engine.approve(task, LeaveDemoRunner.actor(2L));
         assertEquals(1, jdbc.queryForObject("SELECT status FROM flow_instance WHERE id = ?", Integer.class, id));
         assertEquals("SUBMITTED", applicationState(request));
         drain();
@@ -111,13 +112,24 @@ class LeaveWorkflowIntegrationTest {
         try (var executor = Executors.newFixedThreadPool(4)) {
             var calls = new ArrayList<java.util.concurrent.Future<Long>>();
             for (int i = 0; i < 4; i++) {
-                calls.add(executor.submit(() -> engine.startInstanceByCode("leave-approval",
-                        request, Map.of("days", 2), LeaveDemoRunner.actor(1L))));
+                calls.add(executor.submit(() -> {
+                    var param = new com.plasticene.boot.flow.core.api.param.FlowBusinessStartByCodeParam();
+                    param.setProcessCode("leave-approval"); param.setBusinessId(request);
+                    param.setVarMap(Map.of("days", 2, "reason", "并发申请"));
+                    return instanceOperations.startBusinessByCode(param, LeaveDemoRunner.actor(1L));
+                }));
             }
-            Long first = calls.getFirst().get();
+            int created = 0;
+            int rejected = 0;
             for (var call : calls) {
-                assertEquals(first, call.get());
+                try { assertNotNull(call.get()); created++; }
+                catch (java.util.concurrent.ExecutionException failure) {
+                    assertInstanceOf(com.plasticene.boot.common.exception.BizException.class, failure.getCause());
+                    rejected++;
+                }
             }
+            assertEquals(1, created);
+            assertEquals(3, rejected);
         }
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM flow_instance WHERE business_id = ?", Integer.class, request));
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM flow_event_outbox WHERE business_id = ? AND event_type = 'INSTANCE_STARTED'", Integer.class, request));

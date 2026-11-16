@@ -126,6 +126,10 @@ class FlowTaskAddSignTest {
         when(runtime.selectInstanceForUpdate(21L)).thenReturn(instance);
         when(organization.getActiveUserMap(ArgumentMatchers.anyLong())).thenReturn(Map.of(8L, "原审批人", 9L, "原后续人", 10L, "加签甲", 11L, "加签乙", 12L, "接收人"));
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setOrgId(9L);
         FlowNode node = new FlowNode();
         node.setKey("approve");
@@ -491,6 +495,10 @@ class FlowTaskAddSignTest {
         verifyNoInteractions(executor);
         approve(rows.get(1L));
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         assertFalse(service.canWithdrawTask(rows.get(1L), instance, definition, List.copyOf(rows.values()), loginUserContext));
         login(10L, 9L);
         assertFalse(service.canWithdrawTask(rows.get(member.getId()), instance, definition, List.copyOf(rows.values()), loginUserContext));
@@ -506,6 +514,10 @@ class FlowTaskAddSignTest {
         rows.get(1L).setAssigneeList(List.of(8L, 9L));
         service.addSign(request(1L, FlowAddSignEnum.Type.BEFORE, 0, List.of(10L)), loginUserContext);
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         assertFalse(service.canWithdrawTask(previous, instance, definition, List.copyOf(rows.values()), loginUserContext));
         assertEquals(6, rows.get(1L).getStatus());
         assertEquals(1, runningMembers(batches.values().iterator().next().getId()).size());
@@ -519,6 +531,10 @@ class FlowTaskAddSignTest {
         current.setKey("approve"); current.setType(1); current.setApproveType(0);
         previous.setChildNode(current);
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setOrgId(9L); definition.setModelNode(previous);
         when(definitions.getById(31L)).thenReturn(definition);
         FlowTask prior = task(0L, 8L, "previous", 0);

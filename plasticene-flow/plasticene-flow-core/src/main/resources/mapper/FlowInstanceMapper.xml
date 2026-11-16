@@ -75,7 +75,7 @@
     </select>
 
     <select id="statisticsInstance"
-            resultType="com.plasticene.boot.flow.core.impl.model.vo.FlowInstanceStatisticsVO">
+            resultType="com.plasticene.boot.flow.core.api.vo.FlowInstanceStatisticsVO">
         SELECT COUNT(*) AS total,
                COALESCE(SUM(CASE WHEN fi.status = 0 THEN 1 ELSE 0 END), 0) AS running,
                COALESCE(SUM(CASE WHEN fi.status = 1 THEN 1 ELSE 0 END), 0) AS approved,

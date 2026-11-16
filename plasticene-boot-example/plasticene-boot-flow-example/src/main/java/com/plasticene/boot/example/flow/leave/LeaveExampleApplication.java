@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Profile;
  * @author ZFJ
  * @since 2026-11-11
  */
+@org.springframework.context.annotation.Import(com.plasticene.boot.example.flow.provider.FlowAuthorizationConfiguration.class)
 @Profile("leave")
 @SpringBootApplication(excludeName = {
         "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration",

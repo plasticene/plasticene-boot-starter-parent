@@ -16,7 +16,7 @@
         </choose>
     </sql>
 
-    <select id="selectSummary" resultType="com.plasticene.boot.flow.core.impl.model.vo.FlowDashboardVO$Summary">
+    <select id="selectSummary" resultType="com.plasticene.boot.flow.core.api.vo.FlowDashboardVO$Summary">
         SELECT COALESCE(SUM(CASE
                     WHEN start_time <![CDATA[>=]]> #{query.startTime}
                      AND start_time <![CDATA[<]]> #{query.endTime} THEN 1 ELSE 0 END), 0) AS started,
@@ -52,7 +52,7 @@
     </select>
 
     <select id="selectDurationStatistics"
-            resultType="com.plasticene.boot.flow.core.impl.model.vo.FlowDashboardVO$Summary">
+            resultType="com.plasticene.boot.flow.core.api.vo.FlowDashboardVO$Summary">
         WITH ranked_duration AS (
             SELECT TIMESTAMPDIFF(SECOND, start_time, end_time) AS duration_seconds,
                    ROW_NUMBER() OVER (ORDER BY TIMESTAMPDIFF(SECOND, start_time, end_time)) AS ranking_index,
@@ -72,7 +72,7 @@
         FROM ranked_duration
     </select>
 
-    <select id="listTrends" resultType="com.plasticene.boot.flow.core.impl.model.vo.FlowDashboardVO$TrendItem">
+    <select id="listTrends" resultType="com.plasticene.boot.flow.core.api.vo.FlowDashboardVO$TrendItem">
         SELECT bucket AS date,
                SUM(started) AS started,
                SUM(completed) AS completed
@@ -100,7 +100,7 @@
         ORDER BY bucket
     </select>
 
-    <select id="selectBacklog" resultType="com.plasticene.boot.flow.core.impl.model.vo.FlowDashboardVO$Backlog">
+    <select id="selectBacklog" resultType="com.plasticene.boot.flow.core.api.vo.FlowDashboardVO$Backlog">
         SELECT COALESCE(SUM(CASE WHEN start_time <![CDATA[>=]]> #{oneDayBefore} THEN 1 ELSE 0 END), 0)
                    AS within_one_day,
                COALESCE(SUM(CASE
@@ -115,7 +115,7 @@
     </select>
 
     <select id="listModelRankings"
-            resultType="com.plasticene.boot.flow.core.impl.model.vo.FlowDashboardVO$ModelRanking">
+            resultType="com.plasticene.boot.flow.core.api.vo.FlowDashboardVO$ModelRanking">
         WITH ranked_duration AS (
             SELECT fd.model_id,
                    TIMESTAMPDIFF(SECOND, fi.start_time, fi.end_time) AS duration_seconds,
@@ -172,7 +172,7 @@
     </select>
 
     <select id="listNodeRankings"
-            resultType="com.plasticene.boot.flow.core.impl.model.vo.FlowDashboardVO$NodeRanking">
+            resultType="com.plasticene.boot.flow.core.api.vo.FlowDashboardVO$NodeRanking">
         WITH ranked_duration AS (
             SELECT fd.model_id,
                    ft.node_key,

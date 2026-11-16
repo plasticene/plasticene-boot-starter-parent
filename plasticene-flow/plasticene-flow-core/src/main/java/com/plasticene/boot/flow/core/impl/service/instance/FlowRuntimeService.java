@@ -8,7 +8,7 @@ import com.plasticene.boot.flow.core.model.enums.FlowInstanceStatusEnum;
 import com.plasticene.boot.flow.core.model.FlowNode;
 import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowInstanceStatisticsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.api.vo.FlowRouteNodeVO;
 import java.util.List;

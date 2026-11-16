@@ -14,6 +14,9 @@ import java.time.LocalDateTime;
 @Data
 @Schema(description = "流程实例VO")
 public class FlowInstanceVO {
+    @io.swagger.v3.oas.annotations.media.Schema(description = "表单类型：0自带表单、1业务表单")
+    private Integer formMode;
+
 
     @Schema(description = "流程实例id")
     private Long id;

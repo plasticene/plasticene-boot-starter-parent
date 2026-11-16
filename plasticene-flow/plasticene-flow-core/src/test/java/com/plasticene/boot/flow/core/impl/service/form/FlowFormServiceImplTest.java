@@ -8,7 +8,7 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowFormDAO;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowForm;
 import com.plasticene.boot.flow.core.api.param.FlowFormParam;
-import com.plasticene.boot.flow.core.impl.model.query.FlowFormQuery;
+import com.plasticene.boot.flow.core.api.query.FlowFormQuery;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import org.apache.ibatis.builder.MapperBuilderAssistant;

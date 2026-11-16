@@ -6,7 +6,6 @@ import com.plasticene.boot.flow.core.model.enums.FlowTimeoutNoticeEnums.State;
 import com.plasticene.boot.flow.core.impl.service.timeout.FlowTimeoutService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDateTime;
 
@@ -25,8 +24,6 @@ public class ReminderScheduler {
     /**
      * 发送通知提醒
      */
-    @Scheduled(fixedDelayString = "${ptc.flow.timeout.notice-scan-interval-ms:30000}",
-            scheduler = "flowTimeoutSchedulerExecutor")
     public void sendNotification() {
         LocalDateTime now = LocalDateTime.now();
         long startId = 0;

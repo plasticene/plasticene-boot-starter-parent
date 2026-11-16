@@ -8,8 +8,8 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.impl.form.FlowFormConfig;
 import com.plasticene.boot.flow.core.api.param.FlowFormParam;
-import com.plasticene.boot.flow.core.impl.model.query.FlowFormQuery;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowFormVO;
+import com.plasticene.boot.flow.core.api.query.FlowFormQuery;
+import com.plasticene.boot.flow.core.api.vo.FlowFormVO;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowFormDAO;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowForm;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
@@ -80,10 +80,12 @@ public class FlowFormServiceImpl extends ServiceImpl<FlowFormDAO, FlowForm> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void delete(List<Long> ids) {
+    public void delete(List<Long> ids, LoginUser actor) {
+        FlowActors.require(actor);
         if (CollUtil.isEmpty(ids)) {
             return;
         }
+        ids.forEach(id -> requireOwnedForm(id, actor));
         flowFormDAO.deleteByIds(ids);
     }
 

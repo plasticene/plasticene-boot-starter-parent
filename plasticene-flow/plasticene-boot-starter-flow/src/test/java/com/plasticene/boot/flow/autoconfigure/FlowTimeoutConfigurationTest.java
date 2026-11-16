@@ -50,8 +50,12 @@ class FlowTimeoutConfigurationTest {
             var executor = context.getBean("flowTimeoutSchedulerExecutor",
                     ThreadPoolTaskScheduler.class);
             assertEquals(2, executor.getScheduledThreadPoolExecutor().getCorePoolSize());
-            var processor = context.getBean(ScheduledAnnotationBeanPostProcessor.class);
-            assertEquals(1, processor.getScheduledTasks().size());
+            var lifecycle = context.getBean("flowTimeoutLifecycle", org.springframework.context.SmartLifecycle.class);
+            assertTrue(lifecycle.isRunning());
+            lifecycle.stop();
+            assertFalse(lifecycle.isRunning());
+            lifecycle.start();
+            assertTrue(lifecycle.isRunning());
         });
     }
 
@@ -62,12 +66,11 @@ class FlowTimeoutConfigurationTest {
             assertNull(context.getStartupFailure());
             assertSame(channel, context.getBean(FlowTimeoutNotification.class));
             assertEquals(1, context.getBeansOfType(FlowTimeoutScheduler.class).size());
-            assertEquals(1, context.getBeansOfType(ReminderScheduler.class).size());
+            assertTrue(context.getBeansOfType(ReminderScheduler.class).isEmpty());
             var executor = context.getBean("flowTimeoutSchedulerExecutor",
                     ThreadPoolTaskScheduler.class);
             assertEquals(2, executor.getScheduledThreadPoolExecutor().getCorePoolSize());
-            var processor = context.getBean(ScheduledAnnotationBeanPostProcessor.class);
-            assertEquals(2, processor.getScheduledTasks().size());
+            assertTrue(context.getBean("flowTimeoutLifecycle", org.springframework.context.SmartLifecycle.class).isRunning());
         });
     }
 
@@ -81,6 +84,27 @@ class FlowTimeoutConfigurationTest {
                     assertTrue(context.getBeansOfType(FlowTimeoutScheduler.class).isEmpty());
                     assertTrue(context.getBeansOfType(ReminderScheduler.class).isEmpty());
                     assertFalse(context.containsBean("flowTimeoutSchedulerExecutor"));
+                });
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void shouldRegisterTwoTasksOnlyWithAChannelAndCancelOnlyOwnFutures() {
+        var executor = mock(ThreadPoolTaskScheduler.class);
+        java.util.concurrent.ScheduledFuture first = mock(java.util.concurrent.ScheduledFuture.class);
+        java.util.concurrent.ScheduledFuture second = mock(java.util.concurrent.ScheduledFuture.class);
+        org.mockito.Mockito.when(executor.scheduleWithFixedDelay(any(Runnable.class), any(java.time.Duration.class)))
+                .thenReturn(first, second);
+        runner.withBean("flowTimeoutSchedulerExecutor", ThreadPoolTaskScheduler.class, () -> executor)
+                .withBean(FlowTimeoutNotification.class, () -> message -> { })
+                .run(context -> {
+                    assertNull(context.getStartupFailure());
+                    org.mockito.Mockito.verify(executor, org.mockito.Mockito.times(2))
+                            .scheduleWithFixedDelay(any(Runnable.class), org.mockito.ArgumentMatchers.eq(java.time.Duration.ofSeconds(30)));
+                    context.getBean("flowTimeoutLifecycle", org.springframework.context.SmartLifecycle.class).stop();
+                    org.mockito.Mockito.verify(first).cancel(false);
+                    org.mockito.Mockito.verify(second).cancel(false);
+                    org.mockito.Mockito.verify(executor, org.mockito.Mockito.never()).shutdown();
                 });
     }
 

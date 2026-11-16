@@ -56,6 +56,12 @@ class FlowApplicationIdempotencyTest {
     void shouldInsertTheSuppliedBusinessIdAndPublishAfterCreation(String businessId) {
         var fixture = new Fixture();
         assertNull(LoginUserHolder.get());
+        if (businessId != null) {
+            fixture.definition.setFormMode(1);
+            var field = new com.plasticene.boot.flow.core.model.FlowVariableSchema.Field();
+            field.setField("days"); field.setTitle("天数"); field.setType(1);
+            fixture.definition.getVarInfo().setFields(java.util.List.of(field));
+        }
         when(fixture.instances.insert(any(FlowInstance.class))).thenAnswer(call -> {
             call.<FlowInstance>getArgument(0).setId(21L);
             return 1;
@@ -75,6 +81,7 @@ class FlowApplicationIdempotencyTest {
     @Test
     void shouldRejectDuplicateBusinessIdWithoutExecutingOrPublishing() {
         var fixture = new Fixture();
+        fixture.definition.setFormMode(1);
         when(fixture.instances.insert(any(FlowInstance.class)))
                 .thenThrow(new DuplicateKeyException("uk_flow_application"));
         var failure = assertThrows(BizException.class,
@@ -118,8 +125,13 @@ class FlowApplicationIdempotencyTest {
         final ProcessExecutor executor = mock(ProcessExecutor.class);
         final LoginUser actor = new LoginUser();
         final FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
 
         Fixture() {
+            ReflectionTestUtils.setField(service, "flowVariables", new com.plasticene.boot.flow.core.impl.application.FlowVariables());
             actor.setId(8L);
             actor.setOrgId(9L);
             definition.setOrgId(9L);

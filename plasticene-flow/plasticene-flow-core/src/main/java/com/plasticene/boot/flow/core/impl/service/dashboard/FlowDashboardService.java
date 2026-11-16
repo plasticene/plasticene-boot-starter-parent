@@ -1,7 +1,7 @@
 package com.plasticene.boot.flow.core.impl.service.dashboard;
 
-import com.plasticene.boot.flow.core.impl.model.query.FlowDashboardQuery;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowDashboardVO;
+import com.plasticene.boot.flow.core.api.query.FlowDashboardQuery;
+import com.plasticene.boot.flow.core.api.vo.FlowDashboardVO;
 
 /**
  * 流程数据总览服务

@@ -54,6 +54,8 @@ class FlowModelExtraSettingServiceTest {
     private FlowNodeValidator flowNodeValidator;
     @Mock
     private FlowDefinitionService flowDefinitionService;
+    @org.mockito.Spy
+    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
     @InjectMocks
     private FlowModelServiceImpl service;
 
@@ -71,6 +73,9 @@ class FlowModelExtraSettingServiceTest {
         user.setOrgId(100L);
         loginUserContext = user;
         var model = new FlowModel();
+        {
+        model.setFormMode(0);
+        }
         model.setCategory("leave");
         model.setId(11L);
         model.setOrgId(100L);
@@ -132,6 +137,9 @@ class FlowModelExtraSettingServiceTest {
     @Test
     void shouldCopyExtraSettingToPublishedDefinition() {
         FlowModel model = new FlowModel();
+        {
+        model.setFormMode(0);
+        }
         model.setCategory("leave");
         model.setId(11L);
         model.setIcon("flow:expense");
@@ -147,7 +155,7 @@ class FlowModelExtraSettingServiceTest {
         model.setOrgId(100L);
         model.setManagerUserIds(List.of(8L));
         service.publish(11L, loginUserContext);
-        verify(flowNodeValidator).validate(model.getModelNode(), null);
+        verify(flowNodeValidator).validate(model.getModelNode(), Set.of());
 
         ArgumentCaptor<FlowDefinition> captor = ArgumentCaptor.forClass(FlowDefinition.class);
         verify(flowDefinitionService).save(captor.capture());
@@ -178,6 +186,7 @@ class FlowModelExtraSettingServiceTest {
         var mapper = new ObjectMapper();
         FlowModelParam param = new FlowModelParam();
         param.setId(11L);
+        param.setFormMode(0);
         param.setModelNode(mapper.readValue(mapper.writeValueAsString(root), FlowNode.class));
         service.update(param, loginUserContext);
         ArgumentCaptor<FlowModel> draft = ArgumentCaptor.forClass(FlowModel.class);
@@ -209,12 +218,15 @@ class FlowModelExtraSettingServiceTest {
     }
 
     @Test
-    void shouldOnlyPassEligibleFieldsWhenPublishingWithoutRevalidatingForm() {
+    void shouldPassEligibleFieldsFromValidatedPublishedForm() {
         var model = new FlowModel();
+        {
+        model.setFormMode(0);
+        }
         model.setCategory("leave");
         model.setModelNode(new FlowNode());
         model.setFormConfig(Map.of("rule", List.of(
-                Map.of("type", "select", "field", "choice", "title", ""),
+                Map.of("type", "select", "field", "choice", "title", "选项", "options", List.of(Map.of("label", "一", "value", "one"))),
                 Map.of("type", "subForm", "field", "detail", "title", "分组"))));
         when(flowModelDAO.selectFlowModelForUpdate(11L)).thenReturn(model);
         model.setOrgId(100L);

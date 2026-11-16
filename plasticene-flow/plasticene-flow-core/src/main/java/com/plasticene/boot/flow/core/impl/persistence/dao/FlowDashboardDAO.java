@@ -1,7 +1,7 @@
 package com.plasticene.boot.flow.core.impl.persistence.dao;
 
-import com.plasticene.boot.flow.core.impl.model.query.FlowDashboardQuery;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowDashboardVO;
+import com.plasticene.boot.flow.core.api.query.FlowDashboardQuery;
+import com.plasticene.boot.flow.core.api.vo.FlowDashboardVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

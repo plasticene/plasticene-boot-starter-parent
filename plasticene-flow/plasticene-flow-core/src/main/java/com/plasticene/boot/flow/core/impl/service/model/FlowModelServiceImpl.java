@@ -18,9 +18,9 @@ import com.plasticene.boot.flow.core.model.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.FlowNode;
 import com.plasticene.boot.flow.core.api.param.FlowModelEnableParam;
 import com.plasticene.boot.flow.core.api.param.FlowModelParam;
-import com.plasticene.boot.flow.core.impl.model.query.FlowModelQuery;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowModelStatisticsVO;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowModelVO;
+import com.plasticene.boot.flow.core.api.query.FlowModelQuery;
+import com.plasticene.boot.flow.core.api.vo.FlowModelStatisticsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowModelVO;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
 import com.plasticene.boot.flow.core.impl.service.model.FlowModelService;
@@ -48,6 +48,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> implements FlowModelService {
     @Resource
+    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables;
+    @Resource
     private FlowModelDAO flowModelDAO;
     @Resource
     private FlowCategoryDAO flowCategoryDAO;
@@ -67,6 +69,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Transactional(rollbackFor = Exception.class)
     @Override
     public Long create(FlowModelParam param, LoginUser loginUser) {
+        if (param.getFormMode() != null) { com.plasticene.boot.flow.core.model.enums.FlowFormMode.from(param.getFormMode()); }
         FlowFormConfig.validate(param.getFormConfig());
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
         flowModel.setExtraSetting(FlowExtraSetting.normalize(flowModel.getExtraSetting()));
@@ -94,6 +97,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void update(FlowModelParam param, LoginUser loginUser) {
+        if (param.getFormMode() != null) { com.plasticene.boot.flow.core.model.enums.FlowFormMode.from(param.getFormMode()); }
         FlowFormConfig.validate(param.getFormConfig());
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
         if (flowModel.getExtraSetting() != null) {
@@ -252,10 +256,15 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         // 2.发布前校验流程模型是否合法
         FlowNode modelNode = flowModel.getModelNode();
         requireCategory(flowModel.getCategory(), loginUser);
-        flowNodeValidator.validate(modelNode, flowModel.getFormConfig() == null
-                ? null : FlowFormConfig.referenceFields(flowModel.getFormConfig()));
+        var varInfo = flowVariables.forModel(flowModel);
+        flowNodeValidator.validate(modelNode, varInfo.getFields().stream()
+                .map(com.plasticene.boot.flow.core.model.FlowVariableSchema.Field::getField)
+                .collect(java.util.stream.Collectors.toSet()));
+        validateVariableTypes(modelNode, varInfo);
         // 3.生成发布流程定义快照
         FlowDefinition flowDefinition = PtcBeanUtils.copy(flowModel, FlowDefinition.class);
+        flowDefinition.setVarInfo(varInfo);
+        if (java.util.Objects.equals(flowModel.getFormMode(), 1)) { flowDefinition.setFormConfig(null); }
         flowDefinition.setExtraSetting(FlowExtraSetting.normalize(flowDefinition.getExtraSetting()));
         flowDefinition.setId(null);
         flowDefinition.setModelId(id);
@@ -306,6 +315,27 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
      * @param loginUser 宿主提供的可信操作者及其组织上下文
      * @return 查询结果
      */
+    private void validateVariableTypes(com.plasticene.boot.flow.core.model.FlowNode node,
+            com.plasticene.boot.flow.core.model.FlowVariableSchema schema) {
+        if (node == null) { return; }
+        var fields = schema.getFields().stream().collect(java.util.stream.Collectors.toMap(
+                com.plasticene.boot.flow.core.model.FlowVariableSchema.Field::getField, field -> field));
+        if (node.getCondition() != null && node.getCondition().getConditionGroups() != null) {
+            for (var group : node.getCondition().getConditionGroups()) {
+                for (var rule : group.getConditionRules()) {
+                    var field = fields.get(rule.getField());
+                    if (field != null && !java.util.Objects.equals(field.getType(), rule.getType())) {
+                        throw new com.plasticene.boot.common.exception.BizException("条件变量类型不匹配：" + rule.getField());
+                    }
+                }
+            }
+        }
+        if (node.getConditionNodes() != null) {
+            node.getConditionNodes().forEach(child -> validateVariableTypes(child, schema));
+        }
+        validateVariableTypes(node.getChildNode(), schema);
+    }
+
     private FlowModel requireModel(FlowModel model, LoginUser loginUser) {
         if (model == null || !Objects.equals(model.getOrgId(), loginUser.getOrgId())) {
             throw new BizException("流程模型不存在");

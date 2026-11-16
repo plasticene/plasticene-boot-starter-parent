@@ -9,30 +9,20 @@ import java.util.List;
  */
 public interface FlowTaskAssigneeProvider {
 
-    @Deprecated
-    default List<Long> getAssignees(FlowNode currentNode) {
-        return List.of();
-    }
-
-    @Deprecated
+@Deprecated
     default Long getLeader(Long userId) {
         return null;
     }
 
-    @Deprecated
-    default Long getDeptLeader(Long userId) {
-        return null;
-    }
-
-    default List<Long> getAssignees(FlowNode node, Long orgId, Long applicantId) {
-        return getAssignees(node);
+default List<Long> getAssignees(FlowNode node, Long orgId, Long applicantId) {
+        return List.of();
     }
 
     default Long getLeader(Long orgId, Long userId) {
-        return getLeader(userId);
+        return null;
     }
 
     default Long getDeptLeader(Long orgId, Long userId) {
-        return getDeptLeader(userId);
+        return null;
     }
 }

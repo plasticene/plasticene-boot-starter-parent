@@ -87,6 +87,10 @@ class FlowFormPermissionsTest {
 
     private FlowDefinition definition() {
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         FlowNode node = new FlowNode(); node.setKey("approve"); node.setType(1);
         FlowFieldPermission reason = new FlowFieldPermission(); reason.setField("reason"); reason.setPermission(WRITE);
         FlowFieldPermission secret = new FlowFieldPermission(); secret.setField("secret"); secret.setPermission(HIDDEN);

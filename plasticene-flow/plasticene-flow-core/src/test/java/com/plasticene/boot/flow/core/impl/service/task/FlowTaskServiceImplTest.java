@@ -101,6 +101,8 @@ class FlowTaskServiceImplTest {
     private FlowFormChangeRecordDAO formChangeRecordDAO;
     @Mock
     private FlowEventPublisher flowEventPublisher;
+    @org.mockito.Spy
+    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
     @InjectMocks
     private FlowTaskServiceImpl service;
 
@@ -678,6 +680,10 @@ class FlowTaskServiceImplTest {
         when(flowRuntimeService.selectInstanceForUpdate(21L)).thenReturn(instance);
         when(flowTaskDAO.update(any(FlowTask.class), any())).thenReturn(1);
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         FlowNode approve = approveNode("approve");
         definition.setModelNode(approve);
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
@@ -825,6 +831,10 @@ class FlowTaskServiceImplTest {
         when(flowTaskDAO.selectById(13L)).thenReturn(recipient);
         FlowNode node = approveNode("approve");
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setModelNode(node);
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
         FlowTaskParam approval = new FlowTaskParam();
@@ -849,6 +859,10 @@ class FlowTaskServiceImplTest {
         when(flowTaskDAO.update(any(FlowTask.class), any())).thenReturn(1);
         when(flowTaskDAO.selectList(any())).thenReturn(List.of(transferred, completed));
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         FlowNode node = approveNode("approve");
         definition.setModelNode(node);
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
@@ -1095,6 +1109,10 @@ class FlowTaskServiceImplTest {
 
     private void prepareOperationDefinition() {
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setOrgId(9L);
         definition.setModelNode(approveNode("approve"));
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
@@ -1159,6 +1177,10 @@ class FlowTaskServiceImplTest {
     private FlowDefinition definition(FlowExtraSetting.ApproverDeduplication strategy,
                                       boolean allowWithdraw) {
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         FlowExtraSetting setting = new FlowExtraSetting();
         setting.setApproverDeduplication(strategy);
         setting.setAllowApproverWithdraw(allowWithdraw);

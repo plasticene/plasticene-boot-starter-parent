@@ -8,7 +8,6 @@ import com.plasticene.boot.flow.core.model.enums.FlowTaskStatusEnum;
 import com.plasticene.boot.flow.core.impl.service.timeout.FlowTimeoutService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDateTime;
 
@@ -29,8 +28,6 @@ public class FlowTimeoutScheduler {
     /**
      * 处理到期的待办任务：任务超时或者任务下次提醒时间到期
      */
-    @Scheduled(fixedDelayString = "${ptc.flow.timeout.scan-interval-ms:30000}",
-            scheduler = "flowTimeoutSchedulerExecutor")
     public void handleDueTasks() {
         LocalDateTime now = LocalDateTime.now();
         long startId = 0;

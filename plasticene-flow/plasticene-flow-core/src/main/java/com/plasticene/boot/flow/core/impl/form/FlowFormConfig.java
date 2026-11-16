@@ -24,8 +24,63 @@ public final class FlowFormConfig {
 
     /** 保存时仅校验表单，不涉及流程节点树。 */
     public static void validate(Map<String, Object> config) {
+        validate(config, false);
+    }
+
+    /** 历史迁移按审批变量范围校验字段，排除子表单并保留历史选项。 */
+    public static void validateMigrationSource(Map<String, Object> config) {
+        validate(config, true);
+    }
+
+    /** 发布时只提取允许引用的字段，不重复校验表单配置。 */
+    public static Set<String> referenceFields(Map<String, Object> config) {
         Set<String> fields = new HashSet<>();
-        walk(config == null ? null : config.get("rule"), false, rule -> {
+        walk(config == null ? null : config.get("rule"), true, rule -> {
+            if (BASIC_TYPES.contains(String.valueOf(rule.get("type"))) && !blank(rule.get("field"))) {
+                fields.add(String.valueOf(rule.get("field")));
+            }
+        });
+        return fields;
+    }
+
+    /** 将表单字段转为审批变量定义，内容字段保留但不扩充条件类型。 */
+    public static com.plasticene.boot.flow.core.model.FlowVariableSchema variableSchema(Map<String, Object> config) {
+        var schema = new com.plasticene.boot.flow.core.model.FlowVariableSchema();
+        var fields = new ArrayList<com.plasticene.boot.flow.core.model.FlowVariableSchema.Field>();
+        walk(config == null ? null : config.get("rule"), true, rule -> {
+            if (blank(rule.get("field"))) { return; }
+            var field = new com.plasticene.boot.flow.core.model.FlowVariableSchema.Field();
+            String component = String.valueOf(rule.get("type"));
+            Map<?, ?> props = rule.get("props") instanceof Map<?, ?> value ? value : Map.of();
+            field.setField(String.valueOf(rule.get("field")));
+            field.setTitle(String.valueOf(rule.getOrDefault("title", field.getField())));
+            field.setComponentType(component);
+            field.setRequired(Boolean.TRUE.equals(rule.get("$required")));
+            field.setType(switch (component) {
+                case "input" -> "number".equals(props.get("type")) ? 1 : 0;
+                case "fcEditor", "timePicker", "switch", "signaturePad" -> 0;
+                case "inputNumber", "rate", "slider" -> 1;
+                case "datePicker" -> Boolean.TRUE.equals(props.get("range")) ? 3 : 2;
+                case "checkbox", "cascader", "aTransfer", "tree" -> 3;
+                case "select", "aTreeSelect" -> Boolean.TRUE.equals(props.get("multiple"))
+                        || "multiple".equals(props.get("mode")) || "tags".equals(props.get("mode")) ? 3 : 0;
+                case "radio" -> 0;
+                default -> null;
+            });
+            if (Objects.equals(field.getType(), 2)) { field.setFormat("yyyy-MM-dd HH:mm:ss"); }
+            field.setProps(MAPPER.convertValue(props, new TypeReference<Map<String, Object>>() { }));
+            if (rule.get("options") instanceof List<?> options) {
+                field.setOptions(MAPPER.convertValue(options, new TypeReference<List<Map<String, Object>>>() { }));
+            }
+            fields.add(field);
+        });
+        schema.setFields(fields);
+        return schema;
+    }
+
+    private static void validate(Map<String, Object> config, boolean variableSourceOnly) {
+        Set<String> fields = new HashSet<>();
+        walk(config == null ? null : config.get("rule"), variableSourceOnly, rule -> {
             String type = String.valueOf(rule.get("type"));
             Object field = rule.get("field");
             if (field != null || BASIC_TYPES.contains(type) || SUBFORM_TYPES.contains(type) && !"tableFormColumn".equals(type)) {
@@ -39,19 +94,10 @@ public final class FlowFormConfig {
                     throw new BizException("表单字段名称不能为空：" + field);
                 }
             }
-            validateOptions(rule, type);
-        });
-    }
-
-    /** 发布时只提取允许引用的字段，不重复校验表单配置。 */
-    public static Set<String> referenceFields(Map<String, Object> config) {
-        Set<String> fields = new HashSet<>();
-        walk(config == null ? null : config.get("rule"), true, rule -> {
-            if (BASIC_TYPES.contains(String.valueOf(rule.get("type"))) && !blank(rule.get("field"))) {
-                fields.add(String.valueOf(rule.get("field")));
+            if (!variableSourceOnly) {
+                validateOptions(rule, type);
             }
         });
-        return fields;
     }
 
     private static boolean blank(Object value) {

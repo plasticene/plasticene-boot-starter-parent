@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow.leave;
 
 import com.plasticene.boot.flow.core.model.FlowNode;
-import com.plasticene.boot.flow.core.impl.task.DefaultFlowTaskAssigneeProvider;
+import com.plasticene.boot.flow.core.api.spi.FlowTaskAssigneeProvider;
 import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -15,13 +15,13 @@ import java.util.Map;
  */
 @Profile("leave")
 @Component
-public class LeaveOrganization extends DefaultFlowTaskAssigneeProvider implements FlowOrganizationProvider {
+public class LeaveOrganization implements FlowTaskAssigneeProvider, FlowOrganizationProvider {
     @Override
     public List<Long> getAssignees(FlowNode node, Long orgId, Long applicantId) {
         if ("department-approval".equals(node.getKey())) {
             return List.of(getDeptLeader(orgId, applicantId));
         }
-        return super.getAssignees(node, orgId, applicantId);
+        return node.getAssigneeList() == null ? List.of() : node.getAssigneeList().stream().filter(getActiveUserMap(orgId)::containsKey).toList();
     }
 
     @Override

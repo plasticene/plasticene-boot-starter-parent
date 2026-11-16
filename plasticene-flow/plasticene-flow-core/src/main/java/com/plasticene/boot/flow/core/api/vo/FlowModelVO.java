@@ -17,6 +17,9 @@ import java.util.Map;
 @Data
 @Schema(description = "工作流-流程模型表")
 public class FlowModelVO {
+    @io.swagger.v3.oas.annotations.media.Schema(description = "表单类型：0自带表单、1业务表单")
+    private Integer formMode;
+
     @Schema(description = "主键")
     private Long id;
     @Schema(description = "公司id")

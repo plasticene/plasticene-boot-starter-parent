@@ -43,6 +43,8 @@ class FlowModelPermissionTest {
     private FlowDefinitionService definitions;
     @Mock
     private FlowNodeValidator validator;
+    @org.mockito.Spy
+    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
     @InjectMocks
     private FlowModelServiceImpl service;
 
@@ -155,6 +157,9 @@ class FlowModelPermissionTest {
 
     private FlowModel model(Long id, Long orgId, List<Long> managers) {
         FlowModel model = new FlowModel();
+        {
+        model.setFormMode(0);
+        }
         model.setId(id);
         model.setOrgId(orgId);
         model.setManagerUserIds(managers);

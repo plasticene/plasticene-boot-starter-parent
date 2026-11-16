@@ -25,7 +25,9 @@ import java.util.stream.Collectors;
 public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
     private static final String TOKEN_KEY = "accessToken";
     @Override
-    public Map<Long, String> getUserMap() {
+    public Map<Long, String> getUserMap(Long orgId) {
+        var actor = com.plasticene.boot.common.user.LoginUserHolder.get();
+        if (actor == null || !java.util.Objects.equals(actor.getOrgId(), orgId)) { throw new IllegalArgumentException("组织上下文不匹配"); }
         // 1. 创建 RestClient
         RestClient restClient = RestClient.create();
 
@@ -46,7 +48,9 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
     }
 
     @Override
-    public Map<Long, String> getActiveUserMap() {
+    public Map<Long, String> getActiveUserMap(Long orgId) {
+        var actor = com.plasticene.boot.common.user.LoginUserHolder.get();
+        if (actor == null || !java.util.Objects.equals(actor.getOrgId(), orgId)) { throw new IllegalArgumentException("组织上下文不匹配"); }
         Result<List<User>> response = RestClient.create().get()
                 .uri("http://localhost:9000/api/user/list?status=1")
                 .header(TOKEN_KEY, getRequestToken())
@@ -58,7 +62,9 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
     }
 
     @Override
-    public Map<Long, String> getDeptMap() {
+    public Map<Long, String> getDeptMap(Long orgId) {
+        var actor = com.plasticene.boot.common.user.LoginUserHolder.get();
+        if (actor == null || !java.util.Objects.equals(actor.getOrgId(), orgId)) { throw new IllegalArgumentException("组织上下文不匹配"); }
         // 1. 创建 RestClient
         RestClient restClient = RestClient.create();
 
@@ -79,7 +85,9 @@ public class FlowOrganizationProviderImpl implements FlowOrganizationProvider {
     }
 
     @Override
-    public Map<Long, String> getRoleMap() {
+    public Map<Long, String> getRoleMap(Long orgId) {
+        var actor = com.plasticene.boot.common.user.LoginUserHolder.get();
+        if (actor == null || !java.util.Objects.equals(actor.getOrgId(), orgId)) { throw new IllegalArgumentException("组织上下文不匹配"); }
         // 1. 创建 RestClient
         RestClient restClient = RestClient.create();
 

@@ -3,8 +3,8 @@ package com.plasticene.boot.flow.core.impl.service.definition;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowDefinition;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowDefinitionVO;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowStartCatalogVO;
+import com.plasticene.boot.flow.core.api.vo.FlowDefinitionVO;
+import com.plasticene.boot.flow.core.api.vo.FlowStartCatalogVO;
 import java.util.List;
 
 /**

@@ -5,8 +5,8 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowCategory;
 import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
-import com.plasticene.boot.flow.core.impl.model.query.FlowCategoryQuery;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowCategoryVO;
+import com.plasticene.boot.flow.core.api.query.FlowCategoryQuery;
+import com.plasticene.boot.flow.core.api.vo.FlowCategoryVO;
 import java.util.List;
 import java.util.Map;
 

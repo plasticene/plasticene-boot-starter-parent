@@ -1,10 +1,9 @@
 package com.plasticene.boot.example.flow.leave;
 
-import com.plasticene.boot.flow.core.impl.support.FlowActors;
 
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.api.FlowEngine;
+import com.plasticene.boot.flow.core.api.service.FlowInstanceOperations;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -20,16 +19,16 @@ import java.util.Map;
 @Service
 public class LeaveApplicationService {
     private final JdbcTemplate jdbc;
-    private final FlowEngine engine;
+    private final FlowInstanceOperations engine;
 
-    public LeaveApplicationService(JdbcTemplate jdbc, FlowEngine engine) {
+    public LeaveApplicationService(JdbcTemplate jdbc, FlowInstanceOperations engine) {
         this.jdbc = jdbc;
         this.engine = engine;
     }
 
     @Transactional(rollbackFor = Exception.class)
     public Long submit(String applicationId, int days, String reason, LoginUser actor) {
-        com.plasticene.boot.flow.core.impl.support.FlowActors.require(actor);
+        if (actor == null || actor.getId() == null || actor.getOrgId() == null) { throw new BizException("缺少可信申请人上下文"); }
         if (applicationId == null || applicationId.isBlank() || days <= 0 || reason == null || reason.isBlank()) {
             throw new BizException("申请标识、正数请假天数及原因不能为空");
         }
@@ -42,8 +41,10 @@ public class LeaveApplicationService {
         if (((Number) saved.get("applicant_id")).longValue() != actor.getId()) {
             throw new BizException("无权重复提交他人的申请");
         }
-        Long id = engine.startInstanceByCode("leave-approval", applicationId,
-                Map.of("days", saved.get("days"), "reason", saved.get("reason")), actor);
+        var param = new com.plasticene.boot.flow.core.api.param.FlowBusinessStartByCodeParam();
+        param.setProcessCode("leave-approval"); param.setBusinessId(applicationId);
+        param.setVarMap(Map.of("days", saved.get("days"), "reason", saved.get("reason")));
+        Long id = engine.startBusinessByCode(param, actor);
         jdbc.update("""
                 UPDATE leave_application SET instance_id = ? WHERE org_id = ? AND application_id = ?
                     AND instance_id IS NULL

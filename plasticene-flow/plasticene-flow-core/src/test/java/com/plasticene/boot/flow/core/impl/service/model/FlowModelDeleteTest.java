@@ -36,6 +36,8 @@ class FlowModelDeleteTest {
     private FlowModelDAO models;
     @Mock
     private FlowDefinitionService definitions;
+    @org.mockito.Spy
+    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
     @InjectMocks
     private FlowModelServiceImpl service;
 
@@ -95,6 +97,9 @@ class FlowModelDeleteTest {
 
     private FlowModel model(Long orgId) {
         FlowModel model = new FlowModel();
+        {
+        model.setFormMode(0);
+        }
         model.setId(11L);
         model.setManagerUserIds(List.of(8L));
         model.setOrgId(orgId);

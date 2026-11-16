@@ -24,13 +24,13 @@ public class FlowNodeValidator {
     @Autowired
     private List<NodeValidator> validators;
 
-    public void validate(FlowNode flowNode, Set<String> formFields) {
+    public void validate(FlowNode flowNode, Set<String> variableFields) {
         if (flowNode == null) {
             throw new BizException("流程模型节点配置不能为空");
         }
         Set<String> nodeKeySet = new HashSet<>();
         ValidationContext context = new ValidationContext();
-        context.setFormFields(formFields);
+        context.setVariableFields(variableFields);
         traverse(flowNode, nodeKeySet, context, null);
         if (context.getApproveNodeCount() == 0) {
             throw new BizException("流程模型节点配置至少要有一个审批节点");
@@ -89,7 +89,7 @@ public class FlowNodeValidator {
                 throw new BizException("并行分支: {0}, 必须包含普通分支和位于末尾的唯一兜底分支", key);
             }
         }
-        validateFieldReferences(node, context.getFormFields());
+        validateFieldReferences(node, context.getVariableFields());
         // 校验节点配置
         validators.stream()
                 .filter(v -> v.support(FlowNodeEnum.Type.getType(node.getType())))

@@ -5,8 +5,8 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowForm;
 import com.plasticene.boot.flow.core.api.param.FlowFormParam;
-import com.plasticene.boot.flow.core.impl.model.query.FlowFormQuery;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowFormVO;
+import com.plasticene.boot.flow.core.api.query.FlowFormQuery;
+import com.plasticene.boot.flow.core.api.vo.FlowFormVO;
 
 import java.util.List;
 
@@ -41,7 +41,7 @@ public interface FlowFormService extends IService<FlowForm> {
      * 删除表单
      * @param ids 表单id
      */
-    void delete(List<Long> ids);
+    void delete(List<Long> ids, LoginUser actor);
 
     /**
      * 分页查询表单

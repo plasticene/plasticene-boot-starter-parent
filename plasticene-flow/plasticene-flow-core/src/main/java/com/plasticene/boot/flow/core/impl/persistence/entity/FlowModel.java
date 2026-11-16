@@ -27,6 +27,9 @@ import lombok.EqualsAndHashCode;
 @Data
 @TableName(value = "flow_model", autoResultMap = true)
 public class FlowModel extends BaseDO {
+    /** 表单类型：0为FLOW自带表单，1为宿主业务表单。 */
+    private Integer formMode;
+
 
     /** 主键 */
     @TableId(value = "id", type = IdType.AUTO)

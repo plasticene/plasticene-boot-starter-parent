@@ -81,6 +81,10 @@ class FlowTaskReturnTest {
     private final AtomicLong sequence = new AtomicLong();
     private final FlowInstance instance = new FlowInstance();
     private final FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
 
     @BeforeEach
     @SuppressWarnings("unchecked")

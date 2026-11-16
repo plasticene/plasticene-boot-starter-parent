@@ -36,6 +36,8 @@ class FlowModelCodeTest {
     private LoginUser loginUserContext;
     @Mock
     private FlowModelDAO flowModelDAO;
+    @org.mockito.Spy
+    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
     @InjectMocks
     private FlowModelServiceImpl service;
 
@@ -56,6 +58,9 @@ class FlowModelCodeTest {
         user.setId(8L);
         loginUserContext = user;
         FlowModel existing = new FlowModel();
+        {
+        existing.setFormMode(0);
+        }
         existing.setCategory("leave");
         existing.setId(11L);
         existing.setOrgId(9L);
@@ -129,6 +134,9 @@ class FlowModelCodeTest {
     @Test
     void shouldKeepLegacyShortCodeOnlyWhenOriginalAndCompanyMatch() {
         var existing = new FlowModel();
+        {
+        existing.setFormMode(0);
+        }
         existing.setId(11L);
         existing.setOrgId(9L);
         existing.setCode("old");

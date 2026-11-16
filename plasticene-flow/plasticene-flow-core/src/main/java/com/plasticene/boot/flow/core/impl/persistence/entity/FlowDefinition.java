@@ -25,6 +25,13 @@ import java.util.Map;
 @Data
 @TableName(value = "flow_definition", autoResultMap = true)
 public class FlowDefinition extends BaseDO {
+    /** 表单类型：0为FLOW自带表单，1为宿主业务表单。 */
+    private Integer formMode;
+
+    /** 发布时的审批变量定义快照。 */
+    @TableField(value = "var_info", typeHandler = JacksonTypeHandler.class)
+    private com.plasticene.boot.flow.core.model.FlowVariableSchema varInfo;
+
 
     /** 主键 */
     @TableId(value = "id", type = IdType.AUTO)

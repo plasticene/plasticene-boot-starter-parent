@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowInstance;
 import com.plasticene.boot.flow.core.impl.persistence.dto.FlowInstanceNodeTimeDTO;
 import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowInstanceStatisticsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
 import com.plasticene.boot.mybatis.core.mapper.BaseMapperX;
 import java.util.List;

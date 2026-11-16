@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow.leave;
 
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.api.FlowEngine;
+import com.plasticene.boot.flow.core.api.service.FlowTaskOperations;
 import com.plasticene.boot.flow.core.api.param.FlowTaskParam;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -21,10 +21,10 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "leave.demo.enabled", havingValue = "true")
 public class LeaveDemoRunner implements ApplicationRunner {
     private final LeaveApplicationService applications;
-    private final FlowEngine engine;
+    private final FlowTaskOperations engine;
     private final JdbcTemplate jdbc;
 
-    public LeaveDemoRunner(LeaveApplicationService applications, FlowEngine engine, JdbcTemplate jdbc) {
+    public LeaveDemoRunner(LeaveApplicationService applications, FlowTaskOperations engine, JdbcTemplate jdbc) {
         this.applications = applications;
         this.engine = engine;
         this.jdbc = jdbc;
@@ -35,14 +35,17 @@ public class LeaveDemoRunner implements ApplicationRunner {
         String applicationId = UUID.randomUUID().toString();
         LoginUser applicant = actor(1L);
         Long instanceId = applications.submit(applicationId, 2, "示例请假", applicant);
-        if (!instanceId.equals(applications.submit(applicationId, 2, "示例请假", applicant))) {
-            throw new IllegalStateException("重复提交没有复用实例");
+        try {
+            applications.submit(applicationId, 2, "示例请假", applicant);
+            throw new IllegalStateException("重复申请应被拒绝");
+        } catch (com.plasticene.boot.common.exception.BizException expected) {
+            if (!"同一businessId不能重复发起实例".equals(expected.getMessage())) { throw expected; }
         }
         Long taskId = jdbc.queryForObject("SELECT id FROM flow_task WHERE instance_id = ? AND assignee = 2 AND status = 0 LIMIT 1", Long.class, instanceId);
         FlowTaskParam param = new FlowTaskParam();
         param.setTaskId(taskId);
         param.setComment("同意请假");
-        engine.approveTask(param, actor(2L));
+        engine.approve(param, actor(2L));
         long deadline = System.nanoTime() + java.time.Duration.ofSeconds(30).toNanos();
         while (System.nanoTime() < deadline) {
             Integer complete = jdbc.queryForObject("""

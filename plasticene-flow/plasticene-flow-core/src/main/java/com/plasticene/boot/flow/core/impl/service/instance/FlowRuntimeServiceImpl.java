@@ -32,7 +32,7 @@ import com.plasticene.boot.flow.core.model.FlowNode;
 import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowFormChangeRecordVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowInstanceStatisticsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.api.vo.FlowRouteNodeVO;
 import com.plasticene.boot.flow.core.api.vo.FlowTaskAddSignVO;
@@ -70,6 +70,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowInstance> implements FlowRuntimeService {
+    @Resource
+    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables;
     @Resource
     private FlowInstanceDAO flowInstanceDAO;
     @Resource
@@ -117,12 +119,19 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     public Long startInstance(Long definitionId, String businessId, Map<String, Object> varMap, LoginUser loginUser) {
         FlowActors.require(loginUser);
         FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId, loginUser);
+        int expectedMode = businessId == null ? 0 : 1;
+        if (!Objects.equals(flowDefinition.getFormMode(), expectedMode)) {
+            throw new BizException("发起入口与流程表单类型不匹配");
+        }
+        flowVariables.validateData(flowDefinition.getVarInfo(), varMap, false, expectedMode == 1);
         // 发布了的流程模型是合法的，可以直接使用，这里不需要再校验合法性，发布的时候已经校验过合法性了
         FlowNode flowNode = flowDefinition.getModelNode();
         FlowInstance instance = new FlowInstance();
         instance.setDefinitionId(definitionId);
         instance.setBusinessId(businessId);
-        instance.setVarMap(varMap);
+        Map<String, Object> savedVariables = new java.util.LinkedHashMap<>(varMap == null ? Map.of() : varMap);
+        savedVariables.put("PROCESS_START_USER_ID", loginUser.getId());
+        instance.setVarMap(savedVariables);
         instance.setCategory(flowDefinition.getCategory());
         instance.setOrgId(flowDefinition.getOrgId());
         instance.setStartTime(LocalDateTime.now());
@@ -160,7 +169,9 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId, loginUser);
         FlowNode flowNode = flowDefinition.getModelNode();
         FlowParser.makeParentNode(flowNode);
-        Map<String, Object> variables = varMap == null ? Map.of() : varMap;
+        flowVariables.validateData(flowDefinition.getVarInfo(), varMap, false, Objects.equals(flowDefinition.getFormMode(), 1));
+        Map<String, Object> variables = new java.util.LinkedHashMap<>(varMap == null ? Map.of() : varMap);
+        variables.put("PROCESS_START_USER_ID", loginUser.getId());
         return processExecutor.calculateRouteTrace(flowNode, variables).stream()
                 .map(this::toRouteNodeVO)
                 .toList();
@@ -400,6 +411,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         vo.setId(instance.getId());
         vo.setDefinitionId(instance.getDefinitionId());
         vo.setBusinessId(instance.getBusinessId());
+        vo.setFormMode(definition.getFormMode());
         vo.setName(definition.getName());
         vo.setCode(definition.getCode());
         vo.setCategory(instance.getCategory());

@@ -7,11 +7,9 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowEventOutboxDAO;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowInstanceDAO;
-import com.plasticene.boot.flow.core.impl.event.FlowEventAdministration;
 import com.plasticene.boot.flow.core.api.event.FlowEventConsumer;
 import com.plasticene.boot.flow.core.impl.event.FlowEventConsumers;
 import com.plasticene.boot.flow.core.impl.event.FlowEventDispatcher;
-import com.plasticene.boot.flow.core.api.spi.FlowEventManagementPolicy;
 import com.plasticene.boot.flow.core.impl.event.FlowEventStore;
 import java.time.Clock;
 import javax.sql.DataSource;
@@ -53,11 +51,4 @@ public class FlowEventConfiguration {
         return new FlowEventDispatcher(store, consumers, properties);
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public FlowEventAdministration flowEventAdministration(
-            FlowEventStore store, ObjectProvider<FlowEventManagementPolicy> policies) {
-        return new FlowEventAdministration(store,
-                policies.getIfAvailable(() -> actor -> false));
-    }
 }

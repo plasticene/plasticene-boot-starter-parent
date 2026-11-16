@@ -59,6 +59,10 @@ class FlowModelServiceImplTest {
 
     private FlowDefinition definition(FlowModelEnums.StartUserType startUserType) {
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setStartUserType(startUserType.getCode());
         return definition;
     }

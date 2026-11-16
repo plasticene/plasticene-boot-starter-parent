@@ -28,7 +28,7 @@ final class FlowTaskTestComponents {
         List<Object> components = new ArrayList<>(List.of(
                 new FlowTaskExecution(), new FlowTaskQueries(), new FlowTaskCreation(),
                 new FlowTaskLifecycle(), new FlowTaskApproval(), new FlowTaskAddSignOperations(),
-                new FlowTaskReturn(), new FlowTaskWithdraw()));
+                new FlowTaskReturn(), new FlowTaskWithdraw(), new com.plasticene.boot.flow.core.impl.application.FlowVariables()));
         List<Object> candidates = new ArrayList<>(components);
         candidates.addAll(Arrays.asList(dependencies));
         components.add(service);

@@ -16,7 +16,7 @@ import com.plasticene.boot.flow.core.impl.persistence.entity.FlowInstance;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel;
 import com.plasticene.boot.flow.core.model.FlowNode;
 import com.plasticene.boot.flow.core.api.param.FlowModelParam;
-import com.plasticene.boot.flow.core.impl.model.vo.FlowDefinitionVO;
+import com.plasticene.boot.flow.core.api.vo.FlowDefinitionVO;
 import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
@@ -266,6 +266,9 @@ class FlowModelVersionServiceTest {
 
     private FlowModel model(Long orgId) {
         FlowModel model = new FlowModel();
+        {
+        model.setFormMode(0);
+        }
         model.setId(11L);
         model.setOrgId(orgId);
         model.setManagerUserIds(List.of(8L));
@@ -275,6 +278,10 @@ class FlowModelVersionServiceTest {
 
     private FlowDefinition definition(Long id, int version) {
         FlowDefinition definition = new FlowDefinition();
+        {
+        definition.setFormMode(0);
+        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        }
         definition.setId(id);
         definition.setModelId(11L);
         definition.setOrgId(100L);

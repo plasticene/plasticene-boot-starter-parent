@@ -64,6 +64,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> implements FlowTaskService {
     @Resource
+    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables;
+    @Resource
     private FlowTaskDAO flowTaskDAO;
 
     @Resource
@@ -182,6 +184,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     public void saveForm(FlowTaskFormParam param, LoginUser user) {
         flowTaskExecution.execute(param.getTaskId(), user, (task, instance) -> {
             FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
+            if (!java.util.Objects.equals(definition.getFormMode(), 0)) {
+                throw new BizException("业务表单请通过宿主入口修改");
+            }
+            flowVariables.validateData(definition.getVarInfo(), param.getFormData(), true, false);
             if (definition == null || !Objects.equals(definition.getOrgId(), user.getOrgId())) {
                 throw new BizException("流程发布定义不存在");
             }
