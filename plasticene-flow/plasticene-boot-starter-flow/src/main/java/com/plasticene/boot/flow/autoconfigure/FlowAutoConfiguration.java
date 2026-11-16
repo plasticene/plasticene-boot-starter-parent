@@ -1,18 +1,20 @@
 package com.plasticene.boot.flow.autoconfigure;
 
+import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
+import com.plasticene.boot.flow.core.api.spi.FlowTaskAssigneeProvider;
 import com.plasticene.boot.flow.core.impl.executor.DefaultProcessExecutor;
 import com.plasticene.boot.flow.core.impl.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.impl.task.DefaultFlowTaskAssigneeProvider;
-import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
-import com.plasticene.boot.flow.core.api.spi.FlowTaskAssigneeProvider;
 import com.plasticene.boot.flow.core.impl.validation.node.ApproveNodeValidator;
 import com.plasticene.boot.flow.core.impl.validation.node.ConditionNodeValidator;
 import com.plasticene.boot.flow.core.impl.validation.node.NodeValidator;
+import jakarta.validation.Validator;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 /**
  * @author ZFJ
@@ -22,6 +24,12 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 @ComponentScan(basePackages = "com.plasticene.boot.flow.core.impl")
 @MapperScan(basePackages = {"com.plasticene.boot.flow.core.impl.persistence.dao"})
 public class FlowAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean(Validator.class)
+    public LocalValidatorFactoryBean flowValidator() {
+        return new LocalValidatorFactoryBean();
+    }
 
     @Bean
     @ConditionalOnMissingBean(FlowTaskAssigneeProvider.class)

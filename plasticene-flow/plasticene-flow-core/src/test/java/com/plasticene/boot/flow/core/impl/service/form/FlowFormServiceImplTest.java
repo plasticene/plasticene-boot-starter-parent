@@ -7,7 +7,7 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowFormDAO;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowForm;
-import com.plasticene.boot.flow.core.impl.model.param.FlowFormParam;
+import com.plasticene.boot.flow.core.api.param.FlowFormParam;
 import com.plasticene.boot.flow.core.impl.model.query.FlowFormQuery;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
@@ -150,6 +150,45 @@ class FlowFormServiceImplTest {
         var result = service.page(query, loginUserContext);
         assertEquals("office", result.getList().getFirst().getCategory());
         assertEquals("办公", result.getList().getFirst().getCategoryName());
+    }
+
+    @Test
+    void shouldRejectMissingAndForeignFormsForActorAwareOperations() {
+        var foreign = new FlowForm();
+        foreign.setId(11L);
+        foreign.setOrgId(99L);
+        when(flowFormDAO.selectById(11L)).thenReturn(foreign);
+        assertThrows(BizException.class, () -> service.detail(11L, loginUserContext));
+        assertThrows(BizException.class, () -> service.update(param(null), loginUserContext));
+        assertThrows(BizException.class, () -> service.delete(11L, loginUserContext));
+        assertThrows(BizException.class, () -> service.detail(12L, loginUserContext));
+        assertThrows(BizException.class, () -> service.delete(12L, loginUserContext));
+        assertThrows(BizException.class, () -> service.update(new FlowFormParam(), loginUserContext));
+        verify(flowFormDAO, never()).updateById(any(FlowForm.class));
+        verify(flowFormDAO, never()).deleteById(any(java.io.Serializable.class));
+        verifyNoInteractions(flowCategoryService);
+    }
+
+    @Test
+    void shouldAllowOwnerToReadUpdateAndDeleteOneForm() {
+        var stored = new FlowForm();
+        stored.setId(11L);
+        stored.setOrgId(9L);
+        stored.setCategory("office");
+        when(flowFormDAO.selectById(11L)).thenReturn(stored);
+        when(flowCategoryService.getCategoryMap(loginUserContext)).thenReturn(Map.of("office", "办公"));
+        assertEquals("办公", service.detail(11L, loginUserContext).getCategoryName());
+        var patch = new FlowFormParam();
+        patch.setId(11L);
+        patch.setStatus(0);
+        service.update(patch, loginUserContext);
+        var captured = ArgumentCaptor.forClass(FlowForm.class);
+        verify(flowFormDAO).updateById(captured.capture());
+        assertEquals(0, captured.getValue().getStatus());
+        assertNull(captured.getValue().getName());
+        assertNull(captured.getValue().getFormConfig());
+        service.delete(11L, loginUserContext);
+        verify(flowFormDAO).deleteById(11L);
     }
 
     private FlowFormParam param(List<String> fields) {

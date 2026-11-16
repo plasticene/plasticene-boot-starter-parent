@@ -1,9 +1,9 @@
-package com.plasticene.boot.flow.core.impl.model.param;
+package com.plasticene.boot.flow.core.api.param;
 
 import com.plasticene.boot.flow.core.model.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.FlowNode;
-import com.plasticene.boot.flow.core.impl.validation.group.Insert;
-import com.plasticene.boot.flow.core.impl.validation.group.Update;
+import com.plasticene.boot.flow.core.api.validation.group.Insert;
+import com.plasticene.boot.flow.core.api.validation.group.Update;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,11 +14,9 @@ import java.util.Map;
 import lombok.Data;
 
 /**
- *
- * <p> 工作流-流程模型表 </p>
- *
+ * 定义业务接入的流程模型维护参数。
  * @author ZFJ
- * @since 2026-04-13
+ * @since 2026-11-13
  */
 
 @Data

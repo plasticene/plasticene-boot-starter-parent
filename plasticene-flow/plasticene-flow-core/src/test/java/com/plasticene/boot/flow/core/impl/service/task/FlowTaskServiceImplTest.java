@@ -8,6 +8,7 @@ import com.plasticene.boot.common.constant.CommonConstant;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowFormChangeRecordDAO;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowTaskAddSignDAO;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowTaskDAO;
@@ -157,14 +158,23 @@ class FlowTaskServiceImplTest {
 
     @Test
     void shouldKeepCancelledTaskButHideLogicallyDeletedRunningTaskInHistory() {
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "task-history"), FlowTask.class);
         FlowTask completed = task(1L, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.APPROVE);
         FlowTask cancelled = task(2L, CommonConstant.IS_NOT_DEL, FlowTaskStatusEnum.CANCEL);
-        FlowTask invalidRunning = task(3L, CommonConstant.IS_DEL, FlowTaskStatusEnum.RUNNING);
-        when(flowTaskDAO.selectList(any())).thenReturn(List.of(completed, cancelled, invalidRunning));
+        when(flowTaskDAO.selectList(any())).thenReturn(List.of(completed, cancelled));
 
         List<FlowTask> history = service.listTaskByInstanceId(21L);
 
         assertEquals(List.of(completed, cancelled), history);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<PtcLambdaQueryWrapper<FlowTask>> captor = ArgumentCaptor.forClass(PtcLambdaQueryWrapper.class);
+        verify(flowTaskDAO).selectList(captor.capture());
+        var query = captor.getValue();
+        String sql = query.getSqlSegment();
+        for (var parameter : query.getParamNameValuePairs().entrySet()) {
+            sql = sql.replace("#{ew.paramNameValuePairs." + parameter.getKey() + "}", String.valueOf(parameter.getValue()));
+        }
+        assertEquals("(instance_id = 21 AND is_delete = 0) ORDER BY id ASC", sql);
     }
 
     @Test

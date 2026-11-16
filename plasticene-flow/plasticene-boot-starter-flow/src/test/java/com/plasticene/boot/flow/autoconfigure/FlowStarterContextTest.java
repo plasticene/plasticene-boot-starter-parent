@@ -47,7 +47,8 @@ class FlowStarterContextTest {
                         "mybatis-plus.mapper-locations=classpath*:/mapper/*.xml")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(FlowEngine.class).hasSingleBean(FlowEventStore.class);
+                    assertThat(context).hasSingleBean(FlowEngine.class).hasSingleBean(FlowEventStore.class)
+                            .hasSingleBean(jakarta.validation.Validator.class);
                     assertThat(context).doesNotHaveBean("flowInstanceController");
                     assertThat(context).doesNotHaveBean("flowTaskController");
                 });

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowForm;
-import com.plasticene.boot.flow.core.impl.model.param.FlowFormParam;
+import com.plasticene.boot.flow.core.api.param.FlowFormParam;
 import com.plasticene.boot.flow.core.impl.model.query.FlowFormQuery;
 import com.plasticene.boot.flow.core.impl.model.vo.FlowFormVO;
 
@@ -30,6 +30,12 @@ public interface FlowFormService extends IService<FlowForm> {
      * @param param 表单参数
      */
     void update(FlowFormParam param);
+
+    /** 校验组织归属后更新表单模板。 */
+    void update(FlowFormParam param, LoginUser actor);
+
+    /** 校验组织归属后删除单个表单模板。 */
+    void delete(Long id, LoginUser actor);
 
     /**
      * 删除表单

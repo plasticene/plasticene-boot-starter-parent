@@ -1,7 +1,7 @@
-package com.plasticene.boot.flow.core.impl.model.param;
+package com.plasticene.boot.flow.core.api.param;
 
-import com.plasticene.boot.flow.core.impl.validation.group.Insert;
-import com.plasticene.boot.flow.core.impl.validation.group.Update;
+import com.plasticene.boot.flow.core.api.validation.group.Insert;
+import com.plasticene.boot.flow.core.api.validation.group.Update;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,11 +10,12 @@ import java.util.Map;
 import lombok.Data;
 
 /**
- * 接收流程表单保存参数。
+ * 定义业务接入的表单模板维护参数。
  * @author ZFJ
- * @since 2026-11-05
+ * @since 2026-11-13
  */
 @Data
+@Schema(description = "表单模板维护参数")
 public class FlowFormParam {
     @Schema(description = "表单id")
     @NotNull(message = "id不能为空", groups = Update.class)

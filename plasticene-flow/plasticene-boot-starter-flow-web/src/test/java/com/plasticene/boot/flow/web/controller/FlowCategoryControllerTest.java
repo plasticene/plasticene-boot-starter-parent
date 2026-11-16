@@ -2,7 +2,7 @@ package com.plasticene.boot.flow.web.controller;
 
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
-import com.plasticene.boot.flow.core.impl.model.param.FlowCategoryParam;
+import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

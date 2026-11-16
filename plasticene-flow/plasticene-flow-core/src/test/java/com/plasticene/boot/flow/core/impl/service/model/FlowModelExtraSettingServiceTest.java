@@ -12,7 +12,7 @@ import com.plasticene.boot.flow.core.model.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.FlowFieldPermission;
 import com.plasticene.boot.flow.core.model.FlowNode;
 import com.plasticene.boot.flow.core.model.FlowTimeoutRule;
-import com.plasticene.boot.flow.core.impl.model.param.FlowModelParam;
+import com.plasticene.boot.flow.core.api.param.FlowModelParam;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
 import com.plasticene.boot.flow.core.impl.validation.node.FlowNodeValidator;

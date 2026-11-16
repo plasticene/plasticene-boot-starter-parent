@@ -4,7 +4,7 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
-import com.plasticene.boot.flow.core.impl.model.param.FlowFormParam;
+import com.plasticene.boot.flow.core.api.param.FlowFormParam;
 import com.plasticene.boot.flow.core.impl.model.query.FlowFormQuery;
 import com.plasticene.boot.flow.core.impl.model.vo.FlowFormVO;
 import com.plasticene.boot.flow.core.impl.service.form.FlowFormService;

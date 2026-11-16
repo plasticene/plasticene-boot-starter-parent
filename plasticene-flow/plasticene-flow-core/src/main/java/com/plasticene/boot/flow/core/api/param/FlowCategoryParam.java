@@ -1,20 +1,21 @@
-package com.plasticene.boot.flow.core.impl.model.param;
+package com.plasticene.boot.flow.core.api.param;
 
-import com.plasticene.boot.flow.core.impl.validation.group.Insert;
-import com.plasticene.boot.flow.core.impl.validation.group.Update;
+import com.plasticene.boot.flow.core.api.validation.group.Insert;
+import com.plasticene.boot.flow.core.api.validation.group.Update;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.util.List;
 import lombok.Data;
 
 /**
+ * 定义业务接入的流程分类维护参数。
  * @author ZFJ
- * @date 2025/11/19
+ * @since 2026-11-13
  */
 @Data
+@Schema(description = "流程分类维护参数")
 public class FlowCategoryParam {
     @Schema(description = "分类名称")
     @NotBlank(message = "分类名称不能为空", groups = {Insert.class, Update.class})
@@ -35,6 +36,4 @@ public class FlowCategoryParam {
     @Schema(description = "分组id")
     @NotNull(message = "id不能为空", groups = Update.class)
     private Long id;
-    @Schema(description = "id集合，修改排序时传")
-    private List<Long> ids;
 }

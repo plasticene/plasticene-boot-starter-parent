@@ -10,7 +10,7 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowCategoryDAO;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowCategory;
-import com.plasticene.boot.flow.core.impl.model.param.FlowCategoryParam;
+import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
 import com.plasticene.boot.flow.core.impl.model.query.FlowCategoryQuery;
 import com.plasticene.boot.flow.core.impl.model.vo.FlowCategoryVO;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;

@@ -15,7 +15,7 @@ import com.plasticene.boot.flow.core.impl.persistence.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowInstance;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel;
 import com.plasticene.boot.flow.core.model.FlowNode;
-import com.plasticene.boot.flow.core.impl.model.param.FlowModelParam;
+import com.plasticene.boot.flow.core.api.param.FlowModelParam;
 import com.plasticene.boot.flow.core.impl.model.vo.FlowDefinitionVO;
 import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;

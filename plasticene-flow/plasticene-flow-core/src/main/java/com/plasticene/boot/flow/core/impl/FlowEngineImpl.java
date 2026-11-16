@@ -1,13 +1,14 @@
 package com.plasticene.boot.flow.core.impl;
 
-import com.plasticene.boot.flow.core.api.FlowEngine;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.impl.persistence.dao.FlowModelDAO;
-import com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel;
+import com.plasticene.boot.flow.core.api.FlowEngine;
+import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
+import com.plasticene.boot.flow.core.api.param.FlowFormParam;
+import com.plasticene.boot.flow.core.api.param.FlowModelEnableParam;
+import com.plasticene.boot.flow.core.api.param.FlowModelParam;
 import com.plasticene.boot.flow.core.api.param.FlowTaskAddSignParam;
 import com.plasticene.boot.flow.core.api.param.FlowTaskFormParam;
 import com.plasticene.boot.flow.core.api.param.FlowTaskParam;
@@ -15,17 +16,31 @@ import com.plasticene.boot.flow.core.api.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.api.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.api.query.FlowTaskQuery;
+import com.plasticene.boot.flow.core.api.validation.group.Insert;
+import com.plasticene.boot.flow.core.api.validation.group.Update;
+import com.plasticene.boot.flow.core.api.vo.FlowCategoryVO;
+import com.plasticene.boot.flow.core.api.vo.FlowFormVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
+import com.plasticene.boot.flow.core.api.vo.FlowModelVO;
 import com.plasticene.boot.flow.core.api.vo.FlowRouteNodeVO;
 import com.plasticene.boot.flow.core.api.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.api.vo.FlowTaskReturnTargetVO;
+import com.plasticene.boot.flow.core.impl.persistence.dao.FlowModelDAO;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel;
+import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
+import com.plasticene.boot.flow.core.impl.service.form.FlowFormService;
 import com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeService;
+import com.plasticene.boot.flow.core.impl.service.model.FlowModelService;
 import com.plasticene.boot.flow.core.impl.service.task.FlowTaskService;
 import com.plasticene.boot.flow.core.impl.support.FlowActors;
 import jakarta.annotation.Resource;
+import jakarta.validation.Validator;
+import jakarta.validation.groups.Default;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 /**
@@ -46,13 +61,146 @@ public class FlowEngineImpl implements FlowEngine {
     private FlowTaskService flowTaskService;
     @Resource
     private FlowModelDAO flowModelDAO;
+    @Resource
+    private FlowCategoryService flowCategoryService;
+    @Resource
+    private FlowFormService flowFormService;
+    @Resource
+    private FlowModelService flowModelService;
+    @Resource
+    private Validator validator;
+
+    /** 创建流程分类。 */
+    @Override
+    public Long createCategory(FlowCategoryParam param, LoginUser actor) {
+        FlowActors.require(actor);
+        validate(param, Insert.class);
+        return flowCategoryService.createCategory(param, actor);
+    }
+
+    /** 修改流程分类。 */
+    @Override
+    public void updateCategory(FlowCategoryParam param, LoginUser actor) {
+        FlowActors.require(actor);
+        validate(param, Update.class);
+        flowCategoryService.updateCategory(param, actor);
+    }
+
+    /** 删除单个流程分类。 */
+    @Override
+    public void deleteCategory(Long categoryId, LoginUser actor) {
+        FlowActors.require(actor);
+        requireId(categoryId);
+        flowCategoryService.delete(List.of(categoryId), actor);
+    }
+
+    /** 查询当前组织的流程分类。 */
+    @Override
+    public List<FlowCategoryVO> listCategories(LoginUser actor) {
+        FlowActors.require(actor);
+        return new ArrayList<>(flowCategoryService.listCategory(actor));
+    }
+
+    /** 创建表单模板。 */
+    @Override
+    public Long createForm(FlowFormParam param, LoginUser actor) {
+        FlowActors.require(actor);
+        validate(param, Insert.class);
+        return flowFormService.create(param, actor);
+    }
+
+    /** 修改当前组织的表单模板。 */
+    @Override
+    public void updateForm(FlowFormParam param, LoginUser actor) {
+        FlowActors.require(actor);
+        validate(param, Update.class);
+        flowFormService.update(param, actor);
+    }
+
+    /** 删除当前组织的单个表单模板。 */
+    @Override
+    public void deleteForm(Long formId, LoginUser actor) {
+        FlowActors.require(actor);
+        requireId(formId);
+        flowFormService.delete(formId, actor);
+    }
+
+    /** 查询当前组织的表单模板详情。 */
+    @Override
+    public FlowFormVO getForm(Long formId, LoginUser actor) {
+        FlowActors.require(actor);
+        requireId(formId);
+        return flowFormService.detail(formId, actor);
+    }
+
+    /** 查询当前组织的表单模板。 */
+    @Override
+    public List<FlowFormVO> listForms(LoginUser actor) {
+        FlowActors.require(actor);
+        return new ArrayList<>(flowFormService.listAll(actor));
+    }
+
+    /** 创建流程模型。 */
+    @Override
+    public Long createModel(FlowModelParam param, LoginUser actor) {
+        FlowActors.require(actor);
+        validate(param, Insert.class);
+        return flowModelService.create(param, actor);
+    }
+
+    /** 修改流程模型。 */
+    @Override
+    public void updateModel(FlowModelParam param, LoginUser actor) {
+        FlowActors.require(actor);
+        validate(param, Update.class);
+        flowModelService.update(param, actor);
+    }
+
+    /** 删除单个流程模型并沿用现有版本保留规则。 */
+    @Override
+    public void deleteModel(Long modelId, LoginUser actor) {
+        FlowActors.require(actor);
+        requireId(modelId);
+        flowModelService.delete(List.of(modelId), actor);
+    }
+
+    /** 查询当前组织的流程模型详情。 */
+    @Override
+    public FlowModelVO getModel(Long modelId, LoginUser actor) {
+        FlowActors.require(actor);
+        requireId(modelId);
+        return flowModelService.detail(modelId, actor);
+    }
+
+    /** 发布流程模型。 */
+    @Override
+    public void publishModel(Long modelId, LoginUser actor) {
+        FlowActors.require(actor);
+        requireId(modelId);
+        flowModelService.publish(modelId, actor);
+    }
+
+    /** 启用或停用已发布的流程模型。 */
+    @Override
+    public void setModelStatus(FlowModelEnableParam param, LoginUser actor) {
+        FlowActors.require(actor);
+        validate(param, Default.class);
+        flowModelService.enable(param, actor);
+    }
+
+    @Override
+    public Long startInstance(Long definitionId, Map<String, Object> variables, LoginUser actor) {
+        FlowActors.require(actor);
+        requireId(definitionId);
+        return flowRuntimeService.startInstance(definitionId, variables, actor);
+    }
 
     /**
-     * 按发布定义 ID幂等发起流程，返回新建或已有的实例 ID。
+     * 按发布定义 ID发起流程，重复业务申请记录报错，返回新建的实例 ID。
      * @param definitionId 流程发布定义 ID
      * @param businessId 必填的业务申请记录 ID
      * @param actor 宿主提供的可信操作者及其组织上下文
-     * @return 新建或已有的实例 ID
+     * @return 新建的实例 ID
      */
     @Override
     public Long startInstanceById(Long definitionId, String businessId, LoginUser actor) {
@@ -60,12 +208,12 @@ public class FlowEngineImpl implements FlowEngine {
     }
 
     /**
-     * 按发布定义 ID幂等发起流程，返回新建或已有的实例 ID。
+     * 按发布定义 ID发起流程，重复业务申请记录报错，返回新建的实例 ID。
      * @param definitionId 流程发布定义 ID
      * @param businessId 必填的业务申请记录 ID
      * @param varMap 审批变量；可为空
      * @param actor 宿主提供的可信操作者及其组织上下文
-     * @return 新建或已有的实例 ID
+     * @return 新建的实例 ID
      */
     @Override
     public Long startInstanceById(Long definitionId, String businessId, Map<String, Object> varMap, LoginUser actor) {
@@ -78,11 +226,11 @@ public class FlowEngineImpl implements FlowEngine {
     }
 
     /**
-     * 按稳定流程编码幂等发起流程，返回新建或已有的实例 ID。
+     * 按稳定流程编码发起流程，重复业务申请记录报错，返回新建的实例 ID。
      * @param processCode 流程稳定流程编码
      * @param businessId 必填的业务申请记录 ID
      * @param actor 宿主提供的可信操作者及其组织上下文
-     * @return 新建或已有的实例 ID
+     * @return 新建的实例 ID
      */
     @Override
     public Long startInstanceByCode(String processCode, String businessId, LoginUser actor) {
@@ -90,12 +238,12 @@ public class FlowEngineImpl implements FlowEngine {
     }
 
     /**
-     * 按稳定流程编码幂等发起流程，返回新建或已有的实例 ID。
+     * 按稳定流程编码发起流程，重复业务申请记录报错，返回新建的实例 ID。
      * @param processCode 流程稳定流程编码
      * @param businessId 必填的业务申请记录 ID
      * @param varMap 审批变量；可为空
      * @param actor 宿主提供的可信操作者及其组织上下文
-     * @return 新建或已有的实例 ID
+     * @return 新建的实例 ID
      */
     @Override
     public Long startInstanceByCode(String processCode, String businessId, Map<String, Object> varMap, LoginUser actor) {
@@ -120,7 +268,9 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public void approveTask(FlowTaskParam param, LoginUser actor) {
-        flowTaskService.approveTask(param, FlowActors.require(actor));
+        FlowActors.require(actor);
+        validate(param, Default.class);
+        flowTaskService.approveTask(param, actor);
     }
 
     /**
@@ -130,7 +280,9 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public void rejectTask(FlowTaskParam param, LoginUser actor) {
-        flowTaskService.rejectTask(param, FlowActors.require(actor));
+        FlowActors.require(actor);
+        validate(param, Default.class);
+        flowTaskService.rejectTask(param, actor);
     }
 
     /**
@@ -139,8 +291,10 @@ public class FlowEngineImpl implements FlowEngine {
      * @param actor 宿主提供的可信操作者及其组织上下文
      */
     @Override
-    public void saveForm(FlowTaskFormParam param, LoginUser actor) {
-        flowTaskService.saveForm(param, FlowActors.require(actor));
+    public void saveTaskForm(FlowTaskFormParam param, LoginUser actor) {
+        FlowActors.require(actor);
+        validate(param, Default.class);
+        flowTaskService.saveForm(param, actor);
     }
 
     /**
@@ -150,7 +304,9 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public void addSign(FlowTaskAddSignParam param, LoginUser actor) {
-        flowTaskService.addSign(param, FlowActors.require(actor));
+        FlowActors.require(actor);
+        validate(param, Default.class);
+        flowTaskService.addSign(param, actor);
     }
 
     /**
@@ -160,7 +316,9 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public void transferTask(FlowTaskTransferParam param, LoginUser actor) {
-        flowTaskService.transferTask(param, FlowActors.require(actor));
+        FlowActors.require(actor);
+        validate(param, Default.class);
+        flowTaskService.transferTask(param, actor);
     }
 
     /**
@@ -170,7 +328,9 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public void returnTask(FlowTaskReturnParam param, LoginUser actor) {
-        flowTaskService.returnTask(param, FlowActors.require(actor));
+        FlowActors.require(actor);
+        validate(param, Default.class);
+        flowTaskService.returnTask(param, actor);
     }
 
     /**
@@ -180,7 +340,9 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public void withdrawTask(Long id, LoginUser actor) {
-        flowTaskService.withdrawTask(id, FlowActors.require(actor));
+        FlowActors.require(actor);
+        requireId(id);
+        flowTaskService.withdrawTask(id, actor);
     }
 
     /**
@@ -190,18 +352,22 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public void cancelInstance(Long id, LoginUser actor) {
-        flowRuntimeService.cancelInstance(id, FlowActors.require(actor));
+        FlowActors.require(actor);
+        requireId(id);
+        flowRuntimeService.cancelInstance(id, actor);
     }
 
     /**
      * 校验操作者的任务办理权限，查询当前待办可退回的前序人工审批节点。
-     * @param taskId 任务 ID；查询实例详情时可为空
+     * @param taskId 任务 ID
      * @param actor 宿主提供的可信操作者及其组织上下文
      * @return 可退回的前序人工审批节点
      */
     @Override
     public List<FlowTaskReturnTargetVO> listReturnTargets(Long taskId, LoginUser actor) {
-        return flowTaskService.listReturnTargets(taskId, FlowActors.require(actor));
+        FlowActors.require(actor);
+        requireId(taskId);
+        return flowTaskService.listReturnTargets(taskId, actor);
     }
 
     /**
@@ -212,8 +378,16 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public FlowInstanceDetailVO getInstance(Long instanceId, LoginUser actor) {
-        return flowRuntimeService.getInstanceDetail(instanceId, null, FlowActors.require(actor));
+        return getInstance(instanceId, null, actor);
     }
+
+    @Override
+    public FlowInstanceDetailVO getInstance(Long instanceId, Long taskId, LoginUser actor) {
+        FlowActors.require(actor);
+        requireId(instanceId);
+        return flowRuntimeService.getInstanceDetail(instanceId, taskId, actor);
+    }
+
 
     /**
      * 分页查询操作者本人在所属组织内发起的流程实例。
@@ -222,11 +396,15 @@ public class FlowEngineImpl implements FlowEngine {
      * @return 本人发起的流程实例分页结果
      */
     @Override
-    public PageResult<FlowInstanceVO> pageInstances(FlowInstanceQuery query, LoginUser actor) {
+    public PageResult<FlowInstanceVO> pageMyInstances(FlowInstanceQuery query, LoginUser actor) {
         FlowActors.require(actor);
-        query.setOrgId(actor.getOrgId());
-        query.setUserId(actor.getId());
-        return flowRuntimeService.page(query, actor);
+        validate(query, Default.class);
+        FlowInstanceQuery scoped = new FlowInstanceQuery();
+        BeanUtils.copyProperties(query, scoped);
+        scoped.setOrgId(actor.getOrgId());
+        scoped.setUserId(actor.getId());
+        scoped.setStartUserId(actor.getId());
+        return flowRuntimeService.page(scoped, actor);
     }
 
     /**
@@ -238,7 +416,9 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public List<FlowRouteNodeVO> calculateRoute(Long definitionId, Map<String, Object> variables, LoginUser actor) {
-        return flowRuntimeService.calculateRoute(definitionId, variables, FlowActors.require(actor));
+        FlowActors.require(actor);
+        requireId(definitionId);
+        return flowRuntimeService.calculateRoute(definitionId, variables, actor);
     }
 
     /**
@@ -249,7 +429,9 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public PageResult<FlowTaskPageVO> pageMyTodo(FlowTaskQuery query, LoginUser actor) {
-        return flowTaskService.pageMyTodo(query, FlowActors.require(actor));
+        FlowActors.require(actor);
+        validate(query, Default.class);
+        return flowTaskService.pageMyTodo(query, actor);
     }
 
     /**
@@ -260,7 +442,9 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public PageResult<FlowTaskPageVO> pageMyDone(FlowTaskQuery query, LoginUser actor) {
-        return flowTaskService.pageMyDone(query, FlowActors.require(actor));
+        FlowActors.require(actor);
+        validate(query, Default.class);
+        return flowTaskService.pageMyDone(query, actor);
     }
 
     /**
@@ -271,8 +455,29 @@ public class FlowEngineImpl implements FlowEngine {
      */
     @Override
     public PageResult<FlowTaskPageVO> pageMyCopy(FlowTaskQuery query, LoginUser actor) {
-        return flowTaskService.pageMyCopy(query, FlowActors.require(actor));
+        FlowActors.require(actor);
+        validate(query, Default.class);
+        return flowTaskService.pageMyCopy(query, actor);
     }
+
+    private void validate(Object param, Class<?> group) {
+        if (param == null) {
+            throw new BizException("参数不能为空");
+        }
+        var violations = validator.validate(param, group, Default.class);
+        if (!violations.isEmpty()) {
+            String message = violations.stream().map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                    .sorted().findFirst().orElseThrow();
+            throw new BizException(message);
+        }
+    }
+
+    private void requireId(Long id) {
+        if (id == null) {
+            throw new BizException("ID不能为空");
+        }
+    }
+
     /** 校验业务接入必须提供有效申请记录 ID，避免误入独立 Web 发起路径。 */
     private void requireBusinessId(String businessId) {
         if (businessId == null || businessId.isBlank()) {

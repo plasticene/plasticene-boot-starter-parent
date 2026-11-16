@@ -2,24 +2,26 @@ package com.plasticene.boot.flow.core.impl.service.form;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.utils.PtcBeanUtils;
-import com.plasticene.boot.flow.core.impl.persistence.dao.FlowFormDAO;
-import com.plasticene.boot.flow.core.impl.persistence.entity.FlowForm;
-import com.plasticene.boot.flow.core.impl.model.param.FlowFormParam;
+import com.plasticene.boot.flow.core.impl.form.FlowFormConfig;
+import com.plasticene.boot.flow.core.api.param.FlowFormParam;
 import com.plasticene.boot.flow.core.impl.model.query.FlowFormQuery;
 import com.plasticene.boot.flow.core.impl.model.vo.FlowFormVO;
+import com.plasticene.boot.flow.core.impl.persistence.dao.FlowFormDAO;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowForm;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.flow.core.impl.service.form.FlowFormService;
-import com.plasticene.boot.flow.core.impl.form.FlowFormConfig;
+import com.plasticene.boot.flow.core.impl.support.FlowActors;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 实现流程表单保存、查询与分类回显。
@@ -56,6 +58,24 @@ public class FlowFormServiceImpl extends ServiceImpl<FlowFormDAO, FlowForm> impl
         FlowFormConfig.validate(param.getFormConfig());
         FlowForm form = PtcBeanUtils.copy(param, FlowForm.class);
         flowFormDAO.updateById(form);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void update(FlowFormParam param, LoginUser actor) {
+        FlowActors.require(actor);
+        FlowFormConfig.validate(param.getFormConfig());
+        requireOwnedForm(param.getId(), actor);
+        FlowForm form = PtcBeanUtils.copy(param, FlowForm.class);
+        flowFormDAO.updateById(form);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long id, LoginUser actor) {
+        FlowActors.require(actor);
+        requireOwnedForm(id, actor);
+        flowFormDAO.deleteById(id);
     }
 
     @Override
@@ -110,13 +130,25 @@ public class FlowFormServiceImpl extends ServiceImpl<FlowFormDAO, FlowForm> impl
      */
     @Override
     public FlowFormVO detail(Long id, LoginUser loginUser) {
-        FlowForm form = this.getById(id);
+        FlowForm form = requireOwnedForm(id, FlowActors.require(loginUser));
         FlowFormVO vo = PtcBeanUtils.copy(form, FlowFormVO.class);
         if (vo != null) {
             fillCategoryNames(List.of(vo), loginUser);
         }
         return vo;
     }
+
+    private FlowForm requireOwnedForm(Long id, LoginUser actor) {
+        if (id == null) {
+            throw new BizException("表单ID不能为空");
+        }
+        FlowForm form = flowFormDAO.selectById(id);
+        if (form == null || !Objects.equals(form.getOrgId(), actor.getOrgId())) {
+            throw new BizException("表单不存在");
+        }
+        return form;
+    }
+
     /**
      * 使用操作者所属组织的分类映射补全表单分类名称。
      * @param forms 待补全分类名称的表单

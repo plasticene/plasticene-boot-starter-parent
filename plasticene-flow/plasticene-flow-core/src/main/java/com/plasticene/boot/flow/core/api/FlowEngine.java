@@ -2,6 +2,10 @@ package com.plasticene.boot.flow.core.api;
 
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
+import com.plasticene.boot.flow.core.api.param.FlowFormParam;
+import com.plasticene.boot.flow.core.api.param.FlowModelEnableParam;
+import com.plasticene.boot.flow.core.api.param.FlowModelParam;
 import com.plasticene.boot.flow.core.api.param.FlowTaskAddSignParam;
 import com.plasticene.boot.flow.core.api.param.FlowTaskFormParam;
 import com.plasticene.boot.flow.core.api.param.FlowTaskParam;
@@ -9,8 +13,11 @@ import com.plasticene.boot.flow.core.api.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.api.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.api.query.FlowTaskQuery;
+import com.plasticene.boot.flow.core.api.vo.FlowCategoryVO;
+import com.plasticene.boot.flow.core.api.vo.FlowFormVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
+import com.plasticene.boot.flow.core.api.vo.FlowModelVO;
 import com.plasticene.boot.flow.core.api.vo.FlowRouteNodeVO;
 import com.plasticene.boot.flow.core.api.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.api.vo.FlowTaskReturnTargetVO;
@@ -32,12 +39,62 @@ import java.util.Map;
  */
 public interface FlowEngine {
 
+    /** 创建流程分类。 */
+    Long createCategory(FlowCategoryParam param, LoginUser actor);
+
+    /** 修改流程分类。 */
+    void updateCategory(FlowCategoryParam param, LoginUser actor);
+
+    /** 删除单个流程分类。 */
+    void deleteCategory(Long categoryId, LoginUser actor);
+
+    /** 查询当前组织的流程分类。 */
+    List<FlowCategoryVO> listCategories(LoginUser actor);
+
+    /** 创建表单模板。 */
+    Long createForm(FlowFormParam param, LoginUser actor);
+
+    /** 修改当前组织的表单模板。 */
+    void updateForm(FlowFormParam param, LoginUser actor);
+
+    /** 删除当前组织的单个表单模板。 */
+    void deleteForm(Long formId, LoginUser actor);
+
+    /** 查询当前组织的表单模板详情。 */
+    FlowFormVO getForm(Long formId, LoginUser actor);
+
+    /** 查询当前组织的表单模板。 */
+    List<FlowFormVO> listForms(LoginUser actor);
+
+    /** 创建流程模型。 */
+    Long createModel(FlowModelParam param, LoginUser actor);
+
+    /** 修改流程模型。 */
+    void updateModel(FlowModelParam param, LoginUser actor);
+
+    /** 删除单个流程模型并沿用现有版本保留规则。 */
+    void deleteModel(Long modelId, LoginUser actor);
+
+    /** 查询当前组织的流程模型详情。 */
+    FlowModelVO getModel(Long modelId, LoginUser actor);
+
+    /** 发布流程模型。 */
+    void publishModel(Long modelId, LoginUser actor);
+
+    /** 启用或停用已发布的流程模型。 */
+    void setModelStatus(FlowModelEnableParam param, LoginUser actor);
+
+    /** 发起不关联外部业务记录的独立表单申请，每次调用创建新实例。 */
+    Long startInstance(Long definitionId, Map<String, Object> variables, LoginUser actor);
+
+
+
     /**
      * 按发布定义 ID发起流程，重复业务申请记录报错，返回新建的实例 ID。
      * @param definitionId 流程发布定义 ID
      * @param businessId 必填的业务申请记录 ID
      * @param actor 宿主提供的可信操作者及其组织上下文
-     * @return 新建或已有的实例 ID
+     * @return 新建的实例 ID
      */
     Long startInstanceById(Long definitionId, String businessId, LoginUser actor);
 
@@ -47,7 +104,7 @@ public interface FlowEngine {
      * @param businessId 必填的业务申请记录 ID
      * @param varMap 审批变量；可为空
      * @param actor 宿主提供的可信操作者及其组织上下文
-     * @return 新建或已有的实例 ID
+     * @return 新建的实例 ID
      */
     Long startInstanceById(Long definitionId, String businessId, Map<String, Object> varMap, LoginUser actor);
 
@@ -56,7 +113,7 @@ public interface FlowEngine {
      * @param processCode 流程稳定流程编码
      * @param businessId 必填的业务申请记录 ID
      * @param actor 宿主提供的可信操作者及其组织上下文
-     * @return 新建或已有的实例 ID
+     * @return 新建的实例 ID
      */
     Long startInstanceByCode(String processCode, String businessId, LoginUser actor);
 
@@ -66,7 +123,7 @@ public interface FlowEngine {
      * @param businessId 必填的业务申请记录 ID
      * @param varMap 审批变量；可为空
      * @param actor 宿主提供的可信操作者及其组织上下文
-     * @return 新建或已有的实例 ID
+     * @return 新建的实例 ID
      */
     Long startInstanceByCode(String processCode, String businessId, Map<String, Object> varMap, LoginUser actor);
 
@@ -87,7 +144,7 @@ public interface FlowEngine {
      * @param param 操作参数
      * @param actor 宿主提供的可信操作者及其组织上下文
      */
-    void saveForm(FlowTaskFormParam param, LoginUser actor);
+    void saveTaskForm(FlowTaskFormParam param, LoginUser actor);
     /**
      * 校验操作者的任务办理权限，在实例锁内发起前加签、后加签或并加签。
      * @param param 操作参数
@@ -108,7 +165,7 @@ public interface FlowEngine {
     void returnTask(FlowTaskReturnParam param, LoginUser actor);
     /**
      * 校验操作者的撤回权限，撤回其已同意的审批结果并恢复相应待办。
-     * @param taskId 任务 ID；查询实例详情时可为空
+     * @param taskId 任务 ID
      * @param actor 宿主提供的可信操作者及其组织上下文
      */
     void withdrawTask(Long taskId, LoginUser actor);
@@ -120,7 +177,7 @@ public interface FlowEngine {
     void cancelInstance(Long instanceId, LoginUser actor);
     /**
      * 校验操作者的任务办理权限，查询当前待办可退回的前序人工审批节点。
-     * @param taskId 任务 ID；查询实例详情时可为空
+     * @param taskId 任务 ID
      * @param actor 宿主提供的可信操作者及其组织上下文
      * @return 可退回的前序人工审批节点
      */
@@ -132,13 +189,17 @@ public interface FlowEngine {
      * @return 按操作者权限过滤后的实例详情
      */
     FlowInstanceDetailVO getInstance(Long instanceId, LoginUser actor);
+
+    /** 按指定任务上下文返回权限过滤后的实例详情；taskId 可为空。 */
+    FlowInstanceDetailVO getInstance(Long instanceId, Long taskId, LoginUser actor);
+
     /**
      * 分页查询操作者本人在所属组织内发起的流程实例。
      * @param query 查询条件
      * @param actor 宿主提供的可信操作者及其组织上下文
      * @return 本人发起的流程实例分页结果
      */
-    PageResult<FlowInstanceVO> pageInstances(FlowInstanceQuery query, LoginUser actor);
+    PageResult<FlowInstanceVO> pageMyInstances(FlowInstanceQuery query, LoginUser actor);
     /**
      * 分页查询操作者所属组织中分配给本人的待办任务。
      * @param query 查询条件
