@@ -23,7 +23,7 @@ import com.plasticene.boot.flow.core.impl.event.FlowEventStore;
  * @since 2026-11-16
  */
 @Service
-public class FlowEventApplication implements FlowEventOperations {
+public class FlowEventApiImpl implements FlowEventApi {
     @Resource
     private FlowAccess access;
     @Resource

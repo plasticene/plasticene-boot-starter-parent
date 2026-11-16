@@ -4,7 +4,7 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.api.param.FlowTaskReturnParam;
 import com.plasticene.boot.flow.core.api.vo.FlowTaskReturnTargetVO;
-import com.plasticene.boot.flow.core.api.service.FlowTaskOperations;
+import com.plasticene.boot.flow.core.api.service.FlowTaskApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class FlowTaskReturnControllerTest {
     private final LoginUser loginUser = new LoginUser();
-    private final FlowTaskOperations service = mock(FlowTaskOperations.class);
+    private final FlowTaskApi service = mock(FlowTaskApi.class);
     private MockMvc mvc;
 
     @BeforeEach

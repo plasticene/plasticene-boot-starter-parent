@@ -3,7 +3,7 @@ package com.plasticene.boot.example.flow.leave;
 
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.api.service.FlowInstanceOperations;
+import com.plasticene.boot.flow.core.api.service.FlowInstanceApi;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -19,9 +19,9 @@ import java.util.Map;
 @Service
 public class LeaveApplicationService {
     private final JdbcTemplate jdbc;
-    private final FlowInstanceOperations engine;
+    private final FlowInstanceApi engine;
 
-    public LeaveApplicationService(JdbcTemplate jdbc, FlowInstanceOperations engine) {
+    public LeaveApplicationService(JdbcTemplate jdbc, FlowInstanceApi engine) {
         this.jdbc = jdbc;
         this.engine = engine;
     }

@@ -23,7 +23,7 @@ import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
  * @since 2026-11-16
  */
 @Service
-public class FlowCategoryApplication implements FlowCategoryOperations {
+public class FlowCategoryApiImpl implements FlowCategoryApi {
     @Resource
     private FlowAccess access;
     @Resource

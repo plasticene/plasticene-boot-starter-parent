@@ -2,7 +2,7 @@ package com.plasticene.boot.flow.rest.controller;
 
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.common.user.LoginUserHolder;
-import com.plasticene.boot.flow.core.api.service.FlowEventOperations;
+import com.plasticene.boot.flow.core.api.service.FlowEventApi;
 import com.plasticene.boot.flow.core.api.vo.FlowEventFailureVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,9 +23,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/flow/event")
 @Tag(name = "工作流-事件运维")
 public class FlowEventController {
-    private final FlowEventOperations administration;
+    private final FlowEventApi administration;
 
-    public FlowEventController(FlowEventOperations administration) {
+    public FlowEventController(FlowEventApi administration) {
         this.administration = administration;
     }
 

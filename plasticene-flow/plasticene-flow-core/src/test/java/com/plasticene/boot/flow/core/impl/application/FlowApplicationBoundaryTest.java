@@ -25,9 +25,9 @@ class FlowApplicationBoundaryTest {
     }
     @Test
     void publicContractsRequireExplicitActorAndDoNotExposeOrm() {
-        for (var contract : java.util.List.of(FlowModelOperations.class, FlowInstanceOperations.class,
-                FlowTaskOperations.class, FlowQueries.class, FlowFormOperations.class,
-                FlowCategoryOperations.class, FlowEventOperations.class)) {
+        for (var contract : java.util.List.of(FlowModelApi.class, FlowInstanceApi.class,
+                FlowTaskApi.class, FlowQueryApi.class, FlowFormApi.class,
+                FlowCategoryApi.class, FlowEventApi.class)) {
             assertEquals(0, contract.getInterfaces().length);
             for (var method : contract.getDeclaredMethods()) {
                 var parameters = method.getParameterTypes();
@@ -38,7 +38,7 @@ class FlowApplicationBoundaryTest {
     }
     @Test
     void inputValidationRejectsMissingBusinessIdBeforeRuntime() {
-        var application = new FlowInstanceApplication();
+        var application = new FlowInstanceApiImpl();
         var access = new FlowAccess();
         try (var factory = Validation.buildDefaultValidatorFactory()) {
             ReflectionTestUtils.setField(access, "validator", factory.getValidator());
@@ -52,7 +52,7 @@ class FlowApplicationBoundaryTest {
     }
     @Test
     void bothFormAndBusinessUseOneAuthorizedRuntimeBoundary() {
-        var application = new FlowInstanceApplication();
+        var application = new FlowInstanceApiImpl();
         var access = mock(FlowAccess.class);
         var runtime = mock(FlowRuntimeService.class);
         ReflectionTestUtils.setField(application, "access", access);
@@ -94,7 +94,7 @@ class FlowApplicationBoundaryTest {
     }
     @Test
     void codeBasedStartExplicitlyAuthorizesTheResolvedDefinitionBeforeWriting() {
-        var application = new FlowInstanceApplication();
+        var application = new FlowInstanceApiImpl();
         var access = mock(FlowAccess.class);
         var runtime = mock(FlowRuntimeService.class);
         ReflectionTestUtils.setField(application, "access", access);

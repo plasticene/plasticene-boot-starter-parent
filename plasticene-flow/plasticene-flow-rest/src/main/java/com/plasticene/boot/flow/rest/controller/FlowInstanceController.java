@@ -11,7 +11,7 @@ import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.api.vo.FlowRouteNodeVO;
-import com.plasticene.boot.flow.core.api.service.FlowInstanceOperations;
+import com.plasticene.boot.flow.core.api.service.FlowInstanceApi;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -35,9 +35,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "工作流-实例管理")
 public class FlowInstanceController {
     @Resource
-    private FlowInstanceOperations flowRuntimeService;
+    private FlowInstanceApi flowRuntimeService;
     @Resource
-    private com.plasticene.boot.flow.core.api.service.FlowQueries flowQueries;
+    private com.plasticene.boot.flow.core.api.service.FlowQueryApi flowQueryApi;
 
     @Operation(summary = "基于流程模型发起实例")
     @PostMapping("/start")
@@ -61,7 +61,7 @@ public class FlowInstanceController {
     public ResponseVO<PageResult<FlowInstanceVO>> page(@Validated FlowInstanceQuery query) {
         LoginUser loginUser = LoginUserHolder.get();
         query.setOrgId(loginUser.getOrgId());
-        return ResponseVO.success(flowQueries.pageInstances(query, loginUser));
+        return ResponseVO.success(flowQueryApi.pageInstances(query, loginUser));
     }
 
     @Operation(summary = "统计流程实例状态数量")
@@ -69,7 +69,7 @@ public class FlowInstanceController {
     public ResponseVO<FlowInstanceStatisticsVO> statistics(@Validated FlowInstanceQuery query) {
         LoginUser loginUser = LoginUserHolder.get();
         query.setOrgId(loginUser.getOrgId());
-        return ResponseVO.success(flowQueries.instanceStatistics(query, loginUser));
+        return ResponseVO.success(flowQueryApi.instanceStatistics(query, loginUser));
     }
 
     @Operation(summary = "分页查询当前用户发起的流程实例")
@@ -78,7 +78,7 @@ public class FlowInstanceController {
         LoginUser loginUser = LoginUserHolder.get();
         query.setUserId(loginUser.getId());
         query.setOrgId(loginUser.getOrgId());
-        return ResponseVO.success(flowQueries.pageMyInstances(query, loginUser));
+        return ResponseVO.success(flowQueryApi.pageMyInstances(query, loginUser));
     }
 
     @Operation(summary = "查询流程实例详情")
@@ -86,7 +86,7 @@ public class FlowInstanceController {
     public ResponseVO<FlowInstanceDetailVO> getInstanceDetail(@PathVariable("instanceId") Long instanceId,
             @RequestParam(value = "taskId", required = false) Long taskId) {
         LoginUser loginUser = LoginUserHolder.get();
-        return ResponseVO.success(flowQueries.getInstance(instanceId, taskId, loginUser));
+        return ResponseVO.success(flowQueryApi.getInstance(instanceId, taskId, loginUser));
     }
 
     @Operation(summary = "取消当前用户发起的流程实例")

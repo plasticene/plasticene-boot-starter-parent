@@ -2,7 +2,7 @@
 
 纯 Java 宿主引入 plasticene-boot-starter-flow；REST 宿主引入 plasticene-flow-rest 并显式引入 plasticene-boot-starter-web。版本由宿主平台父 POM 或 dependencyManagement 对齐。HTTP 默认关闭，通过 ptc.flow.http.enabled=true 开启；不再使用旧 Web 坐标或 FlowEngine 门面。
 
-公开能力位于 core.api.service：FlowModelOperations、FlowInstanceOperations、FlowTaskOperations、FlowQueries、FlowFormOperations、FlowCategoryOperations、FlowEventOperations。请求和响应在 api.param/query/vo；不得依赖 impl。所有用户用例显式提供可信 LoginUser。
+公开能力位于 core.api.service：FlowModelApi、FlowInstanceApi、FlowTaskApi、FlowQueryApi、FlowFormApi、FlowCategoryApi、FlowEventApi。请求和响应在 api.param/query/vo；不得依赖 impl。所有用户用例显式提供可信 LoginUser。
 
 必须接入 FlowAuthorizationPolicy，将 FlowAction 和 FlowResource 映射到宿主权限。默认拒绝用户操作，功能授权之后仍执行模型管理范围、组织隔离及任务资格。示例用 isAdmin 演示管理授权，生产宿主应映射自身权限体系。
 

@@ -1,7 +1,7 @@
 package com.plasticene.boot.example.flow.leave;
 
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.api.service.FlowTaskOperations;
+import com.plasticene.boot.flow.core.api.service.FlowTaskApi;
 import com.plasticene.boot.flow.core.api.param.FlowTaskParam;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -21,10 +21,10 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "leave.demo.enabled", havingValue = "true")
 public class LeaveDemoRunner implements ApplicationRunner {
     private final LeaveApplicationService applications;
-    private final FlowTaskOperations engine;
+    private final FlowTaskApi engine;
     private final JdbcTemplate jdbc;
 
-    public LeaveDemoRunner(LeaveApplicationService applications, FlowTaskOperations engine, JdbcTemplate jdbc) {
+    public LeaveDemoRunner(LeaveApplicationService applications, FlowTaskApi engine, JdbcTemplate jdbc) {
         this.applications = applications;
         this.engine = engine;
         this.jdbc = jdbc;

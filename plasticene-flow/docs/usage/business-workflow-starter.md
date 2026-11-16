@@ -1,6 +1,6 @@
 # 业务审批接入
 
-当前接入契约见 [模块接入](flow-modules.md)。旧 FlowEngine 已删除，业务发起使用 FlowInstanceOperations。
+当前接入契约见 [模块接入](flow-modules.md)。旧 FlowEngine 已删除，业务发起使用 FlowInstanceApi。
 
 ```java
 var param = new FlowBusinessStartByCodeParam();

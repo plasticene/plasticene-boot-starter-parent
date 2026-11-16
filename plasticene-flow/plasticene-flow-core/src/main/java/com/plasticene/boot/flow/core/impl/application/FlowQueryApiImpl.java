@@ -26,7 +26,7 @@ import com.plasticene.boot.flow.core.impl.service.dashboard.FlowDashboardService
  * @since 2026-11-16
  */
 @Service
-public class FlowQueryApplication implements FlowQueries {
+public class FlowQueryApiImpl implements FlowQueryApi {
     @Resource
     private FlowAccess access;
     @Resource

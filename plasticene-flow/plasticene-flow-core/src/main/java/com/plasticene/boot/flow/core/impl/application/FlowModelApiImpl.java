@@ -24,7 +24,7 @@ import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionServi
  * @since 2026-11-16
  */
 @Service
-public class FlowModelApplication implements FlowModelOperations {
+public class FlowModelApiImpl implements FlowModelApi {
     @Resource
     private FlowAccess access;
     @Resource

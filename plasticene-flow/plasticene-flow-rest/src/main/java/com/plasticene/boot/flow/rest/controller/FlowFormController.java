@@ -7,7 +7,7 @@ import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.api.param.FlowFormParam;
 import com.plasticene.boot.flow.core.api.query.FlowFormQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowFormVO;
-import com.plasticene.boot.flow.core.api.service.FlowFormOperations;
+import com.plasticene.boot.flow.core.api.service.FlowFormApi;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "审批流-表单")
 public class FlowFormController {
     @Resource
-    private FlowFormOperations flowFormService;
+    private FlowFormApi flowFormService;
 
     @Operation(summary = "创建表单")
     @PostMapping

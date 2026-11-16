@@ -12,7 +12,7 @@ import com.plasticene.boot.flow.core.api.param.FlowTaskTransferParam;
 import com.plasticene.boot.flow.core.api.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowTaskPageVO;
 import com.plasticene.boot.flow.core.api.vo.FlowTaskReturnTargetVO;
-import com.plasticene.boot.flow.core.api.service.FlowTaskOperations;
+import com.plasticene.boot.flow.core.api.service.FlowTaskApi;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -34,29 +34,29 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "工作流-任务管理")
 public class FlowTaskController {
     @Resource
-    private FlowTaskOperations flowTaskService;
+    private FlowTaskApi flowTaskService;
     @Resource
-    private com.plasticene.boot.flow.core.api.service.FlowQueries flowQueries;
+    private com.plasticene.boot.flow.core.api.service.FlowQueryApi flowQueryApi;
 
     @Operation(summary = "分页查询当前用户待办任务")
     @GetMapping("/my/todo/page")
     public ResponseVO<PageResult<FlowTaskPageVO>> pageMyTodo(@Validated FlowTaskQuery query) {
         LoginUser loginUser = LoginUserHolder.get();
-        return ResponseVO.success(flowQueries.pageMyTodo(query, loginUser));
+        return ResponseVO.success(flowQueryApi.pageMyTodo(query, loginUser));
     }
 
     @Operation(summary = "分页查询当前用户已办任务")
     @GetMapping("/my/done/page")
     public ResponseVO<PageResult<FlowTaskPageVO>> pageMyDone(@Validated FlowTaskQuery query) {
         LoginUser loginUser = LoginUserHolder.get();
-        return ResponseVO.success(flowQueries.pageMyDone(query, loginUser));
+        return ResponseVO.success(flowQueryApi.pageMyDone(query, loginUser));
     }
 
     @Operation(summary = "分页查询抄送给当前用户的任务")
     @GetMapping("/my/copy/page")
     public ResponseVO<PageResult<FlowTaskPageVO>> pageMyCopy(@Validated FlowTaskQuery query) {
         LoginUser loginUser = LoginUserHolder.get();
-        return ResponseVO.success(flowQueries.pageMyCopy(query, loginUser));
+        return ResponseVO.success(flowQueryApi.pageMyCopy(query, loginUser));
     }
 
     @Operation(summary = "保存当前审批任务的表单修改")

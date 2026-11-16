@@ -3,7 +3,7 @@ package com.plasticene.boot.flow.rest.controller;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.api.param.FlowTaskTransferParam;
-import com.plasticene.boot.flow.core.api.service.FlowTaskOperations;
+import com.plasticene.boot.flow.core.api.service.FlowTaskApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class FlowTaskTransferControllerTest {
     private final LoginUser loginUser = new LoginUser();
     @Mock
-    private FlowTaskOperations service;
+    private FlowTaskApi service;
     @InjectMocks
     private FlowTaskController controller;
     private MockMvc mvc;

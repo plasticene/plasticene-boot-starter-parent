@@ -23,7 +23,7 @@ import com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeService;
  * @since 2026-11-16
  */
 @Service
-public class FlowInstanceApplication implements FlowInstanceOperations {
+public class FlowInstanceApiImpl implements FlowInstanceApi {
     @Resource
     private FlowAccess access;
     @Resource

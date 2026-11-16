@@ -51,7 +51,7 @@ plasticene-flow/
 
 下列方法是建议签名，待本稿确认后冻结。为简洁，表中每个方法均省略最后一个必填参数 LoginUser actor；Java 调用显式提供 actor，REST 从可信 LoginUserHolder 获取，不从请求体接受 actor。返回沿用 Long、void、PageResult 和公开 VO，不返回 HTTP ResponseVO。
 
-### 3.1 FlowModelOperations
+### 3.1 FlowModelApi
 
 | 方法 | 返回 | 行为 |
 | --- | --- | --- |
@@ -69,7 +69,7 @@ plasticene-flow/
 
 保持现有 HTTP publish 的空响应，不为方便增加新的返回协议。getVariableSchema 是设计器所需新能力，仅在模型管理范围内开放。
 
-### 3.2 FlowInstanceOperations
+### 3.2 FlowInstanceApi
 
 | 方法 | 返回 | 行为 |
 | --- | --- | --- |
@@ -90,7 +90,7 @@ businessId 表示一次业务申请记录的标识，不是可反复复用的业
 
 业务入口由宿主完成业务校验和保存，在同一事务调用业务发起用例；REST 不新增允许浏览器任意提交 businessId 和审批变量的通用业务发起接口。统一用例仍负责 FLOW 自身授权、模式、组织及变量校验。
 
-### 3.3 FlowTaskOperations
+### 3.3 FlowTaskApi
 
 | 方法 | 返回 | 参数复用 |
 | --- | --- | --- |
@@ -105,7 +105,7 @@ businessId 表示一次业务申请记录的标识，不是可反复复用的业
 
 审批参数内若含表单修改，仅独立表单方式允许相应变更；业务单据方式拒绝通过审批参数间接修改宿主数据。现有前加签/后加签/并加签、有效执行路径和实例锁逻辑继续复用。
 
-### 3.4 FlowQueries
+### 3.4 FlowQueryApi
 
 | 方法 | 返回 | 查询范围 |
 | --- | --- | --- |
@@ -124,9 +124,9 @@ businessId 表示一次业务申请记录的标识，不是可反复复用的业
 
 | 接口 | 方法与返回 |
 | --- | --- |
-| FlowFormOperations | Long create(FlowFormParam)；void update(FlowFormParam)；void delete(List<Long>)；FlowFormVO get(Long)；List<FlowFormVO> list()；PageResult<FlowFormVO> page(FlowFormQuery) |
-| FlowCategoryOperations | Long create(FlowCategoryParam)；void update(FlowCategoryParam)；void sort(List<Long>)；void delete(List<Long>)；List<FlowCategoryVO> list()；PageResult<FlowCategoryVO> page(FlowCategoryQuery) |
-| FlowEventOperations | List<FlowEventFailureVO> failures(int limit)；void retry(String eventId) |
+| FlowFormApi | Long create(FlowFormParam)；void update(FlowFormParam)；void delete(List<Long>)；FlowFormVO get(Long)；List<FlowFormVO> list()；PageResult<FlowFormVO> page(FlowFormQuery) |
+| FlowCategoryApi | Long create(FlowCategoryParam)；void update(FlowCategoryParam)；void sort(List<Long>)；void delete(List<Long>)；List<FlowCategoryVO> list()；PageResult<FlowCategoryVO> page(FlowCategoryQuery) |
+| FlowEventApi | List<FlowEventFailureVO> failures(int limit)；void retry(String eventId) |
 
 全部同样接收 actor。批量删除先完整校验再在一个事务执行，不在 Controller 循环单条用例。分类继续保留系统分类、在用关系和编码规则。事件列表有界；重投只接受当前组织且处于允许重投状态的事件，不开放跳过事件能力。
 
@@ -183,9 +183,9 @@ ProcessExecutor、DAO、内部节点校验器不转为公共 SPI。现有 Proces
 
 ## 5. 用例实现与事务
 
-业务发起调用链：宿主事务保存申请 → FlowInstanceOperations 授权/模式/变量校验 → 内部运行协作创建实例和任务 → 同事务写事件 → 返回实例 ID，宿主回写申请。所有步骤使用同一 DataSource 和匹配的事务管理器，异常继续传播。
+业务发起调用链：宿主事务保存申请 → FlowInstanceApi 授权/模式/变量校验 → 内部运行协作创建实例和任务 → 同事务写事件 → 返回实例 ID，宿主回写申请。所有步骤使用同一 DataSource 和匹配的事务管理器，异常继续传播。
 
-任务办理调用链：Java/REST → FlowTaskOperations → 组织内定位 → 宿主授权 → 既有实例锁 → 重新校验任务/状态 → 可选表单修改 → 内部办理和推进 → 同事务记录事件。查询和预估不推进流程。
+任务办理调用链：Java/REST → FlowTaskApi → 组织内定位 → 宿主授权 → 既有实例锁 → 重新校验任务/状态 → 可选表单修改 → 内部办理和推进 → 同事务记录事件。查询和预估不推进流程。
 
 impl.application 按 model/instance/task/query/form/category/event 分包实现公开接口。现有 task 协作对象继续复用，内部 Service 留下持久化与必要内部能力；分阶段搬移编排，避免同一校验长期维护两份。新增公开用例不暴露选锁、加分支计数、更新当前节点等内部操作。
 

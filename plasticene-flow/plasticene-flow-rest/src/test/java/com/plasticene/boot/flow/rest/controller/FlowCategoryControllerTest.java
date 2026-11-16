@@ -3,7 +3,7 @@ package com.plasticene.boot.flow.rest.controller;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
-import com.plasticene.boot.flow.core.api.service.FlowCategoryOperations;
+import com.plasticene.boot.flow.core.api.service.FlowCategoryApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class FlowCategoryControllerTest {
     private final LoginUser loginUser = new LoginUser();
-    private FlowCategoryOperations service;
+    private FlowCategoryApi service;
     private MockMvc mvc;
 
     @BeforeEach
@@ -35,7 +35,7 @@ class FlowCategoryControllerTest {
         loginUser.setId(17L);
         loginUser.setOrgId(27L);
         LoginUserHolder.set(loginUser);
-        service = mock(FlowCategoryOperations.class);
+        service = mock(FlowCategoryApi.class);
         var controller = new FlowCategoryController();
         ReflectionTestUtils.setField(controller, "flowCategoryService", service);
         mvc = MockMvcBuilders.standaloneSetup(controller).build();

@@ -3,8 +3,8 @@ package com.plasticene.boot.flow.core.impl.service.task;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.api.service.FlowInstanceOperations;
-import com.plasticene.boot.flow.core.impl.application.FlowInstanceApplication;
+import com.plasticene.boot.flow.core.api.service.FlowInstanceApi;
+import com.plasticene.boot.flow.core.impl.application.FlowInstanceApiImpl;
 import com.plasticene.boot.flow.core.impl.application.FlowAccess;
 import com.plasticene.boot.flow.core.api.param.FlowRoutePreviewParam;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowFormChangeRecordDAO;
@@ -149,7 +149,7 @@ class FlowTaskTransactionTest {
 
     @Test
     void shouldPreviewRouteThroughTheFacadeWithoutStartingATransaction() {
-        var facade = new FlowInstanceApplication();
+        var facade = new FlowInstanceApiImpl();
         ReflectionTestUtils.setField(facade, "runtimeService", runtime);
         ReflectionTestUtils.setField(facade, "access", mock(FlowAccess.class));
         var datasource = mock(DataSource.class);
@@ -157,7 +157,7 @@ class FlowTaskTransactionTest {
         proxy.addAdvice(new TransactionInterceptor(
                 new DataSourceTransactionManager(datasource),
                 new AnnotationTransactionAttributeSource()));
-        var engine = (FlowInstanceOperations) proxy.getProxy();
+        var engine = (FlowInstanceApi) proxy.getProxy();
         when(runtime.calculateRoute(31L, Map.of(), loginUserContext)).thenAnswer(invocation -> {
             assertFalse(TransactionSynchronizationManager.isActualTransactionActive());
             return List.of();

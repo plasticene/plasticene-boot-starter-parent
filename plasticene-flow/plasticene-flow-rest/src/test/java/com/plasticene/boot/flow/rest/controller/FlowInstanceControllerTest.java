@@ -5,7 +5,7 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
-import com.plasticene.boot.flow.core.api.service.FlowInstanceOperations;
+import com.plasticene.boot.flow.core.api.service.FlowInstanceApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,9 +37,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class FlowInstanceControllerTest {
     private final LoginUser loginUser = new LoginUser();
     @Mock
-    private FlowInstanceOperations service;
+    private FlowInstanceApi service;
     @Mock
-    private com.plasticene.boot.flow.core.api.service.FlowQueries queries;
+    private com.plasticene.boot.flow.core.api.service.FlowQueryApi queries;
     @InjectMocks
     private FlowInstanceController controller;
     private MockMvc mvc;

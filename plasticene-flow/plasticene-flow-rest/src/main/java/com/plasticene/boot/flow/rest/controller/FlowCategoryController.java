@@ -7,7 +7,7 @@ import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
 import com.plasticene.boot.flow.core.api.query.FlowCategoryQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowCategoryVO;
-import com.plasticene.boot.flow.core.api.service.FlowCategoryOperations;
+import com.plasticene.boot.flow.core.api.service.FlowCategoryApi;
 import com.plasticene.boot.flow.core.api.validation.group.Insert;
 import com.plasticene.boot.flow.core.api.validation.group.Update;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "审批流-分类管理")
 public class FlowCategoryController {
     @Resource
-    private FlowCategoryOperations flowCategoryService;
+    private FlowCategoryApi flowCategoryService;
 
 
     @Operation(summary = "新增分类")

@@ -23,7 +23,7 @@ import com.plasticene.boot.flow.core.impl.service.form.FlowFormService;
  * @since 2026-11-16
  */
 @Service
-public class FlowFormApplication implements FlowFormOperations {
+public class FlowFormApiImpl implements FlowFormApi {
     @Resource
     private FlowAccess access;
     @Resource

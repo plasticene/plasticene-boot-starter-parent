@@ -23,7 +23,7 @@ import com.plasticene.boot.flow.core.impl.service.task.FlowTaskService;
  * @since 2026-11-16
  */
 @Service
-public class FlowTaskApplication implements FlowTaskOperations {
+public class FlowTaskApiImpl implements FlowTaskApi {
     @Resource
     private FlowAccess access;
     @Resource

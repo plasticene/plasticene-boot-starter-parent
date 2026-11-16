@@ -14,10 +14,10 @@ import static org.mockito.Mockito.*;
  * @author ZFJ
  * @since 2026-11-16
  */
-class FlowEventApplicationTest {
+class FlowEventApiImplTest {
     @Test
     void deniedRetryNeverReachesTheEventStore() {
-        var application = new FlowEventApplication();
+        var application = new FlowEventApiImpl();
         var access = mock(FlowAccess.class); var store = mock(FlowEventStore.class);
         ReflectionTestUtils.setField(application, "access", access);
         ReflectionTestUtils.setField(application, "eventStore", store);
@@ -28,7 +28,7 @@ class FlowEventApplicationTest {
     }
     @Test
     void retryUsesTrustedOrganizationAndRejectsNonPausedEvents() {
-        var application = new FlowEventApplication();
+        var application = new FlowEventApiImpl();
         var access = mock(FlowAccess.class); var store = mock(FlowEventStore.class);
         ReflectionTestUtils.setField(application, "access", access);
         ReflectionTestUtils.setField(application, "eventStore", store);

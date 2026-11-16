@@ -4,7 +4,7 @@
 
 ## 已落地
 
-- core 提供七组公开接口：FlowModelOperations、FlowInstanceOperations、FlowTaskOperations、FlowQueries、FlowFormOperations、FlowCategoryOperations、FlowEventOperations；删除旧 FlowEngine 门面及实现，REST 与示例使用相同用例边界；事件失败查询与重试也统一经过公开用例授权，删除旧事件管理入口。
+- core 提供七组公开接口：FlowModelApi、FlowInstanceApi、FlowTaskApi、FlowQueryApi、FlowFormApi、FlowCategoryApi、FlowEventApi；删除旧 FlowEngine 门面及实现，REST 与示例使用相同用例边界；事件失败查询与重试也统一经过公开用例授权，删除旧事件管理入口。
 - 新增 FlowAuthorizationPolicy / FlowBusinessVariableProvider。用户操作默认拒绝，组织及资源范围在内部核定；详情查询检查参与范围或明确的组织管理权限。按编码发起仍在公开入口显式检查解析后的定义授权，并有拒绝时不写入的回归测试。
 - 查询/VO 归入公开 api，Controller 与公开 API 不再引用 impl；表单修改和批量删除补齐可信 actor、组织及授权校验，批量在同一事务执行。
 - form_mode 为0自带表单/1业务表单；设计态可切换，发布生成新定义，目录读取生效定义；历史定义及实例不受草稿切换影响。var_info 保存发布变量定义，运行使用该版本快照。
@@ -53,3 +53,11 @@
 迁移改为按实际审批变量范围检查字段结构，排除子表单字段并保留全部历史选项原值；新表单保存/发布的完整校验保持不变。转换错误现在显示 definitionId 和具体原因，仍在整次事务内失败回滚。新增4项迁移回归测试，core及其依赖的 Maven 测试通过，core为404项、0失败、0错误。
 
 实际运行修复后的 FlowVarInfoMigration，补齐64条 var_info；再次查询缺失数量为0。逐条比较快照与原 form_config 的转换结果一致，比较迁移前后全部定义，除 var_info 外其他列全部相同。没有执行基线或增量 DDL，没有修改原表单配置或实例数据。诊断脚本使用现有运行配置提供凭据，未将凭据写入文档或代码。
+
+## 公开 API 命名与接口文档调整（2026-11-16）
+
+经用户确认，七组公开契约统一命名为 FlowModelApi、FlowInstanceApi、FlowTaskApi、FlowQueryApi、FlowFormApi、FlowCategoryApi、FlowEventApi，对应应用层实现使用同名 ApiImpl 后缀，仍位于 impl/application。职责、方法签名、统一授权和事务边界保持不变，内部 Service 保留原名。
+
+48个公开方法均补充用途、参数和返回值 Javadoc，明确可信操作者、组织范围、业务变量归属及发布版本快照等约束。自动配置显式导入、REST、示例、测试和接入文档同步使用新类型名。七个接口执行 JDK javadoc 全量文档检查，无错误或警告。
+
+本轮验证：根仓库 `mvn -o clean install` 通过，FLOW core/starter/rest 分别404/14/25项测试通过，共443项、无失败或错误；示例 `test-compile -DskipTests` 通过，未运行数据库集成测试。本轮未改动 HTTP 协议、数据库或前端代码，变更已暂存且未提交。

@@ -3,7 +3,7 @@ package com.plasticene.boot.flow.autoconfigure;
 import com.plasticene.boot.flow.core.config.FlowEventProperties;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
-import com.plasticene.boot.flow.core.api.service.FlowInstanceOperations;
+import com.plasticene.boot.flow.core.api.service.FlowInstanceApi;
 import com.plasticene.boot.flow.core.impl.event.FlowEventStore;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ class FlowStarterContextTest {
                         "mybatis-plus.mapper-locations=classpath*:/mapper/*.xml")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(FlowInstanceOperations.class).hasSingleBean(FlowEventStore.class)
+                    assertThat(context).hasSingleBean(FlowInstanceApi.class).hasSingleBean(FlowEventStore.class)
                             .hasSingleBean(jakarta.validation.Validator.class);
                     assertThat(context).doesNotHaveBean("flowInstanceController");
                     assertThat(context).doesNotHaveBean("flowTaskController");

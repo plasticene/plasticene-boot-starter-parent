@@ -25,8 +25,8 @@ import com.plasticene.boot.flow.core.api.vo.FlowModelStatisticsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowModelVO;
 import com.plasticene.boot.flow.core.api.vo.FlowStartCatalogVO;
 import com.plasticene.boot.flow.core.api.vo.FlowStartableModelVO;
-import com.plasticene.boot.flow.core.api.service.FlowQueries;
-import com.plasticene.boot.flow.core.api.service.FlowModelOperations;
+import com.plasticene.boot.flow.core.api.service.FlowQueryApi;
+import com.plasticene.boot.flow.core.api.service.FlowModelApi;
 import com.plasticene.boot.flow.core.api.validation.group.Insert;
 import com.plasticene.boot.flow.core.api.validation.group.Update;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,9 +49,9 @@ import org.springframework.web.bind.annotation.*;
 public class FlowModelController {
 
     @Resource
-    private FlowModelOperations flowModelService;
+    private FlowModelApi flowModelService;
     @Resource
-    private FlowQueries flowDefinitionService;
+    private FlowQueryApi flowDefinitionService;
 
     @Operation(summary = "创建工作流-流程模型")
     @PostMapping
