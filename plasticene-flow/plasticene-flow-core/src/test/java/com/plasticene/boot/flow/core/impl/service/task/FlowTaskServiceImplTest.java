@@ -56,6 +56,9 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
+import org.mockito.Spy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -101,8 +104,8 @@ class FlowTaskServiceImplTest {
     private FlowFormChangeRecordDAO formChangeRecordDAO;
     @Mock
     private FlowEventPublisher flowEventPublisher;
-    @org.mockito.Spy
-    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
+    @Spy
+    private FlowVariables flowVariables = new FlowVariables();
     @InjectMocks
     private FlowTaskServiceImpl service;
 
@@ -682,7 +685,7 @@ class FlowTaskServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         FlowNode approve = approveNode("approve");
         definition.setModelNode(approve);
@@ -833,7 +836,7 @@ class FlowTaskServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setModelNode(node);
         when(flowDefinitionService.getById(31L)).thenReturn(definition);
@@ -861,7 +864,7 @@ class FlowTaskServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         FlowNode node = approveNode("approve");
         definition.setModelNode(node);
@@ -1111,7 +1114,7 @@ class FlowTaskServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setOrgId(9L);
         definition.setModelNode(approveNode("approve"));
@@ -1179,7 +1182,7 @@ class FlowTaskServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         FlowExtraSetting setting = new FlowExtraSetting();
         setting.setApproverDeduplication(strategy);

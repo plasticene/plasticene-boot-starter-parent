@@ -1,27 +1,30 @@
 package com.plasticene.boot.flow.core.impl.application;
 
-import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.impl.support.FlowActors;
 import com.plasticene.boot.common.pojo.PageResult;
-import com.plasticene.boot.flow.core.api.param.*;
-import com.plasticene.boot.flow.core.api.query.*;
-import com.plasticene.boot.flow.core.api.vo.*;
-import com.plasticene.boot.flow.core.model.FlowVariableSchema;
-import java.util.List;
-import com.plasticene.boot.flow.core.api.service.*;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.flow.core.api.query.FlowDashboardQuery;
+import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
+import com.plasticene.boot.flow.core.api.query.FlowTaskQuery;
+import com.plasticene.boot.flow.core.api.service.FlowQueryApi;
 import com.plasticene.boot.flow.core.api.spi.FlowAction;
-import com.plasticene.boot.flow.core.api.validation.group.*;
-import jakarta.validation.groups.Default;
-import jakarta.annotation.Resource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.plasticene.boot.flow.core.api.vo.FlowDashboardVO;
+import com.plasticene.boot.flow.core.api.vo.FlowDefinitionVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceStatisticsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
+import com.plasticene.boot.flow.core.api.vo.FlowStartCatalogVO;
+import com.plasticene.boot.flow.core.api.vo.FlowTaskPageVO;
+import com.plasticene.boot.flow.core.impl.service.dashboard.FlowDashboardService;
 import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
 import com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeService;
 import com.plasticene.boot.flow.core.impl.service.task.FlowTaskService;
-import com.plasticene.boot.flow.core.impl.service.dashboard.FlowDashboardService;
+import com.plasticene.boot.flow.core.impl.support.FlowActors;
+import jakarta.annotation.Resource;
+import jakarta.validation.groups.Default;
+import org.springframework.stereotype.Service;
 
 /**
- * 实现FlowQueries的统一授权与操作编排。
+ * 实现 {@link FlowQueryApi}，负责流程数据查询的授权与用例编排。
  * @author ZFJ
  * @since 2026-11-16
  */

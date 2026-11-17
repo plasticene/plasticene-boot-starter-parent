@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -83,7 +84,7 @@ class FlowTaskReturnTest {
     private final FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
 
     @BeforeEach

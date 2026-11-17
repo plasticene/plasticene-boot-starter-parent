@@ -8,6 +8,7 @@ import com.plasticene.boot.flow.core.model.FlowFieldPermission;
 import com.plasticene.boot.flow.core.model.FlowNode;
 import org.junit.jupiter.api.Test;
 import java.util.*;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import static org.junit.jupiter.api.Assertions.*;
 import static com.plasticene.boot.flow.core.model.FlowFieldPermission.Permission.*;
 
@@ -89,7 +90,7 @@ class FlowFormPermissionsTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         FlowNode node = new FlowNode(); node.setKey("approve"); node.setType(1);
         FlowFieldPermission reason = new FlowFieldPermission(); reason.setField("reason"); reason.setPermission(WRITE);

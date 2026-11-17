@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Data
 @Schema(description = "可发起的流程模型摘要")
 public class FlowStartableModelVO {
-    @io.swagger.v3.oas.annotations.media.Schema(description = "表单类型：0自带表单、1业务表单")
+    @Schema(description = "表单类型：0自带表单、1业务表单")
     private Integer formMode;
 
     @Schema(description = "流程模型id")

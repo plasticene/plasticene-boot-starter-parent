@@ -20,6 +20,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Map;
+import com.plasticene.boot.flow.core.api.service.FlowQueryApi;
+import org.mockito.ArgumentMatchers;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,7 +41,7 @@ class FlowInstanceControllerTest {
     @Mock
     private FlowInstanceApi service;
     @Mock
-    private com.plasticene.boot.flow.core.api.service.FlowQueryApi queries;
+    private FlowQueryApi queries;
     @InjectMocks
     private FlowInstanceController controller;
     private MockMvc mvc;
@@ -57,12 +59,12 @@ class FlowInstanceControllerTest {
         var mapper = new ObjectMapper();
         var payload = mapper.createObjectNode().put("definitionId", 31L);
         payload.putObject("varMap");
-        when(service.startForm(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(loginUser))).thenReturn(41L);
+        when(service.startForm(ArgumentMatchers.any(), ArgumentMatchers.eq(loginUser))).thenReturn(41L);
         mvc.perform(post("/flow/instance/start").contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(41L));
-        verify(service).startForm(org.mockito.ArgumentMatchers.argThat(param -> param.getDefinitionId().equals(31L) && param.getVarMap().isEmpty()), org.mockito.ArgumentMatchers.eq(loginUser));
+        verify(service).startForm(ArgumentMatchers.argThat(param -> param.getDefinitionId().equals(31L) && param.getVarMap().isEmpty()), ArgumentMatchers.eq(loginUser));
     }
 
     @ParameterizedTest

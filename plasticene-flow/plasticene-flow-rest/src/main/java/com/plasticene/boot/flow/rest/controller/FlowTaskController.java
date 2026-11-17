@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.plasticene.boot.flow.core.api.service.FlowQueryApi;
 
 /**
  * @author ZFJ
@@ -36,7 +37,7 @@ public class FlowTaskController {
     @Resource
     private FlowTaskApi flowTaskService;
     @Resource
-    private com.plasticene.boot.flow.core.api.service.FlowQueryApi flowQueryApi;
+    private FlowQueryApi flowQueryApi;
 
     @Operation(summary = "分页查询当前用户待办任务")
     @GetMapping("/my/todo/page")

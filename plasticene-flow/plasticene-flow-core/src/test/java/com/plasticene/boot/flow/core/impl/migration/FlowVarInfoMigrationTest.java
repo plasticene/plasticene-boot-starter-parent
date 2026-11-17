@@ -2,6 +2,10 @@ package com.plasticene.boot.flow.core.impl.migration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.flow.core.impl.form.FlowFormConfig;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,9 +36,9 @@ class FlowVarInfoMigrationTest {
                 "options":[{"label":"有效选项","value":"a"},{"label":"历史空值选项","value":""}]}]}
                 """;
         var mapper = new ObjectMapper();
-        var source = mapper.readValue(config, new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() { });
-        assertThrows(com.plasticene.boot.common.exception.BizException.class,
-                () -> com.plasticene.boot.flow.core.impl.form.FlowFormConfig.validate(source));
+        var source = mapper.readValue(config, new TypeReference<Map<String, Object>>() { });
+        assertThrows(BizException.class,
+                () -> FlowFormConfig.validate(source));
         var result = mapper.readTree(FlowVarInfoMigration.convert(33L, config, mapper));
         var field = result.path("fields").get(0);
         assertEquals("hobby", field.path("field").asText());

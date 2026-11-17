@@ -1,24 +1,25 @@
 package com.plasticene.boot.flow.core.impl.application;
 
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.impl.support.FlowActors;
-import com.plasticene.boot.common.pojo.PageResult;
-import com.plasticene.boot.flow.core.api.param.*;
-import com.plasticene.boot.flow.core.api.query.*;
-import com.plasticene.boot.flow.core.api.vo.*;
-import com.plasticene.boot.flow.core.model.FlowVariableSchema;
-import java.util.List;
-import com.plasticene.boot.flow.core.api.service.*;
+import com.plasticene.boot.flow.core.api.param.FlowTaskAddSignParam;
+import com.plasticene.boot.flow.core.api.param.FlowTaskFormParam;
+import com.plasticene.boot.flow.core.api.param.FlowTaskParam;
+import com.plasticene.boot.flow.core.api.param.FlowTaskReturnParam;
+import com.plasticene.boot.flow.core.api.param.FlowTaskTransferParam;
+import com.plasticene.boot.flow.core.api.service.FlowTaskApi;
 import com.plasticene.boot.flow.core.api.spi.FlowAction;
-import com.plasticene.boot.flow.core.api.validation.group.*;
-import jakarta.validation.groups.Default;
-import jakarta.annotation.Resource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.plasticene.boot.flow.core.api.vo.FlowTaskReturnTargetVO;
 import com.plasticene.boot.flow.core.impl.service.task.FlowTaskService;
+import com.plasticene.boot.flow.core.impl.support.FlowActors;
+import jakarta.annotation.Resource;
+import jakarta.validation.groups.Default;
+import java.util.List;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 实现FlowTaskOperations的统一授权与操作编排。
+ * 实现 {@link FlowTaskApi}，负责审批任务操作的授权与用例编排。
  * @author ZFJ
  * @since 2026-11-16
  */
@@ -30,7 +31,7 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     private FlowTaskService taskService;
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void approve(FlowTaskParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -39,7 +40,7 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void reject(FlowTaskParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -48,7 +49,7 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void saveForm(FlowTaskFormParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -57,7 +58,7 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void addSign(FlowTaskAddSignParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -66,7 +67,7 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void transfer(FlowTaskTransferParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -75,7 +76,7 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void returnTask(FlowTaskReturnParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -84,7 +85,7 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void withdraw(Long id, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.TASK_WITHDRAW, access.task(id));

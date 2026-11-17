@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
+import java.io.Serializable;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -165,7 +166,7 @@ class FlowFormServiceImplTest {
         assertThrows(BizException.class, () -> service.delete(12L, loginUserContext));
         assertThrows(BizException.class, () -> service.update(new FlowFormParam(), loginUserContext));
         verify(flowFormDAO, never()).updateById(any(FlowForm.class));
-        verify(flowFormDAO, never()).deleteById(any(java.io.Serializable.class));
+        verify(flowFormDAO, never()).deleteById(any(Serializable.class));
         verifyNoInteractions(flowCategoryService);
     }
 

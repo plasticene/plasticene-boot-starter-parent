@@ -1,24 +1,25 @@
 package com.plasticene.boot.flow.core.impl.application;
 
-import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.impl.support.FlowActors;
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
-import com.plasticene.boot.flow.core.api.param.*;
-import com.plasticene.boot.flow.core.api.query.*;
-import com.plasticene.boot.flow.core.api.vo.*;
-import com.plasticene.boot.flow.core.model.FlowVariableSchema;
-import java.util.List;
-import com.plasticene.boot.flow.core.api.service.*;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.flow.core.api.param.FlowFormParam;
+import com.plasticene.boot.flow.core.api.query.FlowFormQuery;
+import com.plasticene.boot.flow.core.api.service.FlowFormApi;
 import com.plasticene.boot.flow.core.api.spi.FlowAction;
-import com.plasticene.boot.flow.core.api.validation.group.*;
-import jakarta.validation.groups.Default;
+import com.plasticene.boot.flow.core.api.validation.group.Insert;
+import com.plasticene.boot.flow.core.api.validation.group.Update;
+import com.plasticene.boot.flow.core.api.vo.FlowFormVO;
+import com.plasticene.boot.flow.core.impl.service.form.FlowFormService;
+import com.plasticene.boot.flow.core.impl.support.FlowActors;
 import jakarta.annotation.Resource;
+import jakarta.validation.groups.Default;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.plasticene.boot.flow.core.impl.service.form.FlowFormService;
 
 /**
- * 实现FlowFormOperations的统一授权与操作编排。
+ * 实现 {@link FlowFormApi}，负责自带表单管理的授权与用例编排。
  * @author ZFJ
  * @since 2026-11-16
  */
@@ -51,8 +52,10 @@ public class FlowFormApiImpl implements FlowFormApi {
     public void delete(List<Long> ids, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.FORM_DELETE, access.organization(actor));
-        if (ids == null || ids.isEmpty()) { throw new com.plasticene.boot.common.exception.BizException("ID列表不能为空"); }
-        for (Long id : ids) { access.check(actor, FlowAction.FORM_DELETE, access.form(id)); }
+        if (ids == null || ids.isEmpty()) { throw new BizException("ID列表不能为空"); }
+        for (Long id : ids) {
+            access.check(actor, FlowAction.FORM_DELETE, access.form(id));
+        }
         formService.delete(ids, actor);
     }
 

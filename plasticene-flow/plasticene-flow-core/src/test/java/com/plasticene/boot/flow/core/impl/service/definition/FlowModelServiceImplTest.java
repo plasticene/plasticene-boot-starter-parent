@@ -8,6 +8,7 @@ import com.plasticene.boot.flow.core.model.enums.FlowModelEnums;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -61,7 +62,7 @@ class FlowModelServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setStartUserType(startUserType.getCode());
         return definition;

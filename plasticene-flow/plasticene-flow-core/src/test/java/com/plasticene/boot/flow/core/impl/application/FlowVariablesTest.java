@@ -6,6 +6,7 @@ import com.plasticene.boot.flow.core.impl.form.FlowFormConfig;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -23,7 +24,7 @@ class FlowVariablesTest {
     @Test
     void businessNumbersAreTypedAndUnknownOrSystemKeysAreRejected() {
         var schema = schema(1);
-        assertDoesNotThrow(() -> variables.validateData(schema, Map.of("amount", new java.math.BigDecimal("12.34")), false, true));
+        assertDoesNotThrow(() -> variables.validateData(schema, Map.of("amount", new BigDecimal("12.34")), false, true));
         assertThrows(BizException.class, () -> variables.validateData(schema, Map.of("amount", "12.34"), false, true));
         assertThrows(BizException.class, () -> variables.validateData(schema, Map.of("amount", 1, "extra", 2), false, true));
         assertThrows(BizException.class, () -> variables.validateData(schema, Map.of("amount", 1, "PROCESS_START_USER_ID", 9), false, true));

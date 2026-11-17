@@ -63,6 +63,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import java.util.LinkedHashMap;
 
 /**
  * @author ZFJ
@@ -71,7 +73,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowInstance> implements FlowRuntimeService {
     @Resource
-    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables;
+    private FlowVariables flowVariables;
     @Resource
     private FlowInstanceDAO flowInstanceDAO;
     @Resource
@@ -129,7 +131,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         FlowInstance instance = new FlowInstance();
         instance.setDefinitionId(definitionId);
         instance.setBusinessId(businessId);
-        Map<String, Object> savedVariables = new java.util.LinkedHashMap<>(varMap == null ? Map.of() : varMap);
+        Map<String, Object> savedVariables = new LinkedHashMap<>(varMap == null ? Map.of() : varMap);
         savedVariables.put("PROCESS_START_USER_ID", loginUser.getId());
         instance.setVarMap(savedVariables);
         instance.setCategory(flowDefinition.getCategory());
@@ -170,7 +172,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         FlowNode flowNode = flowDefinition.getModelNode();
         FlowParser.makeParentNode(flowNode);
         flowVariables.validateData(flowDefinition.getVarInfo(), varMap, false, Objects.equals(flowDefinition.getFormMode(), 1));
-        Map<String, Object> variables = new java.util.LinkedHashMap<>(varMap == null ? Map.of() : varMap);
+        Map<String, Object> variables = new LinkedHashMap<>(varMap == null ? Map.of() : varMap);
         variables.put("PROCESS_START_USER_ID", loginUser.getId());
         return processExecutor.calculateRouteTrace(flowNode, variables).stream()
                 .map(this::toRouteNodeVO)

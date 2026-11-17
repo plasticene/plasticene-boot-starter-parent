@@ -55,6 +55,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
 
 /**
  * 流程任务服务入口，保留公开接口及事务边界。
@@ -64,7 +65,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> implements FlowTaskService {
     @Resource
-    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables;
+    private FlowVariables flowVariables;
     @Resource
     private FlowTaskDAO flowTaskDAO;
 
@@ -184,7 +185,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
     public void saveForm(FlowTaskFormParam param, LoginUser user) {
         flowTaskExecution.execute(param.getTaskId(), user, (task, instance) -> {
             FlowDefinition definition = flowDefinitionService.getById(instance.getDefinitionId());
-            if (!java.util.Objects.equals(definition.getFormMode(), 0)) {
+            if (!Objects.equals(definition.getFormMode(), 0)) {
                 throw new BizException("业务表单请通过宿主入口修改");
             }
             flowVariables.validateData(definition.getVarInfo(), param.getFormData(), true, false);

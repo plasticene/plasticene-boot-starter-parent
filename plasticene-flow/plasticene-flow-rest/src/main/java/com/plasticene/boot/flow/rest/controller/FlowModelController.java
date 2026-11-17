@@ -35,6 +35,7 @@ import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 
 /**
  *
@@ -147,7 +148,7 @@ public class FlowModelController {
     }
     @Operation(summary = "查询设计态审批变量定义")
     @GetMapping("/{id}/variables")
-    public ResponseVO<com.plasticene.boot.flow.core.model.FlowVariableSchema> variables(@PathVariable("id") Long id) {
+    public ResponseVO<FlowVariableSchema> variables(@PathVariable("id") Long id) {
         return ResponseVO.success(flowModelService.getVariableSchema(id, LoginUserHolder.get()));
     }
 }

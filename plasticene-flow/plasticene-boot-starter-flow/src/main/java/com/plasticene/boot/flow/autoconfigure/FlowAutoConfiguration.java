@@ -15,6 +15,32 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import com.plasticene.boot.flow.core.impl.application.FlowAccess;
+import com.plasticene.boot.flow.core.impl.application.FlowCategoryApiImpl;
+import com.plasticene.boot.flow.core.impl.application.FlowEventApiImpl;
+import com.plasticene.boot.flow.core.impl.application.FlowFormApiImpl;
+import com.plasticene.boot.flow.core.impl.application.FlowInstanceApiImpl;
+import com.plasticene.boot.flow.core.impl.application.FlowModelApiImpl;
+import com.plasticene.boot.flow.core.impl.application.FlowQueryApiImpl;
+import com.plasticene.boot.flow.core.impl.application.FlowTaskApiImpl;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryServiceImpl;
+import com.plasticene.boot.flow.core.impl.service.dashboard.FlowDashboardServiceImpl;
+import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionServiceImpl;
+import com.plasticene.boot.flow.core.impl.service.form.FlowFormServiceImpl;
+import com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeServiceImpl;
+import com.plasticene.boot.flow.core.impl.service.model.FlowModelServiceImpl;
+import com.plasticene.boot.flow.core.impl.service.task.FlowTaskServiceImpl;
+import com.plasticene.boot.flow.core.impl.service.timeout.FlowTimeoutServiceImpl;
+import com.plasticene.boot.flow.core.impl.task.FlowTaskAddSignOperations;
+import com.plasticene.boot.flow.core.impl.task.FlowTaskApproval;
+import com.plasticene.boot.flow.core.impl.task.FlowTaskCreation;
+import com.plasticene.boot.flow.core.impl.task.FlowTaskExecution;
+import com.plasticene.boot.flow.core.impl.task.FlowTaskLifecycle;
+import com.plasticene.boot.flow.core.impl.task.FlowTaskQueries;
+import com.plasticene.boot.flow.core.impl.task.FlowTaskReturn;
+import com.plasticene.boot.flow.core.impl.task.FlowTaskWithdraw;
+import com.plasticene.boot.flow.core.impl.validation.node.FlowNodeValidator;
 
 /**
  * @author ZFJ
@@ -22,32 +48,32 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
  */
 @AutoConfiguration(afterName = "com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration")
 @Import({
-        com.plasticene.boot.flow.core.impl.application.FlowAccess.class,
-        com.plasticene.boot.flow.core.impl.application.FlowCategoryApiImpl.class,
-        com.plasticene.boot.flow.core.impl.application.FlowEventApiImpl.class,
-        com.plasticene.boot.flow.core.impl.application.FlowFormApiImpl.class,
-        com.plasticene.boot.flow.core.impl.application.FlowInstanceApiImpl.class,
-        com.plasticene.boot.flow.core.impl.application.FlowModelApiImpl.class,
-        com.plasticene.boot.flow.core.impl.application.FlowQueryApiImpl.class,
-        com.plasticene.boot.flow.core.impl.application.FlowTaskApiImpl.class,
-        com.plasticene.boot.flow.core.impl.application.FlowVariables.class,
-        com.plasticene.boot.flow.core.impl.service.category.FlowCategoryServiceImpl.class,
-        com.plasticene.boot.flow.core.impl.service.dashboard.FlowDashboardServiceImpl.class,
-        com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionServiceImpl.class,
-        com.plasticene.boot.flow.core.impl.service.form.FlowFormServiceImpl.class,
-        com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeServiceImpl.class,
-        com.plasticene.boot.flow.core.impl.service.model.FlowModelServiceImpl.class,
-        com.plasticene.boot.flow.core.impl.service.task.FlowTaskServiceImpl.class,
-        com.plasticene.boot.flow.core.impl.service.timeout.FlowTimeoutServiceImpl.class,
-        com.plasticene.boot.flow.core.impl.task.FlowTaskAddSignOperations.class,
-        com.plasticene.boot.flow.core.impl.task.FlowTaskApproval.class,
-        com.plasticene.boot.flow.core.impl.task.FlowTaskCreation.class,
-        com.plasticene.boot.flow.core.impl.task.FlowTaskExecution.class,
-        com.plasticene.boot.flow.core.impl.task.FlowTaskLifecycle.class,
-        com.plasticene.boot.flow.core.impl.task.FlowTaskQueries.class,
-        com.plasticene.boot.flow.core.impl.task.FlowTaskReturn.class,
-        com.plasticene.boot.flow.core.impl.task.FlowTaskWithdraw.class,
-        com.plasticene.boot.flow.core.impl.validation.node.FlowNodeValidator.class
+        FlowAccess.class,
+        FlowCategoryApiImpl.class,
+        FlowEventApiImpl.class,
+        FlowFormApiImpl.class,
+        FlowInstanceApiImpl.class,
+        FlowModelApiImpl.class,
+        FlowQueryApiImpl.class,
+        FlowTaskApiImpl.class,
+        FlowVariables.class,
+        FlowCategoryServiceImpl.class,
+        FlowDashboardServiceImpl.class,
+        FlowDefinitionServiceImpl.class,
+        FlowFormServiceImpl.class,
+        FlowRuntimeServiceImpl.class,
+        FlowModelServiceImpl.class,
+        FlowTaskServiceImpl.class,
+        FlowTimeoutServiceImpl.class,
+        FlowTaskAddSignOperations.class,
+        FlowTaskApproval.class,
+        FlowTaskCreation.class,
+        FlowTaskExecution.class,
+        FlowTaskLifecycle.class,
+        FlowTaskQueries.class,
+        FlowTaskReturn.class,
+        FlowTaskWithdraw.class,
+        FlowNodeValidator.class
 })
 @MapperScan(basePackages = {"com.plasticene.boot.flow.core.impl.persistence.dao"})
 public class FlowAutoConfiguration {

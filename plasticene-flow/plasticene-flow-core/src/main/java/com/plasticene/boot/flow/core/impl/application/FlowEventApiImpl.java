@@ -1,24 +1,20 @@
 package com.plasticene.boot.flow.core.impl.application;
 
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.impl.support.FlowActors;
-import com.plasticene.boot.common.pojo.PageResult;
-import com.plasticene.boot.flow.core.api.param.*;
-import com.plasticene.boot.flow.core.api.query.*;
-import com.plasticene.boot.flow.core.api.vo.*;
-import com.plasticene.boot.flow.core.model.FlowVariableSchema;
-import java.util.List;
-import com.plasticene.boot.flow.core.api.service.*;
+import com.plasticene.boot.flow.core.api.service.FlowEventApi;
 import com.plasticene.boot.flow.core.api.spi.FlowAction;
-import com.plasticene.boot.flow.core.api.validation.group.*;
-import jakarta.validation.groups.Default;
+import com.plasticene.boot.flow.core.api.spi.FlowResource;
+import com.plasticene.boot.flow.core.api.vo.FlowEventFailureVO;
+import com.plasticene.boot.flow.core.impl.event.FlowEventStore;
+import com.plasticene.boot.flow.core.impl.support.FlowActors;
 import jakarta.annotation.Resource;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.plasticene.boot.flow.core.impl.event.FlowEventStore;
 
 /**
- * 实现FlowEventOperations的统一授权与操作编排。
+ * 实现 {@link FlowEventApi}，负责事件投递管理的授权与用例编排。
  * @author ZFJ
  * @since 2026-11-16
  */
@@ -40,10 +36,10 @@ public class FlowEventApiImpl implements FlowEventApi {
     @Transactional(rollbackFor = Exception.class)
     public void retry(String eventId, LoginUser actor) {
         FlowActors.require(actor);
-        access.check(actor, FlowAction.EVENT_RETRY, new com.plasticene.boot.flow.core.api.spi.FlowResource(
+        access.check(actor, FlowAction.EVENT_RETRY, new FlowResource(
                 actor.getOrgId(), "EVENT", eventId, null, null, null, null, null, null));
         if (eventId == null || eventId.isBlank() || !eventStore.retry(actor.getOrgId(), eventId)) {
-            throw new com.plasticene.boot.common.exception.BizException("事件不存在或不处于暂停状态");
+            throw new BizException("事件不存在或不处于暂停状态");
         }
     }
 }

@@ -4,13 +4,15 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.annotation.Profile;
+import com.plasticene.boot.example.flow.provider.FlowAuthorizationConfiguration;
+import org.springframework.context.annotation.Import;
 
 /**
  * 运行无需 HTTP 登录态和 Redis 的请假审批接入示例。
  * @author ZFJ
  * @since 2026-11-11
  */
-@org.springframework.context.annotation.Import(com.plasticene.boot.example.flow.provider.FlowAuthorizationConfiguration.class)
+@Import(FlowAuthorizationConfiguration.class)
 @Profile("leave")
 @SpringBootApplication(excludeName = {
         "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration",

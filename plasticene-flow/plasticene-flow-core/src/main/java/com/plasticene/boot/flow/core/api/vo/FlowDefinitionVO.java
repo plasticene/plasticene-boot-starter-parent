@@ -8,6 +8,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 
 /**
  * @author ZFJ
@@ -16,11 +17,11 @@ import java.util.Map;
 @Data
 @Schema(description = "流程定义VO")
 public class FlowDefinitionVO {
-    @io.swagger.v3.oas.annotations.media.Schema(description = "表单类型：0自带表单、1业务表单")
+    @Schema(description = "表单类型：0自带表单、1业务表单")
     private Integer formMode;
 
-    @io.swagger.v3.oas.annotations.media.Schema(description = "发布时的审批变量定义快照")
-    private com.plasticene.boot.flow.core.model.FlowVariableSchema varInfo;
+    @Schema(description = "发布时的审批变量定义快照")
+    private FlowVariableSchema varInfo;
 
 
     @Schema(description = "流程模型id")

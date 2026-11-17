@@ -61,6 +61,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -128,7 +129,7 @@ class FlowTaskAddSignTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setOrgId(9L);
         FlowNode node = new FlowNode();
@@ -497,7 +498,7 @@ class FlowTaskAddSignTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         assertFalse(service.canWithdrawTask(rows.get(1L), instance, definition, List.copyOf(rows.values()), loginUserContext));
         login(10L, 9L);
@@ -516,7 +517,7 @@ class FlowTaskAddSignTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         assertFalse(service.canWithdrawTask(previous, instance, definition, List.copyOf(rows.values()), loginUserContext));
         assertEquals(6, rows.get(1L).getStatus());
@@ -533,7 +534,7 @@ class FlowTaskAddSignTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setOrgId(9L); definition.setModelNode(previous);
         when(definitions.getById(31L)).thenReturn(definition);

@@ -19,6 +19,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import org.mockito.Spy;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,8 +38,8 @@ class FlowModelDeleteTest {
     private FlowModelDAO models;
     @Mock
     private FlowDefinitionService definitions;
-    @org.mockito.Spy
-    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
+    @Spy
+    private FlowVariables flowVariables = new FlowVariables();
     @InjectMocks
     private FlowModelServiceImpl service;
 

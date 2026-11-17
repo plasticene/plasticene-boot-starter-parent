@@ -14,6 +14,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
 
 /**
  * 为任务行为测试装配真实业务组件并注入可替换的外部依赖。
@@ -28,7 +29,7 @@ final class FlowTaskTestComponents {
         List<Object> components = new ArrayList<>(List.of(
                 new FlowTaskExecution(), new FlowTaskQueries(), new FlowTaskCreation(),
                 new FlowTaskLifecycle(), new FlowTaskApproval(), new FlowTaskAddSignOperations(),
-                new FlowTaskReturn(), new FlowTaskWithdraw(), new com.plasticene.boot.flow.core.impl.application.FlowVariables()));
+                new FlowTaskReturn(), new FlowTaskWithdraw(), new FlowVariables()));
         List<Object> candidates = new ArrayList<>(components);
         candidates.addAll(Arrays.asList(dependencies));
         components.add(service);

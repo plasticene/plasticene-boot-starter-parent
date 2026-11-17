@@ -47,6 +47,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
+import org.mockito.Spy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -88,8 +91,8 @@ class FlowRuntimeServiceImplTest {
     private FlowTimeoutNoticeDAO timeoutNoticeDAO;
     @Mock
     private FlowFormChangeRecordDAO formChangeRecordDAO;
-    @org.mockito.Spy
-    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
+    @Spy
+    private FlowVariables flowVariables = new FlowVariables();
     @InjectMocks
     private FlowRuntimeServiceImpl service;
 
@@ -155,7 +158,7 @@ class FlowRuntimeServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setFormMode(businessId == null ? 0 : 1);
         definition.setOrgId(10L);
@@ -190,7 +193,7 @@ class FlowRuntimeServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setOrgId(10L);
         FlowNode node = new FlowNode();
@@ -239,7 +242,7 @@ class FlowRuntimeServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setOrgId(10L);
         FlowNode node = new FlowNode();
@@ -379,7 +382,7 @@ class FlowRuntimeServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setIsDelete(deleted);
         definition.setModelNode(currentNode);
@@ -427,7 +430,7 @@ class FlowRuntimeServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         FlowExtraSetting setting = new FlowExtraSetting();
         setting.setAllowSubmitterCancel(false);
@@ -450,7 +453,7 @@ class FlowRuntimeServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setIsDelete(deleted);
         definition.setId(31L);
@@ -491,7 +494,7 @@ class FlowRuntimeServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setOrgId(10L);
         FlowNode previous = new FlowNode();
@@ -563,7 +566,7 @@ class FlowRuntimeServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setId(31L);
         definition.setOrgId(10L);
@@ -617,7 +620,7 @@ class FlowRuntimeServiceImplTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         definition.setId(31L);
         definition.setOrgId(10L);

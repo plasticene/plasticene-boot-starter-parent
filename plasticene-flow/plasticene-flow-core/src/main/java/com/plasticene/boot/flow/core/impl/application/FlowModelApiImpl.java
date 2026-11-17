@@ -1,25 +1,30 @@
 package com.plasticene.boot.flow.core.impl.application;
 
-import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.impl.support.FlowActors;
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
-import com.plasticene.boot.flow.core.api.param.*;
-import com.plasticene.boot.flow.core.api.query.*;
-import com.plasticene.boot.flow.core.api.vo.*;
-import com.plasticene.boot.flow.core.model.FlowVariableSchema;
-import java.util.List;
-import com.plasticene.boot.flow.core.api.service.*;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.flow.core.api.param.FlowModelEnableParam;
+import com.plasticene.boot.flow.core.api.param.FlowModelParam;
+import com.plasticene.boot.flow.core.api.query.FlowModelQuery;
+import com.plasticene.boot.flow.core.api.service.FlowModelApi;
 import com.plasticene.boot.flow.core.api.spi.FlowAction;
-import com.plasticene.boot.flow.core.api.validation.group.*;
-import jakarta.validation.groups.Default;
+import com.plasticene.boot.flow.core.api.validation.group.Insert;
+import com.plasticene.boot.flow.core.api.validation.group.Update;
+import com.plasticene.boot.flow.core.api.vo.FlowDefinitionVO;
+import com.plasticene.boot.flow.core.api.vo.FlowModelStatisticsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowModelVO;
+import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
+import com.plasticene.boot.flow.core.impl.service.model.FlowModelService;
+import com.plasticene.boot.flow.core.impl.support.FlowActors;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import jakarta.annotation.Resource;
+import jakarta.validation.groups.Default;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.plasticene.boot.flow.core.impl.service.model.FlowModelService;
-import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
 
 /**
- * 实现FlowModelOperations的统一授权与操作编排。
+ * 实现 {@link FlowModelApi}，负责模型管理的授权与用例编排。
  * @author ZFJ
  * @since 2026-11-16
  */
@@ -56,7 +61,7 @@ public class FlowModelApiImpl implements FlowModelApi {
     public void delete(List<Long> ids, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.MODEL_DELETE, access.organization(actor));
-        if (ids == null || ids.isEmpty()) { throw new com.plasticene.boot.common.exception.BizException("ID列表不能为空"); }
+        if (ids == null || ids.isEmpty()) { throw new BizException("ID列表不能为空"); }
         for (Long id : ids) { access.check(actor, FlowAction.MODEL_DELETE, access.model(id)); }
         modelService.delete(ids, actor);
     }

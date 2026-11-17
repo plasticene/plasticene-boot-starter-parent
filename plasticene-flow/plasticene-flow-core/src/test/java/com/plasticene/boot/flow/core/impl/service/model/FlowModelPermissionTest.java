@@ -24,6 +24,8 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import org.mockito.Spy;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,8 +45,8 @@ class FlowModelPermissionTest {
     private FlowDefinitionService definitions;
     @Mock
     private FlowNodeValidator validator;
-    @org.mockito.Spy
-    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
+    @Spy
+    private FlowVariables flowVariables = new FlowVariables();
     @InjectMocks
     private FlowModelServiceImpl service;
 

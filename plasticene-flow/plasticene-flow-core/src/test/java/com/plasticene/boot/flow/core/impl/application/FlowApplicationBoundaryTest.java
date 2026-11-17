@@ -11,6 +11,8 @@ import jakarta.validation.Validation;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -25,7 +27,7 @@ class FlowApplicationBoundaryTest {
     }
     @Test
     void publicContractsRequireExplicitActorAndDoNotExposeOrm() {
-        for (var contract : java.util.List.of(FlowModelApi.class, FlowInstanceApi.class,
+        for (var contract : List.of(FlowModelApi.class, FlowInstanceApi.class,
                 FlowTaskApi.class, FlowQueryApi.class, FlowFormApi.class,
                 FlowCategoryApi.class, FlowEventApi.class)) {
             assertEquals(0, contract.getInterfaces().length);
@@ -72,7 +74,7 @@ class FlowApplicationBoundaryTest {
     void defaultPolicyDeniesAndCrossOrganizationIsRejectedBeforeCallingHost() {
         var access = new FlowAccess();
         @SuppressWarnings("unchecked")
-        org.springframework.beans.factory.ObjectProvider<FlowAuthorizationPolicy> policies = mock(org.springframework.beans.factory.ObjectProvider.class);
+        ObjectProvider<FlowAuthorizationPolicy> policies = mock(ObjectProvider.class);
         ReflectionTestUtils.setField(access, "policies", policies);
         var actor = actor();
         assertThrows(BizException.class, () -> access.check(actor, FlowAction.MODEL_CREATE, access.organization(actor)));

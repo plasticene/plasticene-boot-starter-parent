@@ -18,6 +18,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  * 集中装配超时任务、专属线程池及其启停生命周期。
@@ -45,7 +46,7 @@ public class FlowTimeoutConfiguration {
 
     @Bean
     public SmartLifecycle flowTimeoutLifecycle(FlowTimeoutScheduler scanner, FlowTimeoutService service,
-            @org.springframework.beans.factory.annotation.Qualifier("flowTimeoutSchedulerExecutor") ThreadPoolTaskScheduler scheduler,
+            @Qualifier("flowTimeoutSchedulerExecutor") ThreadPoolTaskScheduler scheduler,
             ObjectProvider<FlowTimeoutNotification> notifications, FlowTimeoutProperties properties) {
         return new SmartLifecycle() {
             private final List<ScheduledFuture<?>> tasks = new ArrayList<>();

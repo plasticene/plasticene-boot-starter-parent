@@ -50,6 +50,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.util.ArrayList;
 import java.util.List;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -95,7 +97,7 @@ class FlowTaskTransactionTest {
                 }
             });
         });
-        context.register(com.plasticene.boot.flow.core.impl.application.FlowVariables.class);
+        context.register(FlowVariables.class);
         context.register(TaskConfiguration.class);
         context.refresh();
         service = context.getBean(FlowTaskService.class);
@@ -132,7 +134,7 @@ class FlowTaskTransactionTest {
         FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
         FlowNode node = new FlowNode();
         node.setKey("approve");

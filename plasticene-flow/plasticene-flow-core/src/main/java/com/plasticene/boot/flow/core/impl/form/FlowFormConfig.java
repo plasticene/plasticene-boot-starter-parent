@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.plasticene.boot.common.exception.BizException;
 import java.util.*;
 import java.util.function.Consumer;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 
 /**
  * 校验流程表单配置并提取可被流程节点引用的基础字段。
@@ -44,12 +45,12 @@ public final class FlowFormConfig {
     }
 
     /** 将表单字段转为审批变量定义，内容字段保留但不扩充条件类型。 */
-    public static com.plasticene.boot.flow.core.model.FlowVariableSchema variableSchema(Map<String, Object> config) {
-        var schema = new com.plasticene.boot.flow.core.model.FlowVariableSchema();
-        var fields = new ArrayList<com.plasticene.boot.flow.core.model.FlowVariableSchema.Field>();
+    public static FlowVariableSchema variableSchema(Map<String, Object> config) {
+        var schema = new FlowVariableSchema();
+        var fields = new ArrayList<FlowVariableSchema.Field>();
         walk(config == null ? null : config.get("rule"), true, rule -> {
             if (blank(rule.get("field"))) { return; }
-            var field = new com.plasticene.boot.flow.core.model.FlowVariableSchema.Field();
+            var field = new FlowVariableSchema.Field();
             String component = String.valueOf(rule.get("type"));
             Map<?, ?> props = rule.get("props") instanceof Map<?, ?> value ? value : Map.of();
             field.setField(String.valueOf(rule.get("field")));

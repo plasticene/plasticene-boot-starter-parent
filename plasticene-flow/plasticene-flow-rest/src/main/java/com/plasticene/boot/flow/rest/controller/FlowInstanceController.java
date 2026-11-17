@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.plasticene.boot.flow.core.api.service.FlowQueryApi;
 
 /**
  * @author ZFJ
@@ -37,7 +38,7 @@ public class FlowInstanceController {
     @Resource
     private FlowInstanceApi flowRuntimeService;
     @Resource
-    private com.plasticene.boot.flow.core.api.service.FlowQueryApi flowQueryApi;
+    private FlowQueryApi flowQueryApi;
 
     @Operation(summary = "基于流程模型发起实例")
     @PostMapping("/start")

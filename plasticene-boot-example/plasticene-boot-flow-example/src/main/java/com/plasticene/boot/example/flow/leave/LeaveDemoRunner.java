@@ -10,6 +10,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import java.util.UUID;
+import com.plasticene.boot.common.exception.BizException;
+import java.time.Duration;
+import java.util.List;
 
 /**
  * 执行员工提交、负责人审批及异步业务生效的完整演示。
@@ -38,7 +41,7 @@ public class LeaveDemoRunner implements ApplicationRunner {
         try {
             applications.submit(applicationId, 2, "示例请假", applicant);
             throw new IllegalStateException("重复申请应被拒绝");
-        } catch (com.plasticene.boot.common.exception.BizException expected) {
+        } catch (BizException expected) {
             if (!"同一businessId不能重复发起实例".equals(expected.getMessage())) { throw expected; }
         }
         Long taskId = jdbc.queryForObject("SELECT id FROM flow_task WHERE instance_id = ? AND assignee = 2 AND status = 0 LIMIT 1", Long.class, instanceId);
@@ -46,7 +49,7 @@ public class LeaveDemoRunner implements ApplicationRunner {
         param.setTaskId(taskId);
         param.setComment("同意请假");
         engine.approve(param, actor(2L));
-        long deadline = System.nanoTime() + java.time.Duration.ofSeconds(30).toNanos();
+        long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
         while (System.nanoTime() < deadline) {
             Integer complete = jdbc.queryForObject("""
                     SELECT COUNT(*) FROM leave_application a JOIN leave_notification n
@@ -67,7 +70,7 @@ public class LeaveDemoRunner implements ApplicationRunner {
         actor.setId(userId);
         actor.setOrgId(1L);
         actor.setDeptId(1L);
-        actor.setRoleIds(java.util.List.of());
+        actor.setRoleIds(List.of());
         return actor;
     }
 }

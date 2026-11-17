@@ -29,6 +29,12 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.common.user.LoginUserHolder;
+import com.plasticene.boot.flow.core.api.param.FlowBusinessStartByCodeParam;
+import com.plasticene.boot.flow.core.api.service.FlowInstanceApi;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -46,7 +52,7 @@ class LeaveWorkflowIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private PlatformTransactionManager manager;
     @Autowired private FlowTaskApi engine;
-    @Autowired private com.plasticene.boot.flow.core.api.service.FlowInstanceApi instanceOperations;
+    @Autowired private FlowInstanceApi instanceOperations;
     @Autowired private FlowEventStore events;
     @Autowired private FlowEventOutboxDAO eventDAO;
     @Autowired private FlowInstanceDAO instanceDAO;
@@ -67,7 +73,7 @@ class LeaveWorkflowIntegrationTest {
                 "leave_event_inbox", "leave_notification", "leave_application"}) {
             jdbc.update("DELETE FROM " + table + " WHERE org_id = 1");
         }
-        assertNull(com.plasticene.boot.common.user.LoginUserHolder.get());
+        assertNull(LoginUserHolder.get());
     }
 
     @Test
@@ -110,10 +116,10 @@ class LeaveWorkflowIntegrationTest {
     void shouldCreateOnlyOneInstanceUnderConcurrentStarterSubmissions() throws Exception {
         String request = UUID.randomUUID().toString();
         try (var executor = Executors.newFixedThreadPool(4)) {
-            var calls = new ArrayList<java.util.concurrent.Future<Long>>();
+            var calls = new ArrayList<Future<Long>>();
             for (int i = 0; i < 4; i++) {
                 calls.add(executor.submit(() -> {
-                    var param = new com.plasticene.boot.flow.core.api.param.FlowBusinessStartByCodeParam();
+                    var param = new FlowBusinessStartByCodeParam();
                     param.setProcessCode("leave-approval"); param.setBusinessId(request);
                     param.setVarMap(Map.of("days", 2, "reason", "并发申请"));
                     return instanceOperations.startBusinessByCode(param, LeaveDemoRunner.actor(1L));
@@ -123,8 +129,8 @@ class LeaveWorkflowIntegrationTest {
             int rejected = 0;
             for (var call : calls) {
                 try { assertNotNull(call.get()); created++; }
-                catch (java.util.concurrent.ExecutionException failure) {
-                    assertInstanceOf(com.plasticene.boot.common.exception.BizException.class, failure.getCause());
+                catch (ExecutionException failure) {
+                    assertInstanceOf(BizException.class, failure.getCause());
                     rejected++;
                 }
             }

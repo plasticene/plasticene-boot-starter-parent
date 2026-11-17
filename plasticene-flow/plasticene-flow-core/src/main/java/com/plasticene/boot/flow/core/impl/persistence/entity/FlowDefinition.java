@@ -15,6 +15,7 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 
 /**
  * 流程定义表：流程模型发布记录表
@@ -30,7 +31,7 @@ public class FlowDefinition extends BaseDO {
 
     /** 发布时的审批变量定义快照。 */
     @TableField(value = "var_info", typeHandler = JacksonTypeHandler.class)
-    private com.plasticene.boot.flow.core.model.FlowVariableSchema varInfo;
+    private FlowVariableSchema varInfo;
 
 
     /** 主键 */

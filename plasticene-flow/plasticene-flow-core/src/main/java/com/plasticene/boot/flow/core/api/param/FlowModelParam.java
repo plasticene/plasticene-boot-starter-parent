@@ -22,8 +22,8 @@ import lombok.Data;
 @Data
 @Schema(description = "工作流-流程模型表")
 public class FlowModelParam {
-    @io.swagger.v3.oas.annotations.media.Schema(description = "表单类型：0自带表单、1业务表单")
-    @jakarta.validation.constraints.NotNull(groups = Insert.class, message = "表单类型不能为空")
+    @Schema(description = "表单类型：0自带表单、1业务表单")
+    @NotNull(groups = Insert.class, message = "表单类型不能为空")
     private Integer formMode;
 
     @Schema(description = "流程id")

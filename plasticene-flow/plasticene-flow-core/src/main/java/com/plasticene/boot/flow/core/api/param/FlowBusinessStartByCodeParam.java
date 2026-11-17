@@ -3,6 +3,7 @@ package com.plasticene.boot.flow.core.api.param;
 import lombok.Data;
 import java.util.Map;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * 定义流程发起或路径预估的公开参数。
@@ -13,10 +14,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "FlowBusinessStartByCodeParam")
 public class FlowBusinessStartByCodeParam {
     @Schema(description = "流程编码")
-    @jakarta.validation.constraints.NotBlank
+    @NotBlank
     private String processCode;
     @Schema(description = "业务申请记录标识")
-    @jakarta.validation.constraints.NotBlank
+    @NotBlank
     private String businessId;
     @Schema(description = "本次申请的审批数据")
     private Map<String, Object> varMap;

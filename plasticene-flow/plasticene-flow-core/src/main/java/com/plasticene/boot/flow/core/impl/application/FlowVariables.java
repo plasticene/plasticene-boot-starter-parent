@@ -11,6 +11,10 @@ import java.util.*;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
+import java.lang.reflect.Array;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 
 /**
  * 解析发布变量契约并校验实例输入，不读取运行时宿主业务数据。
@@ -82,14 +86,14 @@ public class FlowVariables {
     }
 
     private boolean validNumber(String value) {
-        try { new java.math.BigDecimal(value); return true; }
+        try { new BigDecimal(value); return true; }
         catch (NumberFormatException ignored) { return false; }
     }
 
     private boolean validDate(Object value) {
         if (!(value instanceof String text)) { return false; }
-        try { java.time.LocalDateTime.parse(text, Operator.DATE_TIME_FORMATTER); return true; }
-        catch (java.time.format.DateTimeParseException ignored) { return false; }
+        try { LocalDateTime.parse(text, Operator.DATE_TIME_FORMATTER); return true; }
+        catch (DateTimeParseException ignored) { return false; }
     }
 
     private boolean validCollection(Object value, Integer elementType) {
@@ -97,8 +101,8 @@ public class FlowVariables {
         if (value instanceof Collection<?> collection) { values = collection; }
         else if (value != null && value.getClass().isArray()) {
             var array = new ArrayList<Object>();
-            for (int index = 0; index < java.lang.reflect.Array.getLength(value); index++) {
-                array.add(java.lang.reflect.Array.get(value, index));
+            for (int index = 0; index < Array.getLength(value); index++) {
+                array.add(Array.get(value, index));
             }
             values = array;
         }

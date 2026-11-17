@@ -28,6 +28,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import org.mockito.Spy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -54,8 +56,8 @@ class FlowModelExtraSettingServiceTest {
     private FlowNodeValidator flowNodeValidator;
     @Mock
     private FlowDefinitionService flowDefinitionService;
-    @org.mockito.Spy
-    private com.plasticene.boot.flow.core.impl.application.FlowVariables flowVariables = new com.plasticene.boot.flow.core.impl.application.FlowVariables();
+    @Spy
+    private FlowVariables flowVariables = new FlowVariables();
     @InjectMocks
     private FlowModelServiceImpl service;
 

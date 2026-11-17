@@ -19,6 +19,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
+import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -58,9 +61,9 @@ class FlowApplicationIdempotencyTest {
         assertNull(LoginUserHolder.get());
         if (businessId != null) {
             fixture.definition.setFormMode(1);
-            var field = new com.plasticene.boot.flow.core.model.FlowVariableSchema.Field();
+            var field = new FlowVariableSchema.Field();
             field.setField("days"); field.setTitle("天数"); field.setType(1);
-            fixture.definition.getVarInfo().setFields(java.util.List.of(field));
+            fixture.definition.getVarInfo().setFields(List.of(field));
         }
         when(fixture.instances.insert(any(FlowInstance.class))).thenAnswer(call -> {
             call.<FlowInstance>getArgument(0).setId(21L);
@@ -127,11 +130,11 @@ class FlowApplicationIdempotencyTest {
         final FlowDefinition definition = new FlowDefinition();
         {
         definition.setFormMode(0);
-        definition.setVarInfo(new com.plasticene.boot.flow.core.model.FlowVariableSchema());
+        definition.setVarInfo(new FlowVariableSchema());
         }
 
         Fixture() {
-            ReflectionTestUtils.setField(service, "flowVariables", new com.plasticene.boot.flow.core.impl.application.FlowVariables());
+            ReflectionTestUtils.setField(service, "flowVariables", new FlowVariables());
             actor.setId(8L);
             actor.setOrgId(9L);
             definition.setOrgId(9L);

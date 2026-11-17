@@ -1,24 +1,25 @@
 package com.plasticene.boot.flow.core.impl.application;
 
-import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.impl.support.FlowActors;
+import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
-import com.plasticene.boot.flow.core.api.param.*;
-import com.plasticene.boot.flow.core.api.query.*;
-import com.plasticene.boot.flow.core.api.vo.*;
-import com.plasticene.boot.flow.core.model.FlowVariableSchema;
-import java.util.List;
-import com.plasticene.boot.flow.core.api.service.*;
+import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
+import com.plasticene.boot.flow.core.api.query.FlowCategoryQuery;
+import com.plasticene.boot.flow.core.api.service.FlowCategoryApi;
 import com.plasticene.boot.flow.core.api.spi.FlowAction;
-import com.plasticene.boot.flow.core.api.validation.group.*;
-import jakarta.validation.groups.Default;
+import com.plasticene.boot.flow.core.api.validation.group.Insert;
+import com.plasticene.boot.flow.core.api.validation.group.Update;
+import com.plasticene.boot.flow.core.api.vo.FlowCategoryVO;
+import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
+import com.plasticene.boot.flow.core.impl.support.FlowActors;
 import jakarta.annotation.Resource;
+import jakarta.validation.groups.Default;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 
 /**
- * 实现FlowCategoryOperations的统一授权与操作编排。
+ * 实现 {@link FlowCategoryApi}，负责流程分类管理的授权与用例编排。
  * @author ZFJ
  * @since 2026-11-16
  */
@@ -51,7 +52,7 @@ public class FlowCategoryApiImpl implements FlowCategoryApi {
     public void delete(List<Long> ids, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.CATEGORY_DELETE, access.organization(actor));
-        if (ids == null || ids.isEmpty()) { throw new com.plasticene.boot.common.exception.BizException("ID列表不能为空"); }
+        if (ids == null || ids.isEmpty()) { throw new BizException("ID列表不能为空"); }
         for (Long id : ids) { access.check(actor, FlowAction.CATEGORY_DELETE, access.category(id)); }
         categoryService.delete(ids, actor);
     }
@@ -76,7 +77,7 @@ public class FlowCategoryApiImpl implements FlowCategoryApi {
     public void sort(List<Long> ids, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.CATEGORY_SORT, access.organization(actor));
-        if (ids == null || ids.isEmpty()) { throw new com.plasticene.boot.common.exception.BizException("ID列表不能为空"); }
+        if (ids == null || ids.isEmpty()) { throw new BizException("ID列表不能为空"); }
         for (Long id : ids) { access.check(actor, FlowAction.CATEGORY_SORT, access.category(id)); }
         categoryService.sortCategory(ids, actor);
     }

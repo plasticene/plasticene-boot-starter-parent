@@ -17,6 +17,7 @@ import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.ClassUtils;
+import jakarta.validation.Validator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -48,7 +49,7 @@ class FlowStarterContextTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(FlowInstanceApi.class).hasSingleBean(FlowEventStore.class)
-                            .hasSingleBean(jakarta.validation.Validator.class);
+                            .hasSingleBean(Validator.class);
                     assertThat(context).doesNotHaveBean("flowInstanceController");
                     assertThat(context).doesNotHaveBean("flowTaskController");
                 });
