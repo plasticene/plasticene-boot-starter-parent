@@ -124,6 +124,7 @@ public class FlowModelApiImpl implements FlowModelApi {
     public FlowVariableSchema getVariableSchema(Long id, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.MODEL_READ, access.model(id));
-        return variables.forModel(access.ownedModel(id, actor));
+        var model = access.ownedModel(id, actor);
+        return variables.forBusiness(model.getOrgId(), model.getCode());
     }
 }

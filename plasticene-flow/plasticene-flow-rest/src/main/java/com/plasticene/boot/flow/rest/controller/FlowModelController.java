@@ -146,7 +146,7 @@ public class FlowModelController {
         flowModelService.publish(id, loginUser);
         return ResponseVO.success();
     }
-    @Operation(summary = "查询设计态审批变量定义")
+    @Operation(summary = "只读查询模型对应的宿主业务变量定义")
     @GetMapping("/{id}/variables")
     public ResponseVO<FlowVariableSchema> variables(@PathVariable("id") Long id) {
         return ResponseVO.success(flowModelService.getVariableSchema(id, LoginUserHolder.get()));

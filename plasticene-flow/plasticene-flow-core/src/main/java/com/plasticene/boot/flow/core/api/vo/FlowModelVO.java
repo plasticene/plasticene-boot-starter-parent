@@ -2,6 +2,7 @@ package com.plasticene.boot.flow.core.api.vo;
 
 import com.plasticene.boot.flow.core.model.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.FlowNode;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -19,6 +20,9 @@ import java.util.Map;
 public class FlowModelVO {
     @Schema(description = "表单类型：0自带表单、1业务表单")
     private Integer formMode;
+
+    @Schema(description = "草稿审批变量定义，供编辑回显使用")
+    private FlowVariableSchema varInfo;
 
     @Schema(description = "主键")
     private Long id;

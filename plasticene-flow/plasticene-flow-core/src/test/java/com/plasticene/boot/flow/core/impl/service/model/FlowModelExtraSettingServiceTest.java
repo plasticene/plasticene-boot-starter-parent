@@ -12,6 +12,7 @@ import com.plasticene.boot.flow.core.model.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.FlowFieldPermission;
 import com.plasticene.boot.flow.core.model.FlowNode;
 import com.plasticene.boot.flow.core.model.FlowTimeoutRule;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import com.plasticene.boot.flow.core.api.param.FlowModelParam;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
@@ -235,6 +236,45 @@ class FlowModelExtraSettingServiceTest {
         model.setManagerUserIds(List.of(8L));
         service.publish(11L, loginUserContext);
         verify(flowNodeValidator).validate(model.getModelNode(), Set.of("choice"));
+    }
+
+    @Test
+    void shouldPersistAndReturnDraftVariableSchema() throws Exception {
+        var mapper = new ObjectMapper();
+        var param = mapper.readValue("""
+                {"id":11,"formMode":1,"varInfo":{"fields":[
+                  {"field":"amount","title":"金额","type":1,"required":true}
+                ]}}
+                """, FlowModelParam.class);
+
+        service.update(param, loginUserContext);
+
+        ArgumentCaptor<FlowModel> captor = ArgumentCaptor.forClass(FlowModel.class);
+        verify(flowModelDAO).updateById(captor.capture());
+        var saved = captor.getValue();
+        assertEquals(param.getVarInfo(), saved.getVarInfo());
+        saved.setOrgId(100L);
+        // 模拟 JSON 列序列化后重新读取，详情必须返回完整字段定义。
+        saved.setVarInfo(mapper.readValue(mapper.writeValueAsString(saved.getVarInfo()), FlowVariableSchema.class));
+        when(flowModelDAO.selectById(11L)).thenReturn(saved);
+        var detail = service.detail(11L, loginUserContext);
+        assertEquals(param.getVarInfo(), detail.getVarInfo());
+        assertEquals("金额", detail.getVarInfo().getFields().getFirst().getTitle());
+    }
+
+    @Test
+    void shouldPersistExplicitEmptyVariableSchemaWhenCreating() {
+        var param = new FlowModelParam();
+        param.setFormMode(1);
+        param.setCode("business_create");
+        param.setCategory("leave");
+        param.setVarInfo(new FlowVariableSchema());
+
+        service.create(param, loginUserContext);
+
+        ArgumentCaptor<FlowModel> captor = ArgumentCaptor.forClass(FlowModel.class);
+        verify(flowModelDAO).insert(captor.capture());
+        assertEquals(List.of(), captor.getValue().getVarInfo().getFields());
     }
 
     private FlowModelParam timeoutParam() {

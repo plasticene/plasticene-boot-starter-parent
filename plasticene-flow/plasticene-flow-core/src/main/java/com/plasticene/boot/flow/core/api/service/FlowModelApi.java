@@ -96,7 +96,7 @@ public interface FlowModelApi {
      */
     FlowDefinitionVO getVersion(Long id, Long definitionId, LoginUser actor);
     /**
-     * 读取模型草稿当前使用的变量定义；业务表单由宿主 SPI 按组织和流程编码提供。
+     * 按模型所属组织和流程编码读取宿主业务变量定义，不依赖已保存的表单类型，不保存模型。
      *
      * @param id 模型 ID
      * @param actor 宿主提供的可信操作者，须包含用户及组织身份

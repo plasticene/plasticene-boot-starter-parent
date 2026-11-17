@@ -30,10 +30,22 @@ public class FlowAuthorizationConfiguration {
     @Bean
     public FlowBusinessVariableProvider flowBusinessVariableProvider() {
         return (orgId, code) -> {
-            if (!"leave-approval".equals(code)) { throw new IllegalArgumentException("未接入业务流程变量"); }
-            var days = new FlowVariableSchema.Field(); days.setField("days"); days.setTitle("请假天数"); days.setType(1); days.setRequired(true);
-            var reason = new FlowVariableSchema.Field(); reason.setField("reason"); reason.setTitle("请假原因"); reason.setType(0); reason.setRequired(true);
-            var schema = new FlowVariableSchema(); schema.setFields(List.of(days, reason)); return schema;
+            if (!"leave-approval".equals(code)) {
+                return null;
+            }
+            var days = new FlowVariableSchema.Field();
+            days.setField("days");
+            days.setTitle("请假天数");
+            days.setType(1);
+            days.setRequired(true);
+            var reason = new FlowVariableSchema.Field();
+            reason.setField("reason");
+            reason.setTitle("请假原因");
+            reason.setType(0);
+            reason.setRequired(true);
+            var schema = new FlowVariableSchema();
+            schema.setFields(List.of(days, reason));
+            return schema;
         };
     }
 }

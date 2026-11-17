@@ -2,6 +2,7 @@ package com.plasticene.boot.flow.core.api.param;
 
 import com.plasticene.boot.flow.core.model.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.FlowNode;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import com.plasticene.boot.flow.core.api.validation.group.Insert;
 import com.plasticene.boot.flow.core.api.validation.group.Update;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,6 +26,9 @@ public class FlowModelParam {
     @Schema(description = "表单类型：0自带表单、1业务表单")
     @NotNull(groups = Insert.class, message = "表单类型不能为空")
     private Integer formMode;
+
+    @Schema(description = "草稿审批变量定义；更新时省略保持原值，fields为空数组时清空变量")
+    private FlowVariableSchema varInfo;
 
     @Schema(description = "流程id")
     @NotNull(message = "流程id不能为空", groups = Update.class)

@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.plasticene.boot.flow.core.model.FlowExtraSetting;
 import com.plasticene.boot.flow.core.model.FlowNode;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import com.plasticene.boot.mybatis.core.handlers.type.LongListTypeHandler;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import java.time.LocalDateTime;
@@ -29,6 +30,10 @@ import lombok.EqualsAndHashCode;
 public class FlowModel extends BaseDO {
     /** 表单类型：0为FLOW自带表单，1为宿主业务表单。 */
     private Integer formMode;
+
+    /** 草稿审批变量定义，供编辑回显使用。 */
+    @TableField(value = "var_info", typeHandler = JacksonTypeHandler.class)
+    private FlowVariableSchema varInfo;
 
 
     /** 主键 */

@@ -3,6 +3,10 @@ package com.plasticene.boot.flow.core.impl.application;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import com.plasticene.boot.flow.core.impl.form.FlowFormConfig;
+import com.plasticene.boot.flow.core.api.spi.FlowBusinessVariableProvider;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -16,6 +20,28 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class FlowVariablesTest {
     private final FlowVariables variables = new FlowVariables();
+    @Test
+    void businessModelsDefaultToEmptyContractWithoutProviderOrRegistration() {
+        var model = new FlowModel();
+        model.setFormMode(1);
+        model.setOrgId(9L);
+        model.setCode("new-business");
+        var beans = new StaticListableBeanFactory();
+        ReflectionTestUtils.setField(variables, "providers", beans.getBeanProvider(FlowBusinessVariableProvider.class));
+        var empty = variables.forModel(model);
+        assertTrue(empty.getFields().isEmpty());
+        assertDoesNotThrow(() -> variables.validateData(empty, Map.of(), false, true));
+        assertThrows(BizException.class,
+                () -> variables.validateData(empty, Map.of("undeclared", 1), false, true));
+
+        beans.addBean("variables", (FlowBusinessVariableProvider) (orgId, code) -> null);
+        assertTrue(variables.forModel(model).getFields().isEmpty());
+        beans.addBean("variables", (FlowBusinessVariableProvider) (orgId, code) -> {
+            throw new IllegalStateException("provider failed");
+        });
+        assertThrows(IllegalStateException.class, () -> variables.forModel(model));
+    }
+
     private FlowVariableSchema schema(int type) {
         var field = new FlowVariableSchema.Field(); field.setField("amount"); field.setTitle("金额");
         field.setType(type); field.setRequired(true);

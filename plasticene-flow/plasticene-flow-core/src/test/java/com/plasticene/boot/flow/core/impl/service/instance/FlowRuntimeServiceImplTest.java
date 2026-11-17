@@ -45,6 +45,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.plasticene.boot.flow.core.impl.application.FlowVariables;
@@ -95,6 +96,39 @@ class FlowRuntimeServiceImplTest {
     private FlowVariables flowVariables = new FlowVariables();
     @InjectMocks
     private FlowRuntimeServiceImpl service;
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void shouldPreviewUnfilledRequiredFieldsButStillValidateSubmission(int formMode) {
+        var field = new FlowVariableSchema.Field();
+        field.setField("days");
+        field.setTitle("请假天数");
+        field.setType(1);
+        field.setRequired(true);
+        var schema = new FlowVariableSchema();
+        schema.setFields(List.of(field));
+        var definition = new FlowDefinition();
+        definition.setFormMode(formMode);
+        definition.setVarInfo(schema);
+        var root = new FlowNode();
+        root.setKey("start");
+        definition.setModelNode(root);
+        when(flowDefinitionService.getStartableDefinition(eq(64L), any(LoginUser.class))).thenReturn(definition);
+        when(processExecutor.calculateRouteTrace(eq(root), any())).thenReturn(List.of(root));
+
+        assertEquals(1, service.calculateRoute(64L, Map.of(), loginUserContext).size());
+        var unfilled = new HashMap<String, Object>();
+        unfilled.put("days", null);
+        assertEquals(1, service.calculateRoute(64L, unfilled, loginUserContext).size());
+        assertEquals(1, service.calculateRoute(64L, Map.of("days", 2), loginUserContext).size());
+        assertThrows(BizException.class,
+                () -> service.calculateRoute(64L, Map.of("days", "invalid"), loginUserContext));
+        assertThrows(BizException.class,
+                () -> service.calculateRoute(64L, Map.of("PROCESS_START_USER_ID", 99L), loginUserContext));
+        assertThrows(BizException.class,
+                () -> service.startInstance(64L, formMode == 0 ? null : "leave-1", Map.of(), loginUserContext));
+        Mockito.verifyNoInteractions(flowInstanceDAO, flowEventPublisher);
+    }
 
     @BeforeEach
     void setUpLoginUser() {

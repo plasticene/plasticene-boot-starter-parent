@@ -171,7 +171,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
         FlowDefinition flowDefinition = flowDefinitionService.getStartableDefinition(definitionId, loginUser);
         FlowNode flowNode = flowDefinition.getModelNode();
         FlowParser.makeParentNode(flowNode);
-        flowVariables.validateData(flowDefinition.getVarInfo(), varMap, false, Objects.equals(flowDefinition.getFormMode(), 1));
+        flowVariables.validatePreviewData(flowDefinition.getVarInfo(), varMap, Objects.equals(flowDefinition.getFormMode(), 1));
         Map<String, Object> variables = new LinkedHashMap<>(varMap == null ? Map.of() : varMap);
         variables.put("PROCESS_START_USER_ID", loginUser.getId());
         return processExecutor.calculateRouteTrace(flowNode, variables).stream()

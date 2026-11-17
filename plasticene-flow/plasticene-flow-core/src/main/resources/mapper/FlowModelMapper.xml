@@ -4,6 +4,9 @@
 
     <resultMap id="modelResultMap" type="com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel">
         <result column="icon" property="icon"/>
+        <result column="var_info" jdbcType="VARCHAR" property="varInfo"
+                javaType="com.plasticene.boot.flow.core.model.FlowVariableSchema"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
         <result column="form_config" jdbcType="VARCHAR" property="formConfig"
                 javaType="java.util.Map"
                 typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
