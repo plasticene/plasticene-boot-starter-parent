@@ -7,18 +7,18 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * 定义流程发起或路径预估的公开参数。
+ * 按发布定义 ID 发起业务审批的参数。
  * @author ZFJ
  * @since 2026-11-16
  */
 @Data
-@Schema(description = "FlowBusinessStartByDefinitionParam")
-public class FlowBusinessStartByDefinitionParam {
+@Schema(description = "按发布定义 ID 发起业务审批的参数")
+public class FlowStartByIdParam {
     @Schema(description = "发布定义标识")
-    @NotNull
+    @NotNull(message = "发布定义标识不能为空")
     private Long definitionId;
     @Schema(description = "业务申请记录标识")
-    @NotBlank
+    @NotBlank(message = "业务申请记录标识不能为空")
     private String businessId;
     @Schema(description = "本次申请的审批数据")
     private Map<String, Object> varMap;

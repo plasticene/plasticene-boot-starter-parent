@@ -5,12 +5,15 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUser;
+import com.plasticene.boot.common.pojo.PageResult;
+import com.plasticene.boot.flow.core.api.query.FlowModelQuery;
+import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel;
 import com.plasticene.boot.flow.core.api.param.FlowModelEnableParam;
 import com.plasticene.boot.flow.core.api.param.FlowModelParam;
 import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
-import com.plasticene.boot.flow.core.impl.validation.node.FlowNodeValidator;
+import com.plasticene.boot.flow.core.impl.validation.FlowNodeValidator;
 import java.util.Map;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +44,8 @@ class FlowModelPermissionTest {
     private LoginUser loginUserContext;
     @Mock
     private FlowModelDAO models;
+    @Mock
+    private FlowCategoryService categories;
     @Mock
     private FlowDefinitionService definitions;
     @Mock
@@ -155,6 +160,22 @@ class FlowModelPermissionTest {
         assertThrows(BizException.class, () -> service.delete(List.of(11L, 12L), loginUserContext));
         verifyNoInteractions(definitions);
         verify(models, never()).deleteByIds(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void shouldSelectAndReturnFormModeInModelList(int formMode) {
+        var model = model(11L, 100L, List.of(8L));
+        model.setFormMode(formMode);
+        model.setCategory("test");
+        when(categories.getCategoryMap(loginUserContext)).thenReturn(Map.of());
+        when(models.selectPage(any(FlowModelQuery.class), any(Wrapper.class))).thenAnswer(call -> {
+            Wrapper<FlowModel> wrapper = call.getArgument(1);
+            assertTrue(wrapper.getSqlSelect().contains("form_mode"));
+            return new PageResult<>(List.of(model), 1L, 1L);
+        });
+        var page = service.page(new FlowModelQuery(), loginUserContext);
+        assertEquals(formMode, page.getList().getFirst().getFormMode());
     }
 
     private FlowModel model(Long id, Long orgId, List<Long> managers) {

@@ -59,12 +59,12 @@ class FlowInstanceControllerTest {
         var mapper = new ObjectMapper();
         var payload = mapper.createObjectNode().put("definitionId", 31L);
         payload.putObject("varMap");
-        when(service.startForm(ArgumentMatchers.any(), ArgumentMatchers.eq(loginUser))).thenReturn(41L);
+        when(service.startInstance(ArgumentMatchers.any(), ArgumentMatchers.eq(loginUser))).thenReturn(41L);
         mvc.perform(post("/flow/instance/start").contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(41L));
-        verify(service).startForm(ArgumentMatchers.argThat(param -> param.getDefinitionId().equals(31L) && param.getVarMap().isEmpty()), ArgumentMatchers.eq(loginUser));
+        verify(service).startInstance(ArgumentMatchers.argThat(param -> param.getDefinitionId().equals(31L) && param.getVarMap().isEmpty()), ArgumentMatchers.eq(loginUser));
     }
 
     @ParameterizedTest

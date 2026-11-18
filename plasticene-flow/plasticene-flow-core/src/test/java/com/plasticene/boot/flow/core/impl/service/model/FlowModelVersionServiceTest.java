@@ -25,6 +25,8 @@ import javax.sql.DataSource;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
@@ -263,6 +265,31 @@ class FlowModelVersionServiceTest {
         assertEquals(1, catalog.getModels().size());
         assertEquals("flow:expense", catalog.getModels().get(0).getIcon());
         assertEquals("flow:form", model.getIcon());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void shouldOnlyIncludePublishedFormDefinitionsInStartCatalog(int publishedMode) {
+        var model = model(100L);
+        model.setFormMode(1 - publishedMode);
+        model.setCategory("finance");
+        var published = definition(31L, 3);
+        published.setFormMode(publishedMode);
+        published.setIsDelete(0);
+        published.setStartUserType(0);
+        when(models.selectList(any(Wrapper.class))).thenReturn(List.of(model));
+        when(flowCategoryService.getCategoryMap(loginUserContext)).thenReturn(Map.of("finance", "财务"));
+        if (publishedMode == 0) {
+            when(instances.selectList(any(Wrapper.class))).thenReturn(List.of());
+        }
+        var catalogService = spy(service);
+        doReturn(List.of(published)).when(catalogService).listByIds(List.of(31L));
+        var catalog = catalogService.getStartableCatalog(loginUserContext);
+        assertEquals(publishedMode == 0 ? 1 : 0, catalog.getModels().size());
+        assertTrue(catalog.getRecentModelIds().isEmpty());
+        if (publishedMode == 1) {
+            verifyNoInteractions(instances);
+        }
     }
 
     private FlowModel model(Long orgId) {

@@ -142,9 +142,11 @@ public class FlowEventStore implements FlowEventPublisher {
         return eventDAO.retryPaused(orgId, eventId, now()) == 1;
     }
 
-    /** 只删除超过保留期限且已成功交付的记录。 */
-    public int cleanup() {
-        return eventDAO.deleteDeliveredBefore(now().minus(properties.getRetention()));
+    /**
+     * 只删除超过保留期限且已成功交付的记录。
+     */
+    public void cleanup() {
+        eventDAO.deleteDeliveredBefore(now().minus(properties.getRetention()));
     }
 
     private LocalDateTime now() {

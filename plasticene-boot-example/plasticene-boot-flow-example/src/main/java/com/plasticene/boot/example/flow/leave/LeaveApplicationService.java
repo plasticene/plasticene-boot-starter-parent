@@ -9,7 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
-import com.plasticene.boot.flow.core.api.param.FlowBusinessStartByCodeParam;
+import com.plasticene.boot.flow.core.api.param.FlowStartByCodeParam;
 
 /**
  * 同事务保存业务请假申请并按稳定流程编码发起审批。
@@ -42,10 +42,10 @@ public class LeaveApplicationService {
         if (((Number) saved.get("applicant_id")).longValue() != actor.getId()) {
             throw new BizException("无权重复提交他人的申请");
         }
-        var param = new FlowBusinessStartByCodeParam();
+        var param = new FlowStartByCodeParam();
         param.setProcessCode("leave-approval"); param.setBusinessId(applicationId);
         param.setVarMap(Map.of("days", saved.get("days"), "reason", saved.get("reason")));
-        Long id = engine.startBusinessByCode(param, actor);
+        Long id = engine.startInstanceByCode(param, actor);
         jdbc.update("""
                 UPDATE leave_application SET instance_id = ? WHERE org_id = ? AND application_id = ?
                     AND instance_id IS NULL

@@ -6,7 +6,7 @@ import com.plasticene.boot.flow.core.impl.application.FlowVariables;
 import com.plasticene.boot.flow.core.impl.persistence.dao.*;
 import com.plasticene.boot.flow.core.impl.persistence.entity.*;
 import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
-import com.plasticene.boot.flow.core.impl.validation.node.FlowNodeValidator;
+import com.plasticene.boot.flow.core.impl.validation.FlowNodeValidator;
 import com.plasticene.boot.flow.core.model.*;
 import java.util.List;
 import java.util.Map;

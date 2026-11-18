@@ -1,9 +1,9 @@
 package com.plasticene.boot.flow.core.api.service;
 
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.api.param.FlowBusinessStartByCodeParam;
-import com.plasticene.boot.flow.core.api.param.FlowBusinessStartByDefinitionParam;
-import com.plasticene.boot.flow.core.api.param.FlowFormStartParam;
+import com.plasticene.boot.flow.core.api.param.FlowStartByCodeParam;
+import com.plasticene.boot.flow.core.api.param.FlowStartByIdParam;
+import com.plasticene.boot.flow.core.api.param.FlowStartParam;
 import com.plasticene.boot.flow.core.api.param.FlowRoutePreviewParam;
 import com.plasticene.boot.flow.core.api.vo.FlowRouteNodeVO;
 import java.util.List;
@@ -23,7 +23,7 @@ public interface FlowInstanceApi {
      * @param actor 宿主提供的可信操作者，须包含用户及组织身份
      * @return 新建流程实例 ID
      */
-    Long startBusinessByCode(FlowBusinessStartByCodeParam param, LoginUser actor);
+    Long startInstanceByCode(FlowStartByCodeParam param, LoginUser actor);
     /**
      * 使用指定的业务表单定义版本发起审批，并按该版本的变量快照校验数据。
      *
@@ -31,7 +31,7 @@ public interface FlowInstanceApi {
      * @param actor 宿主提供的可信操作者，须包含用户及组织身份
      * @return 新建流程实例 ID
      */
-    Long startBusinessByDefinition(FlowBusinessStartByDefinitionParam param, LoginUser actor);
+    Long startInstanceById(FlowStartByIdParam param, LoginUser actor);
     /**
      * 使用指定的 FLOW 自带表单定义发起申请，并保存本次表单数据。
      *
@@ -39,7 +39,7 @@ public interface FlowInstanceApi {
      * @param actor 宿主提供的可信操作者，须包含用户及组织身份
      * @return 新建流程实例 ID
      */
-    Long startForm(FlowFormStartParam param, LoginUser actor);
+    Long startInstance(FlowStartParam param, LoginUser actor);
     /**
      * 按指定定义版本、审批变量和当前发起人预览审批路线，不创建实例或任务。
      *

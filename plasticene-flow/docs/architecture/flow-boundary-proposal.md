@@ -73,17 +73,17 @@ plasticene-flow/
 
 | 方法 | 返回 | 行为 |
 | --- | --- | --- |
-| startBusinessByCode(FlowBusinessStartByCodeParam param) | Long | 按组织内稳定编码解析当前可用定义，再按该定义的快照校验 |
-| startBusinessByDefinition(FlowBusinessStartByDefinitionParam param) | Long | 按指定可发起定义校验及发起，不把已停用或删除版本视为天然可发起 |
-| startForm(FlowFormStartParam param) | Long | 仅独立表单模式，无宿主 businessId |
+| startInstanceByCode(FlowStartByCodeParam param) | Long | 按组织内稳定编码解析当前可用定义，再按该定义的快照校验 |
+| startInstanceById(FlowStartByIdParam param) | Long | 按指定可发起定义校验及发起，不把已停用或删除版本视为天然可发起 |
+| startInstance(FlowStartParam param) | Long | 仅独立表单模式，无宿主 businessId |
 | previewRoute(FlowRoutePreviewParam param) | List<FlowRouteNodeVO> | 校验权限、模式和变量定义后预估路径，不生成任务 |
 | cancel(Long instanceId) | void | 申请人资格、取消策略和状态校验后取消 |
 
 参数具体边界：
 
-- FlowBusinessStartByCodeParam：processCode、businessId、varMap。
-- FlowBusinessStartByDefinitionParam：definitionId、businessId、varMap。
-- FlowFormStartParam：definitionId、varMap；可保留既有 JSON 字段名和 /flow/instance/start 路径。
+- FlowStartByCodeParam：processCode、businessId、varMap。
+- FlowStartByIdParam：definitionId、businessId、varMap。
+- FlowStartParam：definitionId、varMap；可保留既有 JSON 字段名和 /flow/instance/start 路径。
 - FlowRoutePreviewParam：definitionId、varMap；预估不读取宿主最新业务值。
 
 businessId 表示一次业务申请记录的标识，不是可反复复用的业务主单标识；拒绝后重新申请仍使用新的申请记录。保留既有组织+分类下重复申请的报错行为，不在本次改造中改成自动返回旧实例。

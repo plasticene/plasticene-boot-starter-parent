@@ -4,7 +4,7 @@ import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
-import com.plasticene.boot.flow.core.api.param.FlowFormStartParam;
+import com.plasticene.boot.flow.core.api.param.FlowStartParam;
 import com.plasticene.boot.flow.core.api.param.FlowRoutePreviewParam;
 import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
@@ -42,11 +42,9 @@ public class FlowInstanceController {
 
     @Operation(summary = "基于流程模型发起实例")
     @PostMapping("/start")
-    public ResponseVO<Long> startFlowInstance(@RequestBody @Validated FlowFormStartParam param) {
+    public ResponseVO<Long> startFlowInstance(@RequestBody @Validated FlowStartParam param) {
         LoginUser loginUser = LoginUserHolder.get();
-        Long definitionId = param.getDefinitionId();
-        Map<String, Object> varMap = param.getVarMap();
-        Long instanceId = flowRuntimeService.startForm(param, loginUser);
+        Long instanceId = flowRuntimeService.startInstance(param, loginUser);
         return ResponseVO.success(instanceId);
     }
 

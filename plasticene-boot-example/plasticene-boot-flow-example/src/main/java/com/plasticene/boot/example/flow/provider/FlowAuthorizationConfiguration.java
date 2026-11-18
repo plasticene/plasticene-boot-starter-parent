@@ -17,7 +17,9 @@ public class FlowAuthorizationConfiguration {
     @Bean
     public FlowAuthorizationPolicy flowAuthorizationPolicy() {
         return (actor, action, resource) -> {
-            if (!Objects.equals(actor.getOrgId(), resource.orgId())) { return false; }
+            if (!Objects.equals(actor.getOrgId(), resource.orgId())) {
+                return false;
+            }
             return switch (action) {
                 case INSTANCE_START, INSTANCE_READ, INSTANCE_CANCEL,
                      TASK_APPROVE, TASK_REJECT, TASK_SAVE_FORM, TASK_ADD_SIGN,

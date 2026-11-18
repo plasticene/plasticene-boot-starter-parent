@@ -18,7 +18,6 @@ import com.plasticene.boot.flow.core.api.param.FlowTaskParam;
 import com.plasticene.boot.flow.core.api.spi.FlowTimeoutNotification;
 import com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeService;
 import com.plasticene.boot.flow.core.impl.service.task.FlowTaskService;
-import com.plasticene.boot.flow.core.impl.service.timeout.FlowTimeoutService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -19,19 +18,18 @@ import java.util.List;
 @Data
 public class FlowTaskAddSignParam {
     @Schema(description = "当前用户发起加签的待办ID")
-    @NotNull
-    @Positive
+    @NotNull(message = "待办ID不能为空")
     private Long taskId;
     @Schema(description = "加签类型")
-    @NotNull
+    @NotNull(message = "加签类型不能为空")
     private FlowAddSignEnum.Type type;
     @Schema(description = "加签人员ID有序列表")
-    @NotEmpty
-    private List<@NotNull @Positive Long> assigneeIds;
+    @NotEmpty(message = "加签人员ID列表不能为空")
+    private List<@NotNull Long> assigneeIds;
     @Schema(description = "前后加签组的审批方式；并加签由服务端使用当前节点方式")
     private Integer approveMode;
     @Schema(description = "必填加签原因，最多500字；后加签同时作为本人同意意见")
-    @NotBlank
+    @NotBlank(message = "加签原因不能为空")
     @Size(max = 500)
     private String comment;
 }

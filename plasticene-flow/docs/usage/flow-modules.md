@@ -6,7 +6,7 @@
 
 必须接入 FlowAuthorizationPolicy，将 FlowAction 和 FlowResource 映射到宿主权限。默认拒绝用户操作，功能授权之后仍执行模型管理范围、组织隔离及任务资格。示例用 isAdmin 演示管理授权，生产宿主应映射自身权限体系。
 
-业务模型 formMode=1，默认允许无审批变量；需要业务字段时，宿主通过 FlowBusinessVariableProvider 提供字段契约，保存申请后在同一本地事务调用 startBusinessByCode/startBusinessByDefinition。businessId 是一次申请记录标识；重复申请报错，重新申请需新标识。独立表单模型 formMode=0，使用 startForm。
+业务模型 formMode=1，默认允许无审批变量；需要业务字段时，宿主通过 FlowBusinessVariableProvider 提供字段契约，保存申请后在同一本地事务调用 startInstanceByCode/startInstanceById。businessId 是一次申请记录标识；重复申请报错，重新申请需新标识。独立表单模型 formMode=0，使用 startInstance。
 
 模型设计态可切换类型，发布后新申请使用新定义，历史实例继续读取原定义的 formMode、formConfig、varInfo。运行时不读取宿主最新变量契约或自动同步业务单据。
 

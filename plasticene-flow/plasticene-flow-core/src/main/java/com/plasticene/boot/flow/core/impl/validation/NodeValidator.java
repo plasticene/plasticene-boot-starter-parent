@@ -1,4 +1,4 @@
-package com.plasticene.boot.flow.core.impl.validation.node;
+package com.plasticene.boot.flow.core.impl.validation;
 
 import com.plasticene.boot.flow.core.model.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.model.FlowNode;

@@ -47,8 +47,8 @@ class FlowApplicationBoundaryTest {
             ReflectionTestUtils.setField(application, "access", access);
             var runtime = mock(FlowRuntimeService.class);
             ReflectionTestUtils.setField(application, "runtimeService", runtime);
-            var param = new FlowBusinessStartByDefinitionParam(); param.setDefinitionId(31L);
-            assertThrows(BizException.class, () -> application.startBusinessByDefinition(param, actor()));
+            var param = new FlowStartByIdParam(); param.setDefinitionId(31L);
+            assertThrows(BizException.class, () -> application.startInstanceById(param, actor()));
             verifyNoInteractions(runtime);
         }
     }
@@ -60,14 +60,14 @@ class FlowApplicationBoundaryTest {
         ReflectionTestUtils.setField(application, "access", access);
         ReflectionTestUtils.setField(application, "runtimeService", runtime);
         var actor = actor();
-        var form = new FlowFormStartParam(); form.setDefinitionId(31L); form.setVarMap(Map.of("amount", 5));
+        var form = new FlowStartParam(); form.setDefinitionId(31L); form.setVarMap(Map.of("amount", 5));
         when(runtime.startInstance(31L, form.getVarMap(), actor)).thenReturn(21L);
-        assertEquals(21L, application.startForm(form, actor));
+        assertEquals(21L, application.startInstance(form, actor));
         verify(access).check(eq(actor), eq(FlowAction.INSTANCE_START), any());
-        var business = new FlowBusinessStartByDefinitionParam(); business.setDefinitionId(32L);
+        var business = new FlowStartByIdParam(); business.setDefinitionId(32L);
         business.setBusinessId("request"); business.setVarMap(Map.of("amount", 5));
         when(runtime.startInstance(32L, "request", business.getVarMap(), actor)).thenReturn(22L);
-        assertEquals(22L, application.startBusinessByDefinition(business, actor));
+        assertEquals(22L, application.startInstanceById(business, actor));
         verify(access).requireBusinessId("request");
     }
     @Test
@@ -102,13 +102,13 @@ class FlowApplicationBoundaryTest {
         ReflectionTestUtils.setField(application, "access", access);
         ReflectionTestUtils.setField(application, "runtimeService", runtime);
         var actor = actor();
-        var param = new FlowBusinessStartByCodeParam();
+        var param = new FlowStartByCodeParam();
         param.setProcessCode("purchase"); param.setBusinessId("request");
         var resource = new FlowResource(9L, "DEFINITION", "31", 11L, 31L, null, null, "purchase", "office");
         when(access.activeDefinition("purchase", actor)).thenReturn(31L);
         when(access.definition(31L)).thenReturn(resource);
         doThrow(new BizException("无权发起")).when(access).check(actor, FlowAction.INSTANCE_START, resource);
-        assertThrows(BizException.class, () -> application.startBusinessByCode(param, actor));
+        assertThrows(BizException.class, () -> application.startInstanceByCode(param, actor));
         verify(access).check(actor, FlowAction.INSTANCE_START, resource);
         verifyNoInteractions(runtime);
     }

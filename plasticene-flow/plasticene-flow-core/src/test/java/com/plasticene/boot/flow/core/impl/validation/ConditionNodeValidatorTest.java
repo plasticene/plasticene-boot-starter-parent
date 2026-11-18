@@ -1,11 +1,11 @@
-package com.plasticene.boot.flow.core.impl.validation.node;
+package com.plasticene.boot.flow.core.impl.validation;
 
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import com.plasticene.boot.flow.core.model.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.model.FlowNode;
 import com.plasticene.boot.flow.core.model.ProcessNodeCondition;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -73,18 +73,18 @@ class ConditionNodeValidatorTest {
         condition.setIsDefault(true);
         fallback.setCondition(condition);
         gateway.setConditionNodes(List.of(ordinary, fallback));
-        assertDoesNotThrow(() -> treeValidator.validate(gateway, Set.of()));
+        assertDoesNotThrow(() -> treeValidator.validate(gateway, new FlowVariableSchema()));
         gateway.setConditionNodes(List.of(ordinary));
-        assertThrows(BizException.class, () -> treeValidator.validate(gateway, Set.of()));
+        assertThrows(BizException.class, () -> treeValidator.validate(gateway, new FlowVariableSchema()));
         gateway.setConditionNodes(List.of(fallback, ordinary));
-        assertThrows(BizException.class, () -> treeValidator.validate(gateway, Set.of()));
+        assertThrows(BizException.class, () -> treeValidator.validate(gateway, new FlowVariableSchema()));
         FlowNode duplicate = conditionNode("duplicate");
         duplicate.setCondition(condition);
         gateway.setConditionNodes(List.of(ordinary, duplicate, fallback));
-        assertThrows(BizException.class, () -> treeValidator.validate(gateway, Set.of()));
+        assertThrows(BizException.class, () -> treeValidator.validate(gateway, new FlowVariableSchema()));
         gateway.setConditionNodes(List.of(ordinary, fallback));
         condition.setType(0);
-        assertThrows(BizException.class, () -> treeValidator.validate(gateway, Set.of()));
+        assertThrows(BizException.class, () -> treeValidator.validate(gateway, new FlowVariableSchema()));
     }
 
     private FlowNode conditionNode(String key) {

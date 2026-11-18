@@ -5,9 +5,9 @@ import com.plasticene.boot.flow.core.api.spi.FlowTaskAssigneeProvider;
 import com.plasticene.boot.flow.core.impl.executor.DefaultProcessExecutor;
 import com.plasticene.boot.flow.core.impl.executor.ProcessExecutor;
 import com.plasticene.boot.flow.core.impl.task.DefaultFlowTaskAssigneeProvider;
-import com.plasticene.boot.flow.core.impl.validation.node.ApproveNodeValidator;
-import com.plasticene.boot.flow.core.impl.validation.node.ConditionNodeValidator;
-import com.plasticene.boot.flow.core.impl.validation.node.NodeValidator;
+import com.plasticene.boot.flow.core.impl.validation.ApproveNodeValidator;
+import com.plasticene.boot.flow.core.impl.validation.ConditionNodeValidator;
+import com.plasticene.boot.flow.core.impl.validation.NodeValidator;
 import jakarta.validation.Validator;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -40,7 +40,7 @@ import com.plasticene.boot.flow.core.impl.task.FlowTaskLifecycle;
 import com.plasticene.boot.flow.core.impl.task.FlowTaskQueries;
 import com.plasticene.boot.flow.core.impl.task.FlowTaskReturn;
 import com.plasticene.boot.flow.core.impl.task.FlowTaskWithdraw;
-import com.plasticene.boot.flow.core.impl.validation.node.FlowNodeValidator;
+import com.plasticene.boot.flow.core.impl.validation.FlowNodeValidator;
 
 /**
  * @author ZFJ

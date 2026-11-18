@@ -12,13 +12,13 @@ import com.plasticene.boot.flow.core.impl.persistence.entity.FlowDefinition;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowInstance;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel;
 import com.plasticene.boot.flow.core.model.enums.FlowModelEnums;
+import com.plasticene.boot.flow.core.model.enums.FlowFormMode;
 import com.plasticene.boot.flow.core.model.FlowExtraSetting;
 import com.plasticene.boot.flow.core.api.vo.FlowDefinitionVO;
 import com.plasticene.boot.flow.core.api.vo.FlowStartCatalogVO;
 import com.plasticene.boot.flow.core.api.vo.FlowStartableModelVO;
 import com.plasticene.boot.flow.core.api.spi.FlowOrganizationProvider;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
-import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
@@ -51,7 +51,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
     }
 
     /**
-     * 查询指定操作者可发起的流程目录及其最近使用的流程。
+     * 查询指定操作者可从审批中心发起的流程表单目录及最近使用记录。
      * @param loginUser 宿主提供的可信操作者及其组织上下文
      * @return 可发起流程目录及最近使用记录
      */
@@ -76,6 +76,7 @@ public class FlowDefinitionServiceImpl extends ServiceImpl<FlowDefinitionDAO, Fl
                 .filter(model -> {
                     FlowDefinition definition = definitionMap.get(model.getActiveDefinitionId());
                     return definition != null
+                            && Objects.equals(definition.getFormMode(), FlowFormMode.FORM.getCode())
                             && Objects.equals(definition.getIsDelete(), CommonConstant.IS_NOT_DEL)
                             && Objects.equals(definition.getModelId(), model.getId())
                             && Objects.equals(definition.getOrgId(), loginUser.getOrgId())

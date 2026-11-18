@@ -1,9 +1,9 @@
 package com.plasticene.boot.flow.core.impl.application;
 
 import com.plasticene.boot.common.user.LoginUser;
-import com.plasticene.boot.flow.core.api.param.FlowBusinessStartByCodeParam;
-import com.plasticene.boot.flow.core.api.param.FlowBusinessStartByDefinitionParam;
-import com.plasticene.boot.flow.core.api.param.FlowFormStartParam;
+import com.plasticene.boot.flow.core.api.param.FlowStartByCodeParam;
+import com.plasticene.boot.flow.core.api.param.FlowStartByIdParam;
+import com.plasticene.boot.flow.core.api.param.FlowStartParam;
 import com.plasticene.boot.flow.core.api.param.FlowRoutePreviewParam;
 import com.plasticene.boot.flow.core.api.service.FlowInstanceApi;
 import com.plasticene.boot.flow.core.api.spi.FlowAction;
@@ -14,8 +14,6 @@ import jakarta.annotation.Resource;
 import jakarta.validation.groups.Default;
 import java.util.List;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 实现 {@link FlowInstanceApi}，负责申请发起与取消的授权与用例编排。
@@ -30,8 +28,7 @@ public class FlowInstanceApiImpl implements FlowInstanceApi {
     private FlowRuntimeService runtimeService;
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
-    public Long startBusinessByCode(FlowBusinessStartByCodeParam param, LoginUser actor) {
+    public Long startInstanceByCode(FlowStartByCodeParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
         access.requireBusinessId(param.getBusinessId());
@@ -41,8 +38,7 @@ public class FlowInstanceApiImpl implements FlowInstanceApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
-    public Long startBusinessByDefinition(FlowBusinessStartByDefinitionParam param, LoginUser actor) {
+    public Long startInstanceById(FlowStartByIdParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
         access.check(actor, FlowAction.INSTANCE_START, access.definition(param.getDefinitionId()));
@@ -51,8 +47,7 @@ public class FlowInstanceApiImpl implements FlowInstanceApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
-    public Long startForm(FlowFormStartParam param, LoginUser actor) {
+    public Long startInstance(FlowStartParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
         access.check(actor, FlowAction.INSTANCE_START, access.definition(param.getDefinitionId()));
@@ -68,7 +63,6 @@ public class FlowInstanceApiImpl implements FlowInstanceApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void cancel(Long id, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.INSTANCE_CANCEL, access.instance(id));

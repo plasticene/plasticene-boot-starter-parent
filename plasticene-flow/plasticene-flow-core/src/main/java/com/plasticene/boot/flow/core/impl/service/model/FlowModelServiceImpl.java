@@ -23,9 +23,8 @@ import com.plasticene.boot.flow.core.api.vo.FlowModelStatisticsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowModelVO;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
-import com.plasticene.boot.flow.core.impl.service.model.FlowModelService;
 import com.plasticene.boot.flow.core.impl.form.FlowFormConfig;
-import com.plasticene.boot.flow.core.impl.validation.node.FlowNodeValidator;
+import com.plasticene.boot.flow.core.impl.validation.FlowNodeValidator;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
@@ -37,9 +36,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.plasticene.boot.flow.core.impl.application.FlowVariables;
-import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import com.plasticene.boot.flow.core.model.enums.FlowFormMode;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -73,7 +70,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Transactional(rollbackFor = Exception.class)
     @Override
     public Long create(FlowModelParam param, LoginUser loginUser) {
-        if (param.getFormMode() != null) { FlowFormMode.from(param.getFormMode()); }
+        if (param.getFormMode() != null) {
+            FlowFormMode.from(param.getFormMode());
+        }
         FlowFormConfig.validate(param.getFormConfig());
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
         flowModel.setExtraSetting(FlowExtraSetting.normalize(flowModel.getExtraSetting()));
@@ -84,8 +83,8 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         flowModel.setOrgId(loginUser.getOrgId());
         flowModel.setIsEdited(CommonConstant.IS_ON);
         validateCodeUnique(flowModel.getCode(), null, loginUser);
+        requireCategory(flowModel.getCategory(), loginUser);
         try {
-            requireCategory(flowModel.getCategory(), loginUser);
             flowModelDAO.insert(flowModel);
         } catch (DuplicateKeyException exception) {
             throw new BizException("流程标识已存在");
@@ -101,7 +100,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void update(FlowModelParam param, LoginUser loginUser) {
-        if (param.getFormMode() != null) { FlowFormMode.from(param.getFormMode()); }
+        if (param.getFormMode() != null) {
+            FlowFormMode.from(param.getFormMode());
+        }
         FlowFormConfig.validate(param.getFormConfig());
         FlowModel flowModel = PtcBeanUtils.copy(param, FlowModel.class);
         if (flowModel.getExtraSetting() != null) {
@@ -113,10 +114,10 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         requireManager(requireModel(flowModelDAO.selectFlowModelForUpdate(param.getId()), loginUser), loginUser);
         flowModel.setIsEdited(CommonConstant.IS_ON);
         validateCodeUnique(flowModel.getCode(), flowModel.getId(), loginUser);
+        if (flowModel.getCategory() != null) {
+            requireCategory(flowModel.getCategory(), loginUser);
+        }
         try {
-            if (flowModel.getCategory() != null) {
-                requireCategory(flowModel.getCategory(), loginUser);
-            }
             flowModelDAO.updateById(flowModel);
         } catch (DuplicateKeyException exception) {
             throw new BizException("流程标识已存在");
@@ -167,7 +168,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
     public PageResult<FlowModelVO> page(FlowModelQuery query, LoginUser loginUser) {
         PtcLambdaQueryWrapper<FlowModel> queryWrapper = buildQueryWrapper(query, loginUser);
         queryWrapper.select(FlowModel::getId, FlowModel::getName, FlowModel::getIcon, FlowModel::getCode, FlowModel::getCategory,
-                FlowModel::getStatus, FlowModel::getStartUserType, FlowModel::getStartUserIds,
+                FlowModel::getStatus, FlowModel::getFormMode, FlowModel::getStartUserType, FlowModel::getStartUserIds,
                 FlowModel::getStartRoleIds, FlowModel::getStartDeptIds, FlowModel::getManagerUserIds,
                 FlowModel::getRemark, FlowModel::getActiveDefinitionId, FlowModel::getActiveVersion,
                 FlowModel::getPublishTime, FlowModel::getUpdateTime, FlowModel::getIsEdited);
@@ -261,10 +262,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         FlowNode modelNode = flowModel.getModelNode();
         requireCategory(flowModel.getCategory(), loginUser);
         var varInfo = flowVariables.forModel(flowModel);
-        flowNodeValidator.validate(modelNode, varInfo.getFields().stream()
-                .map(FlowVariableSchema.Field::getField)
-                .collect(Collectors.toSet()));
-        validateVariableTypes(modelNode, varInfo);
+        flowNodeValidator.validate(modelNode, varInfo);
         // 3.生成发布流程定义快照
         FlowDefinition flowDefinition = PtcBeanUtils.copy(flowModel, FlowDefinition.class);
         flowDefinition.setVarInfo(varInfo);
@@ -313,32 +311,6 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         return queryWrapper;
     }
 
-    /**
-     * 校验模型存在且归属于操作者所属组织。
-     * @param model 流程模型
-     * @param loginUser 宿主提供的可信操作者及其组织上下文
-     * @return 查询结果
-     */
-    private void validateVariableTypes(FlowNode node,
-            FlowVariableSchema schema) {
-        if (node == null) { return; }
-        var fields = schema.getFields().stream().collect(Collectors.toMap(
-                FlowVariableSchema.Field::getField, field -> field));
-        if (node.getCondition() != null && node.getCondition().getConditionGroups() != null) {
-            for (var group : node.getCondition().getConditionGroups()) {
-                for (var rule : group.getConditionRules()) {
-                    var field = fields.get(rule.getField());
-                    if (field != null && !Objects.equals(field.getType(), rule.getType())) {
-                        throw new BizException("条件变量类型不匹配：" + rule.getField());
-                    }
-                }
-            }
-        }
-        if (node.getConditionNodes() != null) {
-            node.getConditionNodes().forEach(child -> validateVariableTypes(child, schema));
-        }
-        validateVariableTypes(node.getChildNode(), schema);
-    }
 
     private FlowModel requireModel(FlowModel model, LoginUser loginUser) {
         if (model == null || !Objects.equals(model.getOrgId(), loginUser.getOrgId())) {

@@ -29,15 +29,19 @@ public class FlowEventApiImpl implements FlowEventApi {
     public List<FlowEventFailureVO> failures(int limit, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.EVENT_READ, access.organization(actor));
-        return eventStore.failures(actor.getOrgId(), limit).stream().map(item -> new FlowEventFailureVO(item.eventId(), item.orgId(), item.instanceId(), item.category(), item.eventType(), item.status(), item.retryCount(), item.lastError(), item.nextAttemptAt())).toList();
+        return eventStore.failures(actor.getOrgId(), limit).stream()
+                .map(item -> new FlowEventFailureVO(item.eventId(), item.orgId(), item.instanceId(),
+                        item.category(), item.eventType(), item.status(), item.retryCount(), item.lastError(),
+                        item.nextAttemptAt()))
+                .toList();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void retry(String eventId, LoginUser actor) {
         FlowActors.require(actor);
-        access.check(actor, FlowAction.EVENT_RETRY, new FlowResource(
-                actor.getOrgId(), "EVENT", eventId, null, null, null, null, null, null));
+        access.check(actor, FlowAction.EVENT_RETRY, new FlowResource(actor.getOrgId(), "EVENT", eventId,
+                null, null, null, null, null, null));
         if (eventId == null || eventId.isBlank() || !eventStore.retry(actor.getOrgId(), eventId)) {
             throw new BizException("事件不存在或不处于暂停状态");
         }

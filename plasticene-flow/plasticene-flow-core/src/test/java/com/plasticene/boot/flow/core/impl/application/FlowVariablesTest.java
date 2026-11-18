@@ -42,6 +42,52 @@ class FlowVariablesTest {
         assertThrows(IllegalStateException.class, () -> variables.forModel(model));
     }
 
+    @Test
+    void publishingBusinessModelRejectsChangedOrUnconfirmedHostSchema() {
+        var model = new FlowModel();
+        model.setFormMode(1);
+        model.setOrgId(9L);
+        model.setCode("approval");
+        var beans = new StaticListableBeanFactory();
+        beans.addBean("variables", (FlowBusinessVariableProvider) (orgId, code) -> schema(1));
+        ReflectionTestUtils.setField(variables, "providers", beans.getBeanProvider(FlowBusinessVariableProvider.class));
+        assertEquals("业务变量已调整，请刷新变量并适配工作流配置后重新发布",
+                assertThrows(BizException.class, () -> variables.forModel(model)).getMessage());
+        model.setVarInfo(schema(0));
+        assertThrows(BizException.class, () -> variables.forModel(model));
+        model.setVarInfo(schema(1));
+        assertSame(model.getVarInfo(), variables.forModel(model));
+        model.getVarInfo().getFields().getFirst().setRequired(false);
+        assertThrows(BizException.class, () -> variables.forModel(model));
+        model.setVarInfo(schema(1));
+        model.getVarInfo().getFields().getFirst().setTitle("申请金额");
+        assertThrows(BizException.class, () -> variables.forModel(model));
+        beans.addBean("variables", (FlowBusinessVariableProvider) (orgId, code) -> null);
+        assertThrows(BizException.class, () -> variables.forModel(model));
+    }
+
+    @Test
+    void publishingUsesConfirmedDraftAndIgnoresFieldOrder() {
+        var model = new FlowModel();
+        model.setFormMode(1);
+        var draft = schema(1);
+        var other = new FlowVariableSchema.Field();
+        other.setField("reason");
+        other.setTitle("原因");
+        other.setType(0);
+        var amount = draft.getFields().getFirst();
+        draft.setFields(List.of(amount, other));
+        model.setVarInfo(draft);
+        var latest = new FlowVariableSchema();
+        latest.setFields(List.of(other, amount));
+        var beans = new StaticListableBeanFactory();
+        beans.addBean("variables", (FlowBusinessVariableProvider) (orgId, code) -> latest);
+        ReflectionTestUtils.setField(variables, "providers", beans.getBeanProvider(FlowBusinessVariableProvider.class));
+        assertSame(draft, variables.forModel(model));
+        latest.setFields(List.of(amount));
+        assertThrows(BizException.class, () -> variables.forModel(model));
+    }
+
     private FlowVariableSchema schema(int type) {
         var field = new FlowVariableSchema.Field(); field.setField("amount"); field.setTitle("金额");
         field.setType(type); field.setRequired(true);

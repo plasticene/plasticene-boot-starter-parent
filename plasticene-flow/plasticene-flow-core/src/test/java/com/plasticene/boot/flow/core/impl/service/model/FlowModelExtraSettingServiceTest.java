@@ -16,10 +16,9 @@ import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import com.plasticene.boot.flow.core.api.param.FlowModelParam;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.flow.core.impl.service.definition.FlowDefinitionService;
-import com.plasticene.boot.flow.core.impl.validation.node.FlowNodeValidator;
+import com.plasticene.boot.flow.core.impl.validation.FlowNodeValidator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,10 +29,14 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.plasticene.boot.flow.core.impl.application.FlowVariables;
+import com.plasticene.boot.flow.core.api.spi.FlowBusinessVariableProvider;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.mockito.Spy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -158,7 +161,7 @@ class FlowModelExtraSettingServiceTest {
         model.setOrgId(100L);
         model.setManagerUserIds(List.of(8L));
         service.publish(11L, loginUserContext);
-        verify(flowNodeValidator).validate(model.getModelNode(), Set.of());
+        verify(flowNodeValidator).validate(model.getModelNode(), new FlowVariableSchema());
 
         ArgumentCaptor<FlowDefinition> captor = ArgumentCaptor.forClass(FlowDefinition.class);
         verify(flowDefinitionService).save(captor.capture());
@@ -235,7 +238,9 @@ class FlowModelExtraSettingServiceTest {
         model.setOrgId(100L);
         model.setManagerUserIds(List.of(8L));
         service.publish(11L, loginUserContext);
-        verify(flowNodeValidator).validate(model.getModelNode(), Set.of("choice"));
+        verify(flowNodeValidator).validate(ArgumentMatchers.eq(model.getModelNode()),
+                ArgumentMatchers.argThat(schema -> schema.getFields().stream()
+                        .map(FlowVariableSchema.Field::getField).toList().equals(List.of("choice"))));
     }
 
     @Test
@@ -275,6 +280,33 @@ class FlowModelExtraSettingServiceTest {
         ArgumentCaptor<FlowModel> captor = ArgumentCaptor.forClass(FlowModel.class);
         verify(flowModelDAO).insert(captor.capture());
         assertEquals(List.of(), captor.getValue().getVarInfo().getFields());
+    }
+
+    @Test
+    void shouldRejectChangedBusinessVariablesThenPublishConfirmedDraftSnapshot() throws Exception {
+        var latest = new ObjectMapper().readValue("""
+                {"fields":[{"field":"days","title":"请假天数","type":1,"required":true}]}
+                """, FlowVariableSchema.class);
+        var beans = new StaticListableBeanFactory();
+        beans.addBean("variables", (FlowBusinessVariableProvider) (orgId, code) -> latest);
+        ReflectionTestUtils.setField(flowVariables, "providers", beans.getBeanProvider(FlowBusinessVariableProvider.class));
+        var model = flowModelDAO.selectFlowModelForUpdate(11L);
+        model.setFormMode(1);
+        model.setCode("leave-approval");
+        model.setModelNode(new FlowNode());
+
+        assertEquals("业务变量已调整，请刷新变量并适配工作流配置后重新发布",
+                assertThrows(BizException.class, () -> service.publish(11L, loginUserContext)).getMessage());
+        verifyNoInteractions(flowNodeValidator, flowDefinitionService);
+        verify(flowModelDAO, Mockito.never()).updateById(ArgumentMatchers.any(FlowModel.class));
+
+        var draft = new ObjectMapper().readValue(new ObjectMapper().writeValueAsString(latest), FlowVariableSchema.class);
+        model.setVarInfo(draft);
+        service.publish(11L, loginUserContext);
+        var published = ArgumentCaptor.forClass(FlowDefinition.class);
+        verify(flowDefinitionService).save(published.capture());
+        assertSame(draft, published.getValue().getVarInfo());
+        verify(flowNodeValidator).validate(model.getModelNode(), draft);
     }
 
     private FlowModelParam timeoutParam() {

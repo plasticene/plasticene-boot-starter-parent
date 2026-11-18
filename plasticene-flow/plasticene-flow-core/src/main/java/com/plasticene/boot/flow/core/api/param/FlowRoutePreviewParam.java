@@ -14,7 +14,7 @@ import jakarta.validation.constraints.NotNull;
 @Schema(description = "FlowRoutePreviewParam")
 public class FlowRoutePreviewParam {
     @Schema(description = "发布定义标识")
-    @NotNull
+    @NotNull(message = "发布定义标识不能为空")
     private Long definitionId;
     @Schema(description = "本次申请的审批数据")
     private Map<String, Object> varMap;

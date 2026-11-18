@@ -16,7 +16,6 @@ import jakarta.annotation.Resource;
 import jakarta.validation.groups.Default;
 import java.util.List;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 实现 {@link FlowCategoryApi}，负责流程分类管理的授权与用例编排。
@@ -39,7 +38,6 @@ public class FlowCategoryApiImpl implements FlowCategoryApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void update(FlowCategoryParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Update.class);
@@ -48,12 +46,15 @@ public class FlowCategoryApiImpl implements FlowCategoryApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void delete(List<Long> ids, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.CATEGORY_DELETE, access.organization(actor));
-        if (ids == null || ids.isEmpty()) { throw new BizException("ID列表不能为空"); }
-        for (Long id : ids) { access.check(actor, FlowAction.CATEGORY_DELETE, access.category(id)); }
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("ID列表不能为空");
+        }
+        for (Long id : ids) {
+            access.check(actor, FlowAction.CATEGORY_DELETE, access.category(id));
+        }
         categoryService.delete(ids, actor);
     }
 
@@ -73,12 +74,15 @@ public class FlowCategoryApiImpl implements FlowCategoryApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void sort(List<Long> ids, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.CATEGORY_SORT, access.organization(actor));
-        if (ids == null || ids.isEmpty()) { throw new BizException("ID列表不能为空"); }
-        for (Long id : ids) { access.check(actor, FlowAction.CATEGORY_SORT, access.category(id)); }
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("ID列表不能为空");
+        }
+        for (Long id : ids) {
+            access.check(actor, FlowAction.CATEGORY_SORT, access.category(id));
+        }
         categoryService.sortCategory(ids, actor);
     }
 }

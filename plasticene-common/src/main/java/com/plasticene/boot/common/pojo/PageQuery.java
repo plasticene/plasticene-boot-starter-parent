@@ -23,7 +23,7 @@ public class PageQuery {
     @NotNull(message = "每页条数不能为空")
     @Min(value = 1, message = "页码最小值为 1")
     @Max(value = 2000, message = "页码最大值为 2000")
-    private Integer pageSize = 10;
+    private Integer pageSize = 20;
 
     public PageQuery() {
 

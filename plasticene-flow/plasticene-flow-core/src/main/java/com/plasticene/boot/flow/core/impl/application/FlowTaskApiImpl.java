@@ -15,8 +15,6 @@ import jakarta.annotation.Resource;
 import jakarta.validation.groups.Default;
 import java.util.List;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 实现 {@link FlowTaskApi}，负责审批任务操作的授权与用例编排。
@@ -31,7 +29,6 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     private FlowTaskService taskService;
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void approve(FlowTaskParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -40,7 +37,6 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void reject(FlowTaskParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -49,7 +45,6 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void saveForm(FlowTaskFormParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -58,7 +53,6 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void addSign(FlowTaskAddSignParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -67,7 +61,6 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void transfer(FlowTaskTransferParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -76,7 +69,6 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void returnTask(FlowTaskReturnParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Default.class);
@@ -85,7 +77,6 @@ public class FlowTaskApiImpl implements FlowTaskApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void withdraw(Long id, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.TASK_WITHDRAW, access.task(id));

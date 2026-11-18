@@ -1,6 +1,7 @@
-package com.plasticene.boot.flow.core.impl.validation.node;
+package com.plasticene.boot.flow.core.impl.validation;
 
 import com.plasticene.boot.common.exception.BizException;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
 import com.plasticene.boot.flow.core.model.enums.FlowNodeEnum;
 import com.plasticene.boot.flow.core.model.FlowFieldPermission;
 import com.plasticene.boot.flow.core.model.FlowNode;
@@ -29,9 +30,9 @@ class FlowFieldReferenceTest {
         approval.setFieldsPermission(List.of(permission));
         branch.setChildNode(approval);
         root.setConditionNodes(List.of(branch));
-        assertTrue(assertThrows(BizException.class, () -> validator.validate(root, Set.of("amount"))).getMessage().contains("approval"));
+        assertTrue(assertThrows(BizException.class, () -> validator.validate(root, schema())).getMessage().contains("approval"));
         permission.setField("amount");
-        assertDoesNotThrow(() -> validator.validate(root, Set.of("amount")));
+        assertDoesNotThrow(() -> validator.validate(root, schema()));
     }
 
     @Test
@@ -40,20 +41,63 @@ class FlowFieldReferenceTest {
         FlowNode root = node("root", 1);
         var rule = new ProcessConditionRule();
         rule.setField("PROCESS_START_USER_ID");
+        rule.setType(1);
         var group = new ProcessConditionGroup();
         group.setConditionRules(List.of(rule));
         var condition = new ProcessNodeCondition();
         condition.setConditionGroups(List.of(group));
         root.setCondition(condition);
-        assertDoesNotThrow(() -> validator.validate(root, Set.of()));
+        assertDoesNotThrow(() -> validator.validate(root, new FlowVariableSchema()));
         rule.setField("unknown");
-        assertThrows(BizException.class, () -> validator.validate(root, Set.of()));
+        assertThrows(BizException.class, () -> validator.validate(root, new FlowVariableSchema()));
         rule.setField("amount");
-        assertDoesNotThrow(() -> validator.validate(root, Set.of("amount")));
+        assertDoesNotThrow(() -> validator.validate(root, schema()));
         var permission = new FlowFieldPermission();
         permission.setField("PROCESS_START_USER_ID");
         root.setFieldsPermission(List.of(permission));
-        assertThrows(BizException.class, () -> validator.validate(root, Set.of("amount")));
+        assertThrows(BizException.class, () -> validator.validate(root, schema()));
+    }
+
+    @Test
+    void shouldValidateConditionTypesInBothChildAndBranchNodes() {
+        var validator = validator();
+        var root = node("root", 1);
+        var child = node("child", 3);
+        var branch = node("branch", 3);
+        root.setChildNode(child);
+        root.setConditionNodes(List.of(branch));
+        var childRule = conditionRule(child, "amount", 0);
+        var branchRule = conditionRule(branch, "amount", 0);
+        assertEquals("条件变量类型不匹配：amount",
+                assertThrows(BizException.class, () -> validator.validate(root, schema())).getMessage());
+        childRule.setType(1);
+        assertThrows(BizException.class, () -> validator.validate(root, schema()));
+        branchRule.setType(1);
+        assertDoesNotThrow(() -> validator.validate(root, schema()));
+        branchRule.setField("PROCESS_START_USER_ID");
+        branchRule.setType(3);
+        assertDoesNotThrow(() -> validator.validate(root, schema()));
+    }
+
+    private ProcessConditionRule conditionRule(FlowNode node, String field, int type) {
+        var rule = new ProcessConditionRule();
+        rule.setField(field);
+        rule.setType(type);
+        var group = new ProcessConditionGroup();
+        group.setConditionRules(List.of(rule));
+        var condition = new ProcessNodeCondition();
+        condition.setConditionGroups(List.of(group));
+        node.setCondition(condition);
+        return rule;
+    }
+
+    private FlowVariableSchema schema() {
+        var field = new FlowVariableSchema.Field();
+        field.setField("amount");
+        field.setType(1);
+        var schema = new FlowVariableSchema();
+        schema.setFields(List.of(field));
+        return schema;
     }
 
     private FlowNodeValidator validator() {

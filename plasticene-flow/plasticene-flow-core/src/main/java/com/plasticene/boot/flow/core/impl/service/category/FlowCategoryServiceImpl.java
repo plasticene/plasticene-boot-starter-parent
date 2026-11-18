@@ -13,7 +13,6 @@ import com.plasticene.boot.flow.core.impl.persistence.entity.FlowCategory;
 import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
 import com.plasticene.boot.flow.core.api.query.FlowCategoryQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowCategoryVO;
-import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.mybatis.core.query.PtcLambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import java.util.ArrayList;

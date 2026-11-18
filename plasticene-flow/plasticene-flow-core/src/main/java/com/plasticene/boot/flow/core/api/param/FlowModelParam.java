@@ -23,13 +23,6 @@ import lombok.Data;
 @Data
 @Schema(description = "工作流-流程模型表")
 public class FlowModelParam {
-    @Schema(description = "表单类型：0自带表单、1业务表单")
-    @NotNull(groups = Insert.class, message = "表单类型不能为空")
-    private Integer formMode;
-
-    @Schema(description = "草稿审批变量定义；更新时省略保持原值，fields为空数组时清空变量")
-    private FlowVariableSchema varInfo;
-
     @Schema(description = "流程id")
     @NotNull(message = "流程id不能为空", groups = Update.class)
     private Long id;
@@ -72,4 +65,9 @@ public class FlowModelParam {
     private List<Long> managerUserIds;
     @Schema(description = "说明")
     private String remark;
+    @Schema(description = "表单类型：0自带表单、1业务表单")
+    @NotNull(groups = Insert.class, message = "表单类型不能为空")
+    private Integer formMode;
+    @Schema(description = "草稿审批变量定义；更新时省略保持原值，fields为空数组时清空变量")
+    private FlowVariableSchema varInfo;
 }

@@ -1,4 +1,4 @@
-package com.plasticene.boot.flow.core.impl.validation.node;
+package com.plasticene.boot.flow.core.impl.validation;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;

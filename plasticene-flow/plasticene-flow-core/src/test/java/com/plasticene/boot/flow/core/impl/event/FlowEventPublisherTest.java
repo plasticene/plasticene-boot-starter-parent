@@ -7,15 +7,12 @@ import com.plasticene.boot.flow.core.api.event.FlowInstanceEvent;
 import com.plasticene.boot.flow.core.api.event.FlowTaskAction;
 import com.plasticene.boot.flow.core.api.event.FlowTaskCancelReason;
 import com.plasticene.boot.flow.core.api.event.FlowTaskEvent;
-import com.plasticene.boot.flow.core.api.event.SpringFlowEventListener;
 
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowInstance;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowTask;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.event.EventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +20,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * 验证默认事件发布、扩展替换及事件快照语义。
+ * 验证分类事件投递、异常传播及事件快照语义。
  * @author ZFJ
  * @since 2026-11-06
  */
@@ -134,29 +131,15 @@ class FlowEventPublisherTest {
     }
 
     /**
-     * 验证公共事件接口订阅。
-     * @author ZFJ
-     * @since 2026-11-06
-     */
-    static class Subscriber {
-        final List<FlowEvent> events = new ArrayList<>();
-
-        @EventListener
-        public void onEvent(FlowEvent event) {
-            events.add(event);
-        }
-    }
-
-    /**
      * 验证流程分类订阅。
      * @author ZFJ
      * @since 2026-11-06
      */
-    static class CategorySubscriber extends SpringFlowEventListener {
+    static class CategorySubscriber implements FlowEventConsumer {
         final List<FlowEvent> events = new ArrayList<>();
 
         @Override
-        public void doProcessEvent(FlowEvent event) {
+        public void receive(FlowEvent event) {
             events.add(event);
         }
 
@@ -166,15 +149,4 @@ class FlowEventPublisherTest {
         }
     }
 
-    /**
-     * 验证监听失败传播。
-     * @author ZFJ
-     * @since 2026-11-06
-     */
-    static class FailingSubscriber {
-        @EventListener
-        public void onEvent(FlowEvent event) {
-            throw new IllegalStateException("业务处理失败");
-        }
-    }
 }

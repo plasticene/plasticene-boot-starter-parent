@@ -8,6 +8,7 @@ import com.plasticene.boot.flow.core.impl.form.FlowFormConfig;
 import com.plasticene.boot.flow.core.impl.condition.Operator;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel;
 import java.util.*;
+import java.util.stream.Collectors;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,7 @@ public class FlowVariables {
     @Resource
     private ObjectProvider<FlowBusinessVariableProvider> providers;
 
+    /** 获取发布变量定义；业务表单须确认草稿定义与宿主最新定义一致。 */
     public FlowVariableSchema forModel(FlowModel model) {
         FlowFormMode mode = FlowFormMode.from(model.getFormMode());
         FlowVariableSchema schema;
@@ -33,7 +35,18 @@ public class FlowVariables {
             FlowFormConfig.validate(model.getFormConfig());
             schema = FlowFormConfig.variableSchema(model.getFormConfig());
         } else {
-            return forBusiness(model.getOrgId(), model.getCode());
+            FlowVariableSchema latest = forBusiness(model.getOrgId(), model.getCode());
+            schema = model.getVarInfo() == null ? new FlowVariableSchema() : model.getVarInfo();
+            validateSchema(schema, true);
+            // 按字段标识比较完整定义，字段排列顺序不影响发布。
+            var draftFields = schema.getFields().stream().collect(Collectors.toMap(
+                    FlowVariableSchema.Field::getField, field -> field));
+            var latestFields = latest.getFields().stream().collect(Collectors.toMap(
+                    FlowVariableSchema.Field::getField, field -> field));
+            if (!draftFields.equals(latestFields)) {
+                throw new BizException("业务变量已调整，请刷新变量并适配工作流配置后重新发布");
+            }
+
         }
         validateSchema(schema, mode == FlowFormMode.BUSINESS);
         return schema;

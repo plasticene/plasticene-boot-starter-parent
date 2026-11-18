@@ -48,7 +48,6 @@ public class FlowModelApiImpl implements FlowModelApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void update(FlowModelParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Update.class);
@@ -61,8 +60,12 @@ public class FlowModelApiImpl implements FlowModelApi {
     public void delete(List<Long> ids, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.MODEL_DELETE, access.organization(actor));
-        if (ids == null || ids.isEmpty()) { throw new BizException("ID列表不能为空"); }
-        for (Long id : ids) { access.check(actor, FlowAction.MODEL_DELETE, access.model(id)); }
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("ID列表不能为空");
+        }
+        for (Long id : ids) {
+            access.check(actor, FlowAction.MODEL_DELETE, access.model(id));
+        }
         modelService.delete(ids, actor);
     }
 

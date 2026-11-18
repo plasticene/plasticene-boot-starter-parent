@@ -31,7 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.user.LoginUserHolder;
-import com.plasticene.boot.flow.core.api.param.FlowBusinessStartByCodeParam;
+import com.plasticene.boot.flow.core.api.param.FlowStartByCodeParam;
 import com.plasticene.boot.flow.core.api.service.FlowInstanceApi;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -119,10 +119,10 @@ class LeaveWorkflowIntegrationTest {
             var calls = new ArrayList<Future<Long>>();
             for (int i = 0; i < 4; i++) {
                 calls.add(executor.submit(() -> {
-                    var param = new FlowBusinessStartByCodeParam();
+                    var param = new FlowStartByCodeParam();
                     param.setProcessCode("leave-approval"); param.setBusinessId(request);
                     param.setVarMap(Map.of("days", 2, "reason", "并发申请"));
-                    return instanceOperations.startBusinessByCode(param, LeaveDemoRunner.actor(1L));
+                    return instanceOperations.startInstanceByCode(param, LeaveDemoRunner.actor(1L));
                 }));
             }
             int created = 0;

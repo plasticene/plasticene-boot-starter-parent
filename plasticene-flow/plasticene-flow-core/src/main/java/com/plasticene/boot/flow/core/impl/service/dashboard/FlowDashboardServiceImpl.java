@@ -5,7 +5,6 @@ import com.plasticene.boot.flow.core.impl.persistence.dao.FlowDashboardDAO;
 import com.plasticene.boot.flow.core.model.enums.FlowDashboardGranularityEnum;
 import com.plasticene.boot.flow.core.api.query.FlowDashboardQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowDashboardVO;
-import com.plasticene.boot.flow.core.impl.service.dashboard.FlowDashboardService;
 import jakarta.annotation.Resource;
 import java.time.DayOfWeek;
 import org.springframework.stereotype.Service;

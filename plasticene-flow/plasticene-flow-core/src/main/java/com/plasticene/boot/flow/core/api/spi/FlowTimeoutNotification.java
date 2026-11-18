@@ -9,10 +9,21 @@ import java.util.List;
  * @since 2026-10-22
  */
 public interface FlowTimeoutNotification {
-    /** 发送失败应抛异常；调用可能重试，eventId 是稳定的幂等键。 */
+
+    /**
+     * 发送失败应抛异常；调用可能重试，eventId 是稳定的幂等键。
+     */
     void send(Message message);
 
-    record Message(Long eventId, Long orgId, Long instanceId, Long taskId,
-                   String nodeName, List<Long> recipients, String eventType,
-                   String action, LocalDateTime deadline, LocalDateTime occurredAt) {}
+
+    record Message(Long eventId,
+                   Long orgId,
+                   Long instanceId,
+                   Long taskId,
+                   String nodeName,
+                   List<Long> recipients,
+                   String eventType,
+                   String action,
+                   LocalDateTime deadline,
+                   LocalDateTime occurredAt) {}
 }

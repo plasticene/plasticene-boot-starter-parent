@@ -16,7 +16,6 @@ import jakarta.annotation.Resource;
 import jakarta.validation.groups.Default;
 import java.util.List;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 实现 {@link FlowFormApi}，负责自带表单管理的授权与用例编排。
@@ -39,7 +38,6 @@ public class FlowFormApiImpl implements FlowFormApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void update(FlowFormParam param, LoginUser actor) {
         FlowActors.require(actor);
         access.validate(param, Update.class);
@@ -48,11 +46,12 @@ public class FlowFormApiImpl implements FlowFormApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void delete(List<Long> ids, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.FORM_DELETE, access.organization(actor));
-        if (ids == null || ids.isEmpty()) { throw new BizException("ID列表不能为空"); }
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("ID列表不能为空");
+        }
         for (Long id : ids) {
             access.check(actor, FlowAction.FORM_DELETE, access.form(id));
         }

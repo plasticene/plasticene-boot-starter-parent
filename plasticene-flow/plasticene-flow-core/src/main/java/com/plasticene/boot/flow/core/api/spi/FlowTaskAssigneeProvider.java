@@ -9,12 +9,7 @@ import java.util.List;
  */
 public interface FlowTaskAssigneeProvider {
 
-@Deprecated
-    default Long getLeader(Long userId) {
-        return null;
-    }
-
-default List<Long> getAssignees(FlowNode node, Long orgId, Long applicantId) {
+    default List<Long> getAssignees(FlowNode node, Long orgId, Long applicantId) {
         return List.of();
     }
 
