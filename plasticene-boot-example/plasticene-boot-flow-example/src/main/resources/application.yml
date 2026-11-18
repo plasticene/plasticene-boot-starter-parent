@@ -37,7 +37,7 @@ ptc:
     timeout:
       enabled: false
     event:
-      enabled: off
+      enabled: false
     http:
       enabled: true
 

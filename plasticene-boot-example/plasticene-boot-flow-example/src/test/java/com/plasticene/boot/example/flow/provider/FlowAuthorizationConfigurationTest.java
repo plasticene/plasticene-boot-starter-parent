@@ -24,4 +24,16 @@ class FlowAuthorizationConfigurationTest {
         assertEquals(2, schema.getFields().size());
         assertEquals("days", schema.getFields().getFirst().getField());
     }
+
+    @Test
+    void shouldProvidePurchaseConditionVariables() {
+        var schema = new FlowAuthorizationConfiguration().flowBusinessVariableProvider().getSchema(3L, "purchase-approval");
+        assertEquals(3, schema.getFields().size());
+        assertEquals("amount", schema.getFields().get(0).getField());
+        assertEquals(1, schema.getFields().get(0).getType());
+        assertEquals("category", schema.getFields().get(1).getField());
+        assertEquals(0, schema.getFields().get(1).getType());
+        assertEquals("urgent", schema.getFields().get(2).getField());
+        assertEquals(1, schema.getFields().get(2).getType());
+    }
 }
