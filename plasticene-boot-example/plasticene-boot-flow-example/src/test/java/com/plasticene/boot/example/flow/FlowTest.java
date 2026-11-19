@@ -13,6 +13,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -103,11 +104,23 @@ public class FlowTest {
     }
 
     @Test
-    public void testRepeatableRead() throws InterruptedException {
+    public void testReadCommited() throws InterruptedException {
         TimeUnit.SECONDS.sleep(3);
         executorService.submit(() -> testService.updateTaskStatus(143L));
         executorService.submit(() -> testService.updateTaskStatus(143L));
         TimeUnit.SECONDS.sleep(60);
+    }
+
+    /**
+     * 测试mybatis一级缓存
+     */
+    @Test
+    @Transactional(rollbackFor = Exception.class)
+    public void testMyBatisFirstCache() {
+        FlowDefinition byId = flowDefinitionService.getById(68L);
+        FlowDefinition byId1 = flowDefinitionService.getById(68L);
+        FlowDefinition byId2 = flowDefinitionService.getById(68L);
+
 
     }
 

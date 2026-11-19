@@ -59,7 +59,6 @@ import java.util.stream.Collectors;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import com.plasticene.boot.flow.core.impl.application.FlowVariables;
 import java.util.LinkedHashMap;
@@ -100,7 +99,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
      * @param loginUser 宿主提供的可信操作者及其组织上下文
      * @return 新建的实例 ID
      */
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public Long startInstance(Long definitionId, Map<String, Object> varMap, LoginUser loginUser) {
         return startInstance(definitionId, null, varMap, loginUser);
@@ -114,7 +113,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
      * @param loginUser 宿主提供的可信操作者及其组织上下文
      * @return 新建的实例 ID
      */
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public Long startInstance(Long definitionId, String businessId, Map<String, Object> varMap, LoginUser loginUser) {
         FlowActors.require(loginUser);
@@ -305,7 +304,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
      * @param instanceId 流程实例 ID
      * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void cancelInstance(Long instanceId, LoginUser loginUser) {
         if (instanceId == null) {

@@ -8,7 +8,7 @@
     </resultMap>
 
 
-    <select id="selectInstanceForUpdate" resultMap="instanceResultMap">
+    <select id="selectInstanceForUpdate" resultMap="instanceResultMap" flushCache="true" useCache="false">
         SELECT * FROM `flow_instance` WHERE id = #{instanceId} FOR UPDATE
     </select>
 

@@ -188,7 +188,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
                 throw new BizException("业务表单请通过宿主入口修改");
             }
             flowVariables.validateData(definition.getVarInfo(), param.getFormData(), true, false);
-            if (definition == null || !Objects.equals(definition.getOrgId(), user.getOrgId())) {
+            if (!Objects.equals(definition.getOrgId(), user.getOrgId())) {
                 throw new BizException("流程发布定义不存在");
             }
             var permissions = FlowFormPermissions.resolve(

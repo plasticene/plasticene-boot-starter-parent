@@ -46,7 +46,7 @@ public class FlowTimeoutServiceImpl extends ServiceImpl<FlowTimeoutNoticeDAO, Fl
     private static final int RETRY_INTERVAL_MINUTES = 5;
     private static final int RESULT_NOTICE_ROUND = 0;
 
-    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void handleDueTask(FlowTask dueTask, LocalDateTime now) {
         if (dueTask == null) {
@@ -95,7 +95,7 @@ public class FlowTimeoutServiceImpl extends ServiceImpl<FlowTimeoutNoticeDAO, Fl
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     @Override
     public void sendNotification(Long noticeId, LocalDateTime now) {
-        // 与退回使用相同锁顺序：实例在前，通知在后，避免互相等待。
+        // 先锁实例再锁通知，使通知检查及发送与退回、加签等任务状态变更串行执行。
         FlowTimeoutNotice snapshot = flowTimeoutNoticeDAO.selectById(noticeId);
         if (snapshot == null) {
             return;
