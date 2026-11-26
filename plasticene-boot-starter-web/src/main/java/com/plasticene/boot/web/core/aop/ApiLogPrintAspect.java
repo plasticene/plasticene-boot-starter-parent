@@ -4,7 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
 import com.plasticene.boot.common.constant.OrderConstant;
 import com.plasticene.boot.common.pojo.ResponseVO;
-import com.plasticene.boot.web.core.anno.ApiLog;
+import com.plasticene.boot.web.core.anno.ApiLogIgnore;
 import com.plasticene.boot.web.core.model.RequestInfo;
 import com.plasticene.boot.web.core.prop.ApiLogProperties;
 import com.plasticene.boot.web.core.utils.IpUtil;
@@ -17,6 +17,8 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.Order;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -61,11 +63,10 @@ public class ApiLogPrintAspect {
     @Around("execution(* com.plasticene..controller..*(..))")
     public Object timeAround(ProceedingJoinPoint joinPoint) throws Throwable {
         // 这里做开关判断，而不是根据开关条件注入切面bean，是因为为了方便修改配置开关动态更新来控制开关打印接口参数日志
-        if (!apiLogProperties.getEnable()) {
+        if (!Boolean.TRUE.equals(apiLogProperties.getEnable())) {
             return joinPoint.proceed();
         }
-        ApiLog apiLog = getApiLog(joinPoint);
-        if (Objects.isNull(apiLog)) {
+        if (isIgnored(joinPoint)) {
             return joinPoint.proceed();
         }
         long start = System.currentTimeMillis();
@@ -127,14 +128,13 @@ public class ApiLogPrintAspect {
         return requestAttributes.getRequest();
     }
 
-    private ApiLog getApiLog(JoinPoint joinPoint) {
-        MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
-        Method method = methodSignature.getMethod();
-        ApiLog apiLog = method.getAnnotation(ApiLog.class);
-        if (Objects.isNull(apiLog)) {
-            apiLog = method.getDeclaringClass().getAnnotation(ApiLog.class);
-        }
-        return apiLog;
+    private boolean isIgnored(JoinPoint joinPoint) {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Class<?> targetClass = AopUtils.getTargetClass(joinPoint.getTarget());
+        Method method = AopUtils.getMostSpecificMethod(signature.getMethod(), targetClass);
+        return AnnotatedElementUtils.findMergedAnnotation(method, ApiLogIgnore.class) != null
+                || AnnotatedElementUtils.findMergedAnnotation(signature.getMethod(), ApiLogIgnore.class) != null
+                || AnnotatedElementUtils.findMergedAnnotation(targetClass, ApiLogIgnore.class) != null;
     }
 
     private Object formatLogParam(Object object) {

@@ -1,14 +1,14 @@
 # 采购业务审批示例
 
-示例宿主是 `plasticene-boot-example/plasticene-boot-flow-example`，前端入口为“演示 → 业务审批示例”。采购业务代码位于 `com.plasticene.boot.example.flow.purchase`，只新增一张 `purchase_apply` 表，不向 FLOW 引擎模块添加采购逻辑。
+示例宿主是同级仓库 `plasticene-admin`，前端入口为“演示 → 业务审批示例”。采购业务代码位于 `com.plasticene.admin.purchase`，只新增一张 `purchase_apply` 表，不向 FLOW 引擎模块添加采购逻辑。
 
 ## 初始化
 
-1. 在本地开发数据库中执行 [purchase-apply.sql](../sql/purchase-apply.sql)。保留 FLOW 自身已有的模型、实例、任务及事件表；新业务表须与 FLOW 使用同一数据源、同一事务管理器。
-2. 启动 `FlowExampleApplication`（普通示例应用，不是 `leave` 命令行演示）。使用本地开发环境的数据库、Redis 和登录认证配置，启动端口沿用现有配置。
+1. 在 admin 的本地开发数据库中执行 `plasticene-admin/docs/sql/purchase/purchase-apply.sql`。FLOW 初始化和旧库迁移见 admin 的 `docs/deployment/flow-integration.md`。保留 FLOW 自身已有的模型、实例、任务及事件表；新业务表须与 FLOW 使用同一数据源、同一事务管理器。
+2. 启动 admin 的 `PlasticeneAdminApplication`，无需启动 FLOW example。使用本地开发环境的数据库、Redis 和登录认证配置，启动端口沿用现有配置。
 3. 在流程分类管理中新建编码为 `purchase` 的分类。
 4. 新建流程模型：编码 `purchase-approval`，分类 `purchase`，表单模式选“业务表单”。选择有权限发起该模型的用户范围，配置一个人工审批节点，选择实际可登录的审批人，然后发布并启用模型。
-5. 如需测试条件分支，可以使用 `amount`（数字）、`category`（字符串）和 `urgent`（数字，0 否、1 是）。变量契约由示例宿主的 `FlowAuthorizationConfiguration` 提供，无需在流程中设计采购表单。
+5. 如需测试条件分支，可以使用 `amount`（数字）、`category`（字符串）和 `urgent`（数字，0 否、1 是）。变量契约由示例宿主的 `PurchaseFlowConfiguration` 提供，无需在流程中设计采购表单。
 6. 启动前端，进入“演示 → 业务审批示例”。填写七个字段，点击“提交审批”。
 
 流程分类用于 `FlowEventConsumer.businessType()` 路由回调，必须使用 `purchase`。若分类不正确，提交接口会回滚采购单和本次流程创建，提示修正模型后重新发布。未发布或未启用的流程沿用 FLOW 自身校验错误。
@@ -45,10 +45,10 @@ pnpm vitest run --dom apps/web-antd/src/views/demos/business-approval apps/web-a
 pnpm -F @vben/web-antd typecheck
 ```
 
-后端父仓库运行（本地 Maven 仓库应已有当前 FLOW 模块及其依赖）：
+在 `plasticene-admin` 仓库运行（本地 Maven 仓库应已有当前 FLOW 模块及其依赖）：
 
 ```bash
-mvn -f plasticene-boot-example/pom.xml -pl plasticene-boot-flow-example -am -Dtest=PurchaseApplyServiceTest,PurchaseFlowEventConsumerTest,FlowAuthorizationConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test
+mvn -Dtest=PurchaseApplyServiceTest,PurchaseFlowEventConsumerTest,PurchaseFlowConfigurationTest test
 ```
 
 这些测试无需访问业务数据库，覆盖可信变量、校验、重复提交、查看权限、回调重复处理、失败后重试及事务提交/回滚时的日志行为。真实 MySQL 单表持久化、并发锁与完整事件投递仍须在本地开发环境联调：提交后由审批人办理待办，刷新采购列表确认终态，并核对审批通过后的模拟通知日志。拒绝、取消应更新对应状态且不输出行政通知。

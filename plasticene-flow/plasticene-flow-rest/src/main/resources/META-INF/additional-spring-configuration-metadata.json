@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "ptc.flow.http.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable the FLOW HTTP endpoints in a servlet web application.",
+      "defaultValue": false
+    }
+  ]
+}

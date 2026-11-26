@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "ptc.api.log")
 public class ApiLogProperties {
     /**
-     * 是否开启接口日志打印, 默认
+     * 是否开启 Controller 接口日志打印，默认关闭；开启后可通过 @ApiLogIgnore 排除。
      */
     private Boolean enable = Boolean.FALSE;
 }

@@ -7,7 +7,6 @@ import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.example.web.param.UserParam;
 import com.plasticene.boot.example.web.vo.UserVO;
-import com.plasticene.boot.web.core.anno.ApiLog;
 import com.plasticene.boot.web.core.anno.ApiSecurity;
 import com.plasticene.boot.web.core.anno.ResponseResultBody;
 import com.plasticene.boot.web.core.prop.ApiSecurityProperties;
@@ -43,7 +42,6 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/test")
 @Slf4j
-@ApiLog
 @ResponseResultBody
 public class TestController {
     @Resource

@@ -1,4 +1,4 @@
--- 在 FLOW 示例应用使用的 MySQL 数据库中手动执行；不修改已有 FLOW 表。
+-- 在 plasticene-admin 使用的 MySQL 数据库中手动执行；不修改已有 FLOW 表。
 CREATE TABLE IF NOT EXISTS purchase_apply (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '采购申请ID',
     org_id BIGINT NOT NULL COMMENT '所属组织ID',
