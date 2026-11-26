@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.plasticene.boot.flow.core.impl.persistence.FlowVariableMapTypeHandler;
 import com.plasticene.boot.mybatis.core.metadata.BaseDO;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -61,7 +61,7 @@ public class FlowInstance extends BaseDO {
     /**
      * 参数变量值
      */
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(typeHandler = FlowVariableMapTypeHandler.class)
     private Map<String, Object> varMap;
 
     /**

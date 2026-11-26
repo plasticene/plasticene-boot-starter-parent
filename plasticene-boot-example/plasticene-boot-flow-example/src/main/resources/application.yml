@@ -40,6 +40,8 @@ ptc:
       enabled: false
     http:
       enabled: true
+    business-fields:
+      enabled: true
 
 
 

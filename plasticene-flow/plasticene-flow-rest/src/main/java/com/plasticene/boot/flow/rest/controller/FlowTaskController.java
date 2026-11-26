@@ -40,22 +40,22 @@ public class FlowTaskController {
     private FlowQueryApi flowQueryApi;
 
     @Operation(summary = "分页查询当前用户待办任务")
-    @GetMapping("/my/todo/page")
-    public ResponseVO<PageResult<FlowTaskPageVO>> pageMyTodo(@Validated FlowTaskQuery query) {
+    @PostMapping("/my/todo/page")
+    public ResponseVO<PageResult<FlowTaskPageVO>> pageMyTodo(@RequestBody @Validated FlowTaskQuery query) {
         LoginUser loginUser = LoginUserHolder.get();
         return ResponseVO.success(flowQueryApi.pageMyTodo(query, loginUser));
     }
 
     @Operation(summary = "分页查询当前用户已办任务")
-    @GetMapping("/my/done/page")
-    public ResponseVO<PageResult<FlowTaskPageVO>> pageMyDone(@Validated FlowTaskQuery query) {
+    @PostMapping("/my/done/page")
+    public ResponseVO<PageResult<FlowTaskPageVO>> pageMyDone(@RequestBody @Validated FlowTaskQuery query) {
         LoginUser loginUser = LoginUserHolder.get();
         return ResponseVO.success(flowQueryApi.pageMyDone(query, loginUser));
     }
 
     @Operation(summary = "分页查询抄送给当前用户的任务")
-    @GetMapping("/my/copy/page")
-    public ResponseVO<PageResult<FlowTaskPageVO>> pageMyCopy(@Validated FlowTaskQuery query) {
+    @PostMapping("/my/copy/page")
+    public ResponseVO<PageResult<FlowTaskPageVO>> pageMyCopy(@RequestBody @Validated FlowTaskQuery query) {
         LoginUser loginUser = LoginUserHolder.get();
         return ResponseVO.success(flowQueryApi.pageMyCopy(query, loginUser));
     }

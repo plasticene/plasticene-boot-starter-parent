@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 当前用户流程任务分页信息
@@ -86,4 +87,7 @@ public class FlowTaskPageVO {
     private String timeoutAction;
     @Schema(description = "是否由系统超时处理")
     private Boolean timeoutHandled;
+
+    @Schema(description = "审批列表业务字段值")
+    private Map<String, FlowBusinessFieldValue> listValues = Map.of();
 }

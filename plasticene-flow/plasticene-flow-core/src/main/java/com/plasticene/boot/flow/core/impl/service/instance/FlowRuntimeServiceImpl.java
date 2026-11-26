@@ -1,5 +1,8 @@
 package com.plasticene.boot.flow.core.impl.service.instance;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import com.plasticene.boot.flow.core.api.spi.FlowBusinessFieldsLifecycle;
+import com.plasticene.boot.flow.core.impl.application.FlowBusinessFieldsSupportProvider;
 import com.plasticene.boot.flow.core.impl.event.FlowEventFactory;
 
 import cn.hutool.core.util.StrUtil;
@@ -69,6 +72,9 @@ import java.util.LinkedHashMap;
  */
 @Service
 public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowInstance> implements FlowRuntimeService {
+    @Autowired(required = false)
+    private FlowBusinessFieldsSupportProvider businessFields;
+
     @Resource
     private FlowVariables flowVariables;
     @Resource
@@ -146,6 +152,12 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
             throw new BizException("同一businessId不能重复发起实例");
         }
 
+        var lifecycle = businessFields == null ? null : businessFields.lifecycle();
+        if (lifecycle != null) {
+            lifecycle.sync(new FlowBusinessFieldsLifecycle.InstanceData(
+                    instance.getOrgId(), instance.getId(), loginUser.getId(), flowDefinition.getVarInfo(), savedVariables));
+        }
+
         // 发布流程实例开始事件
         flowEventPublisher.publish(FlowEventFactory.instanceEvent(instance, FlowEventType.INSTANCE_STARTED));
 
@@ -185,7 +197,14 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Override
     public PageResult<FlowInstanceVO> page(FlowInstanceQuery query, LoginUser loginUser) {
         normalizeQuery(query);
-        IPage<FlowInstanceVO> page = flowInstanceDAO.pageInstance(MybatisUtils.buildPage(query), query, true);
+        var extension = businessFields == null || query.getUserId() == null ? null : businessFields.api();
+        IPage<FlowInstanceVO> page;
+        if (extension == null) {
+            FlowBusinessFieldsSupportProvider.requireNoFilters(query.getBusinessFilters());
+            page = flowInstanceDAO.pageInstance(MybatisUtils.buildPage(query), query, true);
+        } else {
+            page = extension.pageInstances(query);
+        }
         List<FlowInstanceVO> records = page.getRecords();
         Map<String, String> categoryMap = flowCategoryService.getCategoryMap(loginUser);
         Map<Long, String> userMap = flowOrganizationProvider.getUserMap(loginUser.getOrgId());
@@ -202,6 +221,7 @@ public class FlowRuntimeServiceImpl extends ServiceImpl<FlowInstanceDAO, FlowIns
     @Override
     public FlowInstanceStatisticsVO statistics(FlowInstanceQuery query) {
         normalizeQuery(query);
+        FlowBusinessFieldsSupportProvider.requireNoFilters(query.getBusinessFilters());
         return flowInstanceDAO.statisticsInstance(query, false);
     }
 

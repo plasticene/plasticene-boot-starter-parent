@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.rest.controller;
 
+import com.plasticene.boot.flow.core.api.vo.FlowBusinessFieldsVO;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.pojo.ResponseVO;
 import com.plasticene.boot.common.user.LoginUser;
@@ -75,5 +76,10 @@ public class FlowCategoryController {
         LoginUser loginUser = LoginUserHolder.get();
         flowCategoryService.delete(ids, loginUser);
         return ResponseVO.success();
+    }
+    @Operation(summary = "查询分类业务字段能力")
+    @GetMapping("/fields-capabilities")
+    public ResponseVO<FlowBusinessFieldsVO.Capabilities> fieldsCapabilities() {
+        return ResponseVO.success(flowCategoryService.fieldsCapabilities(LoginUserHolder.get()));
     }
 }

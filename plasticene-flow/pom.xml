@@ -14,5 +14,6 @@
         <module>plasticene-flow-core</module>
         <module>plasticene-boot-starter-flow</module>
         <module>plasticene-flow-rest</module>
+        <module>plasticene-flow-business-fields</module>
     </modules>
 </project>

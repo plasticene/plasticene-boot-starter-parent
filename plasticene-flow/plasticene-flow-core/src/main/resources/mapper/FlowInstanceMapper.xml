@@ -4,7 +4,7 @@
     
     <resultMap id="instanceResultMap" type="com.plasticene.boot.flow.core.impl.persistence.entity.FlowInstance">
         <result column="var_map" jdbcType="VARCHAR" property="varMap" javaType="java.util.Map"
-                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+                typeHandler="com.plasticene.boot.flow.core.impl.persistence.FlowVariableMapTypeHandler"/>
     </resultMap>
 
 
@@ -53,7 +53,7 @@
         </if>
     </sql>
 
-    <select id="pageInstance" resultType="com.plasticene.boot.flow.core.api.vo.FlowInstanceVO">
+    <sql id="pageFrom">
         SELECT fi.id,
                fi.definition_id,
                fi.business_id,
@@ -68,10 +68,18 @@
                fi.end_time
         FROM flow_instance fi
         INNER JOIN flow_definition fd ON fd.id = fi.definition_id AND fd.org_id = fi.org_id
+    </sql>
+
+    <sql id="pageWhereAndOrder">
         <where>
-            <include refid="instanceFilters"/>
+            <include refid="com.plasticene.boot.flow.core.impl.persistence.dao.FlowInstanceDAO.instanceFilters"/>
         </where>
         ORDER BY fi.start_time DESC, fi.id DESC
+    </sql>
+
+    <select id="pageInstance" resultType="com.plasticene.boot.flow.core.api.vo.FlowInstanceVO">
+        <include refid="pageFrom"/>
+        <include refid="pageWhereAndOrder"/>
     </select>
 
     <select id="statisticsInstance"

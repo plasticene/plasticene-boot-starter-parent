@@ -240,5 +240,7 @@
     </springProfile>
 
     <logger name="com.plasticene.boot.flow.core.impl.persistence.dao" level="DEBUG" />
+    <logger name="com.plasticene.boot.flow.business.fields.persistence.dao" level="DEBUG" />
+
 
 </configuration>

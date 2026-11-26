@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.impl.application;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import com.plasticene.boot.common.exception.BizException;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
@@ -10,6 +11,7 @@ import com.plasticene.boot.flow.core.api.spi.FlowAction;
 import com.plasticene.boot.flow.core.api.validation.group.Insert;
 import com.plasticene.boot.flow.core.api.validation.group.Update;
 import com.plasticene.boot.flow.core.api.vo.FlowCategoryVO;
+import com.plasticene.boot.flow.core.api.vo.FlowBusinessFieldsVO;
 import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
 import com.plasticene.boot.flow.core.impl.support.FlowActors;
 import jakarta.annotation.Resource;
@@ -24,10 +26,19 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class FlowCategoryApiImpl implements FlowCategoryApi {
+    @Autowired(required = false)
+    private FlowBusinessFieldsSupportProvider businessFields;
+
     @Resource
     private FlowAccess access;
     @Resource
     private FlowCategoryService categoryService;
+
+    @Override
+    public FlowBusinessFieldsVO.Capabilities fieldsCapabilities(LoginUser actor) {
+        access.check(actor, FlowAction.CATEGORY_READ, access.organization(actor));
+        return businessFields == null ? new FlowBusinessFieldsVO.Capabilities(false, null) : businessFields.capabilities();
+    }
 
     @Override
     public Long create(FlowCategoryParam param, LoginUser actor) {

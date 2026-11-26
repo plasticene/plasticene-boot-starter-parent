@@ -1,1 +1,2 @@
 com.plasticene.boot.flow.rest.autoconfigure.FlowRestAutoConfiguration
+com.plasticene.boot.flow.rest.autoconfigure.FlowBusinessFieldsRestAutoConfiguration

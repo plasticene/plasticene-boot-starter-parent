@@ -1,5 +1,9 @@
 package com.plasticene.boot.flow.core.impl.service.model;
 
+import com.plasticene.boot.flow.core.api.spi.FlowBusinessFieldsLifecycle;
+import com.plasticene.boot.flow.core.model.FlowVariableSchema;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.plasticene.boot.flow.core.impl.application.FlowBusinessFieldsSupportProvider;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -12,6 +16,7 @@ import com.plasticene.boot.common.utils.PtcBeanUtils;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowCategoryDAO;
 import com.plasticene.boot.flow.core.impl.persistence.dao.FlowModelDAO;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowDefinition;
+import com.plasticene.boot.flow.core.impl.persistence.entity.FlowCategory;
 import com.plasticene.boot.flow.core.impl.persistence.entity.FlowModel;
 import com.plasticene.boot.flow.core.model.enums.FlowModelEnums;
 import com.plasticene.boot.flow.core.model.FlowExtraSetting;
@@ -34,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import com.plasticene.boot.flow.core.impl.application.FlowVariables;
 import com.plasticene.boot.flow.core.model.enums.FlowFormMode;
@@ -48,6 +54,9 @@ import com.plasticene.boot.flow.core.model.enums.FlowFormMode;
 
 @Service
 public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> implements FlowModelService {
+    @Autowired(required = false)
+    private FlowBusinessFieldsSupportProvider businessFields;
+
     @Resource
     private FlowVariables flowVariables;
     @Resource
@@ -252,7 +261,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
      * @param id 记录 ID
      * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     @Override
     public void publish(Long id, LoginUser loginUser) {
         // 1.获取流程模型,悲观锁防止并发发布
@@ -260,12 +269,25 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
         requireManager(requireModel(flowModel, loginUser), loginUser);
         // 2.发布前校验流程模型是否合法
         FlowNode modelNode = flowModel.getModelNode();
-        requireCategory(flowModel.getCategory(), loginUser);
+        var category = requireCategory(flowModel.getCategory(), loginUser);
         var varInfo = flowVariables.forModel(flowModel);
         flowNodeValidator.validate(modelNode, varInfo);
+        // 列表版本标记只由服务端写入，不能从模型草稿继承。
+        FlowVariableSchema publicationSchema = varInfo;
+        if (varInfo.getListVersion() != null) {
+            publicationSchema = new FlowVariableSchema();
+            publicationSchema.setFields(varInfo.getFields());
+        }
+        var lifecycle = businessFields == null ? null : businessFields.lifecycle();
+        if (lifecycle != null) {
+            publicationSchema = lifecycle.prepare(new FlowBusinessFieldsLifecycle.Publication(
+                    flowModel.getOrgId(), id, category.getId(), category.getCode(), flowModel.getCode(),
+                    flowModel.getFormMode(), modelNode, publicationSchema));
+            publicationSchema.setListVersion(1);
+        }
         // 3.生成发布流程定义快照
         FlowDefinition flowDefinition = PtcBeanUtils.copy(flowModel, FlowDefinition.class);
-        flowDefinition.setVarInfo(varInfo);
+        flowDefinition.setVarInfo(publicationSchema);
         if (Objects.equals(flowModel.getFormMode(), 1)) { flowDefinition.setFormConfig(null); }
         flowDefinition.setExtraSetting(FlowExtraSetting.normalize(flowDefinition.getExtraSetting()));
         flowDefinition.setId(null);
@@ -324,11 +346,12 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelDAO, FlowModel> i
      * @param category 流程分类编码
      * @param loginUser 宿主提供的可信操作者及其组织上下文
      */
-    private void requireCategory(String category, LoginUser loginUser) {
-        if (category == null || flowCategoryDAO.selectByCodeForUpdate(
-                loginUser.getOrgId(), category) == null) {
+    private FlowCategory requireCategory(String category, LoginUser loginUser) {
+        var locked = category == null ? null : flowCategoryDAO.selectByCodeForUpdate(loginUser.getOrgId(), category);
+        if (locked == null) {
             throw new BizException("流程分类不存在或不属于当前组织");
         }
+        return locked;
     }
 
     /**

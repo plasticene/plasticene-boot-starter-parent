@@ -3,6 +3,7 @@ package com.plasticene.boot.flow.core.model;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -15,6 +16,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class FlowVariableSchema {
     @Schema(description = "可用于审批配置的字段定义")
     private List<Field> fields = List.of();
+
+    @Schema(description = "服务端写入的审批列表字段版本", accessMode = Schema.AccessMode.READ_ONLY)
+    private Integer listVersion;
     /**
      * 定义一个审批变量的字段契约。
      * @author ZFJ
@@ -41,5 +45,8 @@ public class FlowVariableSchema {
         private Map<String, Object> props;
         @Schema(description = "字段选项")
         private List<Map<String, Object>> options;
+        @EqualsAndHashCode.Exclude
+        @Schema(description = "允许用于审批列表展示或搜索")
+        private Boolean allowInList;
     }
 }

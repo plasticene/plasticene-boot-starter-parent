@@ -41,6 +41,10 @@
         </dependency>
         <dependency>
             <groupId>com.plasticene.boot</groupId>
+            <artifactId>plasticene-flow-business-fields</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.plasticene.boot</groupId>
             <artifactId>plasticene-boot-starter-redis</artifactId>
         </dependency>
 

@@ -21,6 +21,7 @@ import jakarta.annotation.Resource;
 import jakarta.validation.groups.Default;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -102,7 +103,7 @@ public class FlowModelApiImpl implements FlowModelApi {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public void publish(Long id, LoginUser actor) {
         FlowActors.require(actor);
         access.check(actor, FlowAction.MODEL_PUBLISH, access.model(id));

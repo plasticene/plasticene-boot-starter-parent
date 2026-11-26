@@ -1,5 +1,7 @@
 package com.plasticene.boot.flow.core.impl.task;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import com.plasticene.boot.flow.core.impl.application.FlowBusinessFieldsSupportProvider;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -37,6 +39,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class FlowTaskQueries {
+    @Autowired(required = false)
+    private FlowBusinessFieldsSupportProvider businessFields;
+
     @Resource
     private FlowTaskDAO flowTaskDAO;
 
@@ -156,7 +161,14 @@ public class FlowTaskQueries {
 
         query.setAssignee(loginUser.getId());
         query.setOrgId(loginUser.getOrgId());
-        IPage<FlowTaskPageVO> page = flowTaskDAO.pageTask(MybatisUtils.buildPage(query), query);
+        var extension = businessFields == null ? null : businessFields.api();
+        IPage<FlowTaskPageVO> page;
+        if (extension == null) {
+            FlowBusinessFieldsSupportProvider.requireNoFilters(query.getBusinessFilters());
+            page = flowTaskDAO.pageTask(MybatisUtils.buildPage(query), query);
+        } else {
+            page = extension.pageTasks(query);
+        }
 
         Map<String, String> categoryMap = flowCategoryService.getCategoryMap(loginUser);
         Map<Long, String> userMap = flowOrganizationProvider.getUserMap(loginUser.getOrgId());

@@ -176,6 +176,11 @@
                 <version>${revision}</version>
             </dependency>
             <dependency>
+                <groupId>com.plasticene.boot</groupId>
+                <artifactId>plasticene-flow-business-fields</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.mybatis</groupId>
                 <artifactId>mybatis-spring</artifactId>
                 <version>${mybatis-spring.version}</version>

@@ -5,6 +5,7 @@ import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.api.param.FlowCategoryParam;
 import com.plasticene.boot.flow.core.api.query.FlowCategoryQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowCategoryVO;
+import com.plasticene.boot.flow.core.api.vo.FlowBusinessFieldsVO;
 import java.util.List;
 
 /**
@@ -14,6 +15,11 @@ import java.util.List;
  * @since 2026-11-16
  */
 public interface FlowCategoryApi {
+    /** 查询分类管理可用的审批列表字段能力。 */
+    default FlowBusinessFieldsVO.Capabilities fieldsCapabilities(LoginUser actor) {
+        return new FlowBusinessFieldsVO.Capabilities(false, null);
+    }
+
     /**
      * 在当前组织创建流程分类，分类编码在组织内唯一。
      *

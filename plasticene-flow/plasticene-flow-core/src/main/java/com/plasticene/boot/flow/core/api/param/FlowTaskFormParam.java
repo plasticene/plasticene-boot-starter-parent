@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.api.param;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -17,5 +18,6 @@ public class FlowTaskFormParam {
     private Long taskId;
     @NotNull(message = "本次修改的表单字段不能为空")
     @Schema(description = "本次修改的表单字段")
+    @JsonDeserialize(using = FlowVariableMapDeserializer.class)
     private Map<String, Object> formData;
 }

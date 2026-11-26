@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.api.param;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import java.util.Map;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -17,5 +18,6 @@ public class FlowStartParam {
     @NotNull(message = "发布定义标识不能为空")
     private Long definitionId;
     @Schema(description = "本次申请的审批数据")
+    @JsonDeserialize(using = FlowVariableMapDeserializer.class)
     private Map<String, Object> varMap;
 }

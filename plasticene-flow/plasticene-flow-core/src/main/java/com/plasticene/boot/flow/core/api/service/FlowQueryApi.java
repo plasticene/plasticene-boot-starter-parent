@@ -6,6 +6,7 @@ import com.plasticene.boot.flow.core.api.query.FlowDashboardQuery;
 import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.api.query.FlowTaskQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowDashboardVO;
+import com.plasticene.boot.flow.core.api.vo.FlowBusinessFieldsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowDefinitionVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceStatisticsVO;
@@ -20,6 +21,11 @@ import com.plasticene.boot.flow.core.api.vo.FlowTaskPageVO;
  * @since 2026-11-16
  */
 public interface FlowQueryApi {
+    /** 查询审批中心分类目录及业务字段能力。 */
+    default FlowBusinessFieldsVO.Catalog getApprovalCatalog(LoginUser actor) {
+        throw new UnsupportedOperationException("审批目录未配置");
+    }
+
     /**
      * 分页查询操作者本人在当前组织发起的流程申请。
      *

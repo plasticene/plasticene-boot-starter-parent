@@ -1,5 +1,6 @@
 package com.plasticene.boot.flow.core.impl.application;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.flow.core.api.query.FlowDashboardQuery;
@@ -20,6 +21,11 @@ import com.plasticene.boot.flow.core.impl.service.instance.FlowRuntimeService;
 import com.plasticene.boot.flow.core.impl.service.task.FlowTaskService;
 import com.plasticene.boot.flow.core.impl.support.FlowActors;
 import jakarta.annotation.Resource;
+import com.plasticene.boot.flow.core.api.vo.FlowBusinessFieldsVO;
+import com.plasticene.boot.flow.core.api.vo.FlowCategoryVO;
+import com.plasticene.boot.flow.core.impl.service.category.FlowCategoryService;
+import java.util.Comparator;
+import java.util.List;
 import jakarta.validation.groups.Default;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +36,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class FlowQueryApiImpl implements FlowQueryApi {
+    @Autowired(required = false)
+    private FlowBusinessFieldsSupportProvider businessFields;
+
     @Resource
     private FlowAccess access;
     @Resource
@@ -40,6 +49,24 @@ public class FlowQueryApiImpl implements FlowQueryApi {
     private FlowTaskService taskService;
     @Resource
     private FlowDashboardService dashboardService;
+
+    @Resource
+    private FlowCategoryService categoryService;
+
+    @Override
+    public FlowBusinessFieldsVO.Catalog getApprovalCatalog(LoginUser actor) {
+        FlowActors.require(actor);
+        access.check(actor, FlowAction.INSTANCE_READ, access.organization(actor));
+        var categories = categoryService.listCategory(actor).stream()
+                .sorted(Comparator.comparing(FlowCategoryVO::getSeq, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(FlowCategoryVO::getId, Comparator.reverseOrder()))
+                .map(category -> new FlowBusinessFieldsVO.Category(category.getId(), category.getCode(),
+                        category.getName(), category.getIcon(), category.getSeq(), List.of()))
+                .toList();
+        var extension = businessFields == null ? null : businessFields.api();
+        return extension == null ? new FlowBusinessFieldsVO.Catalog(false, null, categories)
+                : new FlowBusinessFieldsVO.Catalog(true, extension.limits(), extension.enrichCatalog(categories, actor));
+    }
 
     @Override
     public PageResult<FlowInstanceVO> pageMyInstances(FlowInstanceQuery query, LoginUser actor) {

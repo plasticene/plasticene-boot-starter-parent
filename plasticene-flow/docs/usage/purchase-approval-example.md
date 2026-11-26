@@ -4,7 +4,7 @@
 
 ## 初始化
 
-1. 在本地开发数据库中执行 `docs/sql/purchase-apply.sql`。保留 FLOW 自身已有的模型、实例、任务及事件表；新业务表须与 FLOW 使用同一数据源、同一事务管理器。
+1. 在本地开发数据库中执行 [purchase-apply.sql](../sql/purchase-apply.sql)。保留 FLOW 自身已有的模型、实例、任务及事件表；新业务表须与 FLOW 使用同一数据源、同一事务管理器。
 2. 启动 `FlowExampleApplication`（普通示例应用，不是 `leave` 命令行演示）。使用本地开发环境的数据库、Redis 和登录认证配置，启动端口沿用现有配置。
 3. 在流程分类管理中新建编码为 `purchase` 的分类。
 4. 新建流程模型：编码 `purchase-approval`，分类 `purchase`，表单模式选“业务表单”。选择有权限发起该模型的用户范围，配置一个人工审批节点，选择实际可登录的审批人，然后发布并启用模型。

@@ -1,5 +1,8 @@
 package com.plasticene.boot.flow.core.impl.service.task;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import com.plasticene.boot.flow.core.api.spi.FlowBusinessFieldsLifecycle;
+import com.plasticene.boot.flow.core.impl.application.FlowBusinessFieldsSupportProvider;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -63,6 +66,9 @@ import com.plasticene.boot.flow.core.impl.application.FlowVariables;
  */
 @Service
 public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> implements FlowTaskService {
+    @Autowired(required = false)
+    private FlowBusinessFieldsSupportProvider businessFields;
+
     @Resource
     private FlowVariables flowVariables;
     @Resource
@@ -205,6 +211,12 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskDAO, FlowTask> impl
             if (!flowRuntimeService.updateById(update)) {
                 throw new BizException("表单保存失败，请刷新后重试");
             }
+            var lifecycle = businessFields == null ? null : businessFields.lifecycle();
+            if (lifecycle != null) {
+                lifecycle.sync(new FlowBusinessFieldsLifecycle.InstanceData(
+                        instance.getOrgId(), instance.getId(), user.getId(), definition.getVarInfo(), variables));
+            }
+
             FlowFormChangeRecord record = new FlowFormChangeRecord();
             record.setOrgId(instance.getOrgId());
             record.setInstanceId(instance.getId());

@@ -1,6 +1,8 @@
 package com.plasticene.boot.flow.core.api.query;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.plasticene.boot.common.pojo.PageQuery;
+import com.plasticene.boot.flow.core.api.param.FlowBusinessFieldFilter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -9,6 +11,7 @@ import lombok.EqualsAndHashCode;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 流程实例分页查询参数
@@ -41,10 +44,12 @@ public class FlowInstanceQuery extends PageQuery {
     @Schema(description = "实例状态 0：审批中 1：审批通过 2：审批拒绝 3：已取消")
     private Integer status;
 
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     @Schema(description = "发起时间开始值")
     private LocalDateTime startTimeBegin;
 
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     @Schema(description = "发起时间结束值")
     private LocalDateTime startTimeEnd;
@@ -54,4 +59,7 @@ public class FlowInstanceQuery extends PageQuery {
 
     @Schema(description = "租户id", hidden = true)
     private Long orgId;
+
+    @Schema(description = "审批列表业务字段条件")
+    private List<FlowBusinessFieldFilter> businessFilters;
 }

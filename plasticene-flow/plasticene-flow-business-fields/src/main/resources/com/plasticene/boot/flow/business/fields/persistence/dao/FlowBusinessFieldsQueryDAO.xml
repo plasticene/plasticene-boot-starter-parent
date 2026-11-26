@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.plasticene.boot.flow.business.fields.persistence.dao.FlowBusinessFieldsQueryDAO">
+    <sql id="filterJoins">
+        <foreach collection="filters" item="filter" index="idx">
+            INNER JOIN flow_instance_field_value fv${idx}
+                ON fv${idx}.org_id = fi.org_id
+                AND fv${idx}.instance_id = fi.id
+                AND fv${idx}.field_code = #{filter.field}
+                AND fv${idx}.value_kind = #{filter.kind}
+                AND fv${idx}.${filter.column}
+                <choose>
+                    <when test="filter.operator.name() == 'EQ'">= #{filter.value}</when>
+                    <when test="filter.operator.name() == 'STARTS_WITH'">LIKE #{filter.value} ESCAPE '!'</when>
+                    <when test="filter.operator.name() == 'GT'">&gt; #{filter.value}</when>
+                    <when test="filter.operator.name() == 'GTE'">&gt;= #{filter.value}</when>
+                    <when test="filter.operator.name() == 'LT'">&lt; #{filter.value}</when>
+                    <when test="filter.operator.name() == 'LTE'">&lt;= #{filter.value}</when>
+                    <when test="filter.operator.name() == 'BETWEEN'">BETWEEN #{filter.value} AND #{filter.endValue}</when>
+                </choose>
+        </foreach>
+    </sql>
+
+    <select id="pageInstance" resultType="com.plasticene.boot.flow.core.api.vo.FlowInstanceVO">
+        <include refid="com.plasticene.boot.flow.core.impl.persistence.dao.FlowInstanceDAO.pageFrom"/>
+        <include refid="filterJoins"/>
+        <include refid="com.plasticene.boot.flow.core.impl.persistence.dao.FlowInstanceDAO.pageWhereAndOrder"/>
+    </select>
+
+    <select id="pageTask" resultType="com.plasticene.boot.flow.core.api.vo.FlowTaskPageVO">
+        <include refid="com.plasticene.boot.flow.core.impl.persistence.dao.FlowTaskDAO.pageFrom"/>
+        <include refid="filterJoins"/>
+        <include refid="com.plasticene.boot.flow.core.impl.persistence.dao.FlowTaskDAO.pageWhereAndOrder"/>
+    </select>
+</mapper>

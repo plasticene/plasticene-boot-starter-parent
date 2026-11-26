@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import com.plasticene.boot.flow.core.impl.application.FlowAccess;
+import com.plasticene.boot.flow.core.impl.application.FlowBusinessFieldsSupportProvider;
 import com.plasticene.boot.flow.core.impl.application.FlowCategoryApiImpl;
 import com.plasticene.boot.flow.core.impl.application.FlowEventApiImpl;
 import com.plasticene.boot.flow.core.impl.application.FlowFormApiImpl;
@@ -48,6 +49,7 @@ import com.plasticene.boot.flow.core.impl.validation.FlowNodeValidator;
  */
 @AutoConfiguration(afterName = "com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration")
 @Import({
+        FlowBusinessFieldsSupportProvider.class,
         FlowAccess.class,
         FlowCategoryApiImpl.class,
         FlowEventApiImpl.class,

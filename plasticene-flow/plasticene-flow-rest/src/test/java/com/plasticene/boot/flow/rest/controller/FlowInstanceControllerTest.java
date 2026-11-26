@@ -1,6 +1,7 @@
 package com.plasticene.boot.flow.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.plasticene.boot.common.pojo.PageResult;
 import com.plasticene.boot.common.user.LoginUser;
 import com.plasticene.boot.common.user.LoginUserHolder;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
@@ -19,7 +20,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Map;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import com.plasticene.boot.flow.core.api.service.FlowQueryApi;
 import org.mockito.ArgumentMatchers;
 
@@ -65,6 +68,37 @@ class FlowInstanceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(41L));
         verify(service).startInstance(ArgumentMatchers.argThat(param -> param.getDefinitionId().equals(31L) && param.getVarMap().isEmpty()), ArgumentMatchers.eq(loginUser));
+    }
+
+    @Test
+    void shouldBindPersonalPageFiltersAndPreserveBaseTimeFormat() throws Exception {
+        when(queries.pageMyInstances(ArgumentMatchers.any(), ArgumentMatchers.eq(loginUser)))
+                .thenReturn(new PageResult<>(List.of(), 0L, 0L));
+        mvc.perform(post("/flow/instance/my/page").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"pageNo":1,"pageSize":20,"category":"purchase",
+                                 "startTimeBegin":"2026-11-20T00:00:00",
+                                 "businessFilters":[{"field":"amount","operator":"GT","value":"100000"}]}
+                                """))
+                .andExpect(status().isOk());
+        verify(queries).pageMyInstances(ArgumentMatchers.argThat(query ->
+                query.getUserId().equals(17L) && query.getOrgId().equals(27L)
+                        && query.getStartTimeBegin().equals(LocalDateTime.of(2026, 11, 20, 0, 0))
+                        && query.getBusinessFilters().getFirst().value().equals("100000")), ArgumentMatchers.eq(loginUser));
+        mvc.perform(get("/flow/instance/my/page")).andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    void shouldReadApprovalAmountWithoutRoundingJsonDecimals() throws Exception {
+        when(service.startInstance(ArgumentMatchers.any(), ArgumentMatchers.eq(loginUser))).thenReturn(41L);
+        mvc.perform(post("/flow/instance/start").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"definitionId":31,"varMap":{"amount":99999999999999.9999,"count":1}}
+                                """))
+                .andExpect(status().isOk());
+        verify(service).startInstance(ArgumentMatchers.argThat(param ->
+                new BigDecimal("99999999999999.9999").equals(param.getVarMap().get("amount"))
+                        && Integer.valueOf(1).equals(param.getVarMap().get("count"))), ArgumentMatchers.eq(loginUser));
     }
 
     @ParameterizedTest

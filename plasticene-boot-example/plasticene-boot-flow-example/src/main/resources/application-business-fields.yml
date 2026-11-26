@@ -1,0 +1,4 @@
+ptc:
+  flow:
+    business-fields:
+      enabled: true

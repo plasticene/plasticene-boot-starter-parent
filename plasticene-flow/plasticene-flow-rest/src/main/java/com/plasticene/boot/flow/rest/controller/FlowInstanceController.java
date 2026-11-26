@@ -8,6 +8,7 @@ import com.plasticene.boot.flow.core.api.param.FlowStartParam;
 import com.plasticene.boot.flow.core.api.param.FlowRoutePreviewParam;
 import com.plasticene.boot.flow.core.api.query.FlowInstanceQuery;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceDetailVO;
+import com.plasticene.boot.flow.core.api.vo.FlowBusinessFieldsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceStatisticsVO;
 import com.plasticene.boot.flow.core.api.vo.FlowInstanceVO;
 import com.plasticene.boot.flow.core.api.vo.FlowRouteNodeVO;
@@ -72,12 +73,18 @@ public class FlowInstanceController {
     }
 
     @Operation(summary = "分页查询当前用户发起的流程实例")
-    @GetMapping("/my/page")
-    public ResponseVO<PageResult<FlowInstanceVO>> pageMyApplications(@Validated FlowInstanceQuery query) {
+    @PostMapping("/my/page")
+    public ResponseVO<PageResult<FlowInstanceVO>> pageMyApplications(@RequestBody @Validated FlowInstanceQuery query) {
         LoginUser loginUser = LoginUserHolder.get();
         query.setUserId(loginUser.getId());
         query.setOrgId(loginUser.getOrgId());
         return ResponseVO.success(flowQueryApi.pageMyInstances(query, loginUser));
+    }
+
+    @Operation(summary = "查询审批中心分类目录")
+    @GetMapping("/approval-catalog")
+    public ResponseVO<FlowBusinessFieldsVO.Catalog> approvalCatalog() {
+        return ResponseVO.success(flowQueryApi.getApprovalCatalog(LoginUserHolder.get()));
     }
 
     @Operation(summary = "查询流程实例详情")

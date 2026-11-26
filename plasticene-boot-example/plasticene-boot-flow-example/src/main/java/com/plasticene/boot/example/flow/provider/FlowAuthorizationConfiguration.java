@@ -75,6 +75,7 @@ public class FlowAuthorizationConfiguration {
         field.setType(type);
         field.setRequired(!"urgent".equals(name));
         field.setOptions(options);
+        field.setAllowInList(!"urgent".equals(name));
         return field;
     }
 }

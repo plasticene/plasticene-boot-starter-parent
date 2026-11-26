@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 当前用户发起的流程实例列表信息
@@ -71,4 +72,7 @@ public class FlowInstanceVO {
 
     @Schema(description = "当前节点停留时长，单位秒")
     private Long currentNodeElapsedTime;
+
+    @Schema(description = "审批列表业务字段值")
+    private Map<String, FlowBusinessFieldValue> listValues = Map.of();
 }

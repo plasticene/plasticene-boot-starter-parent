@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.plasticene.boot.flow.core.impl.persistence.dao.FlowTaskDAO">
 
-    <select id="pageTask" resultType="com.plasticene.boot.flow.core.api.vo.FlowTaskPageVO">
+    <sql id="pageFrom">
         SELECT ft.id AS task_id,
                ft.instance_id,
                fi.definition_id,
@@ -27,6 +27,9 @@
         FROM flow_task ft
         INNER JOIN flow_instance fi ON fi.id = ft.instance_id AND fi.org_id = ft.org_id
         INNER JOIN flow_definition fd ON fd.id = fi.definition_id AND fd.org_id = ft.org_id
+    </sql>
+
+    <sql id="pageWhereAndOrder">
         <where>
             ft.org_id = #{query.orgId}
             AND ft.assignee = #{query.assignee}
@@ -66,6 +69,11 @@
             </if>
         </where>
         ORDER BY COALESCE(ft.end_time, ft.start_time) DESC, ft.id DESC
+    </sql>
+
+    <select id="pageTask" resultType="com.plasticene.boot.flow.core.api.vo.FlowTaskPageVO">
+        <include refid="pageFrom"/>
+        <include refid="pageWhereAndOrder"/>
     </select>
 
     <update id="addCompletedBranches">
